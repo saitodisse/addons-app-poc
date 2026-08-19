@@ -14,11 +14,77 @@ const validManifest = {
   ],
 };
 
+// Manifesto estilo Stremio: add-on servido por HTTP com resources (como o Torrentio)
+const stremioManifest = {
+  id: 'text-biblioteca',
+  version: '1.0.0',
+  name: 'Biblioteca de Textos',
+  description: 'Catálogo e busca de textos',
+  author: 'Equipe AC',
+  license: 'MIT',
+  resources: [
+    { name: 'catalog', types: ['text'], idPrefixes: [] },
+    { name: 'search', types: ['text'], idPrefixes: [] },
+    { name: 'text', types: ['text'], idPrefixes: [] },
+  ],
+  types: ['text'],
+  idPrefixes: [],
+  catalogs: [
+    { type: 'text', id: 'classicos', name: 'Textos Clássicos' },
+  ],
+};
+
 describe('validateManifest', () => {
   it('returns valid for a correct manifest', () => {
     const result = validateManifest(validManifest);
     expect(result.valid).toBe(true);
     expect(result.errors).toHaveLength(0);
+  });
+
+  it('returns valid for a Stremio-style manifest with resources', () => {
+    const result = validateManifest(stremioManifest);
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('returns invalid for a manifest without services nor resources', () => {
+    const result = validateManifest({
+      id: 'vazio',
+      version: '1.0.0',
+      name: 'Vazio',
+      description: 'Sem serviços nem recursos',
+      author: 'X',
+      license: 'MIT',
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.includes('services') || e.includes('resources'))).toBe(true);
+  });
+
+  it('returns invalid when a resource has an unknown name', () => {
+    const result = validateManifest({
+      ...stremioManifest,
+      resources: [{ name: 'banana', types: ['text'] }],
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.includes('resources'))).toBe(true);
+  });
+
+  it('returns invalid when a resource has no types', () => {
+    const result = validateManifest({
+      ...stremioManifest,
+      resources: [{ name: 'search', types: [] }],
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.includes('resources'))).toBe(true);
+  });
+
+  it('returns invalid when catalogs reference an unknown type', () => {
+    const result = validateManifest({
+      ...stremioManifest,
+      catalogs: [{ type: 'filme', id: 'top', name: 'Filmes' }],
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.includes('catalogs'))).toBe(true);
   });
 
   it('returns invalid when data is not an object', () => {

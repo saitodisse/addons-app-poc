@@ -5,6 +5,29 @@ export interface ServiceRegistration {
   description: string;
 }
 
+/**
+ * Recurso declarado no manifesto (estilo Stremio/Torrentio).
+ *
+ * Assim como o Torrentio declara `{ name: 'stream', types: ['movie', 'series'] }`,
+ * um add-on de texto declara recursos como `catalog`, `search` e `text`.
+ */
+export type AddonResourceName = 'catalog' | 'search' | 'text' | 'meta' | 'subtitles' | 'stream';
+
+export interface AddonResource {
+  name: AddonResourceName;
+  /** Tipos de conteúdo que este recurso atende (ex.: 'text', 'quote'). */
+  types: string[];
+  /** Prefixos de id aceitos (ex.: 'tt' para IMDb, como o Torrentio). */
+  idPrefixes?: string[];
+}
+
+/** Catálogo anunciado no manifesto (estilo Stremio). */
+export interface AddonCatalog {
+  type: string;
+  id: string;
+  name: string;
+}
+
 export interface AddonManifest {
   id: string;
   version: string;
@@ -13,6 +36,12 @@ export interface AddonManifest {
   author: string;
   icon?: string;
   license: string;
-  entrypoint: string;
-  services: ServiceRegistration[];
+  /** Formato em processo: bundle ESM + setup. */
+  entrypoint?: string;
+  services?: ServiceRegistration[];
+  /** Formato Stremio: add-on servido por HTTP com resources. */
+  resources?: AddonResource[];
+  types?: string[];
+  idPrefixes?: string[];
+  catalogs?: AddonCatalog[];
 }

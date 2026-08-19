@@ -76,6 +76,9 @@ export class FetchAddonLoader implements AddonLoaderPort {
 
     let module: AddonModule;
     try {
+      if (!manifest.entrypoint) {
+        throw new Error('Manifesto em-processo deve declarar entrypoint');
+      }
       module = await this.importFn(manifest.entrypoint);
     } catch (error) {
       this.logger.log('error', `Falha ao importar bundle: ${(error as Error).message}`);

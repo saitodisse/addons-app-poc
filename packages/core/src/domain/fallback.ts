@@ -26,3 +26,20 @@ export function withFallback<T, R>(
   }
   throw new AggregateFallbackError(serviceId, errors);
 }
+
+export async function withFallbackAsync<T, R>(
+  registry: ServiceRegistry,
+  serviceId: string,
+  fn: (instance: T) => Promise<R>,
+): Promise<R> {
+  const implementations = registry.getAll<T>(serviceId);
+  const errors: Error[] = [];
+  for (const impl of implementations) {
+    try {
+      return await fn(impl);
+    } catch (error) {
+      errors.push(error as Error);
+    }
+  }
+  throw new AggregateFallbackError(serviceId, errors);
+}
