@@ -2,6 +2,8 @@
 
 Este documento estabelece as regras e convenções para agentes de IA que trabalham neste projeto.
 
+Responda sempre em pt-br
+
 ## Natureza do Projeto
 
 Este é um **projeto independente de prova de conceito (POC)**. Não faz parte do ecossistema AC nem de qualquer outro repositório existente. Não deve ser tratado como parte do monorepo `achorde` ou `ac15`.
