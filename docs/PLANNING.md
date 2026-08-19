@@ -1,306 +1,140 @@
-# Planejamento — A Conversa Completa
+# Arquitetura de Add-ons: A Jornada e o Planejamento
 
-Este documento registra **toda a conversa de planejamento** que levou à criação deste projeto. Cada seção representa uma etapa da discussão, desde o insight inicial até as decisões finais do *grilling*.
+Bem-vindo! Este documento é um registro vivo de como repensamos toda a arquitetura do nosso projeto. Aqui, você vai acompanhar a evolução das nossas ideias: desde o problema que nos travava até as decisões técnicas que nos levaram a criar um sistema modular, resiliente e incrivelmente flexível.
 
----
-
-## 1. O Contexto Original
-
-O projeto nasceu dentro do ecossistema **AC** — um monorepo de coordenação em `/home/saito/_git/ac` que reúne cinco repositórios Git independentes:
-
-- **achorde** — pacotes públicos e contratos compartilhados (musical-domain, source-catalog, tab-renderer, svguitar-react, etc.)
-- **ac15** — produto privado com apps/web, sync-engine, storage
-- **artist-portal-base** — base pública para portais de artista
-- **ac12-catalog-portal** — portal do acervo AC12
-- **achorde-contribution-gateway** — API de contribuições (desativada)
-
-A arquitetura atual desses projetos usa dependências diretas entre pacotes — `import` em tempo de compilação. Para trocar uma implementação por outra, é preciso modificar o código e rebuildar.
+Se você está chegando agora, não se preocupe com termos complexos. Vamos construir o entendimento camada por camada.
 
 ---
 
-## 2. O Insight do Cordis
+## 1. O Ponto de Partida: Por que mudar?
 
-A conversa começou com uma pergunta: **"Como usar o Cordis para deixar todos os pacotes do AC intercambiáveis?"**
+Tudo começou no ecossistema **AC**, um ambiente que abrigava cinco projetos diferentes (como portais de artistas, bibliotecas de música e sistemas de sincronização) dentro de um único repositório de código (um *monorepo*).
 
-O Cordis é um framework IoC (Inversion of Control) usado pelo DeepSeek Harness. Ele permite que plugins se registrem por `id` + `name`, declarem dependências com `inject`, e sejam compostos via arquivos YAML de configuração. A ideia era aplicar esse mesmo padrão no AC — um container onde cada pacote se registra por um nome, e quem consome pede pelo nome, não pela implementação.
+O grande problema era **como esses projetos se conectavam**.
 
-Isso já resolveria o problema de intercambialidade técnica. Mas a conversa foi além.
+A arquitetura antiga usava dependências diretas. Isso significa que, se o Projeto A precisasse do Projeto B, o código do A mencionava o B explicitamente. Era como ter um carro onde as rodas estão soldadas no eixo: para trocar um pneu, você precisava desmontar o carro inteiro e reconstruí-lo do zero (o que chamamos de *rebuildar*). Precisávamos de uma forma de trocar os "pneus" com o carro em movimento.
 
----
+## 2. A Semente da Ideia: A Inspiração no Cordis
 
-## 3. O Paralelo com o Stremio
+A virada de chave começou com uma pergunta simples: *"E se os pacotes pudessem ser trocados sem mexer no código principal?"*
 
-O usuário trouxe o Stremio como metáfora, e rapidamente ficou claro que não era apenas uma metáfora — era um **padrão arquitetural completo**.
+Olhamos para um framework chamado **Cordis**. Ele usa um conceito inteligente conhecido como **Inversão de Controle (IoC)**. O nome pode parecer assustador, mas a ideia é simples: em vez do seu código dizer *"Eu quero usar a ferramenta exata X"*, ele diz *"Eu preciso de uma ferramenta que faça este trabalho, me dê a melhor que você tiver registrada"*.
 
-O Stremio tem quatro camadas independentes:
+Isso resolve a parte técnica, mas logo percebemos que o buraco era mais embaixo. Não queríamos apenas organizar o código; queríamos mudar a forma como o sistema sobrevivia no mundo real.
 
-| Camada | O que é | No Stremio |
-|--------|---------|------------|
-| 1 | Player/UI | O aplicativo em si, open source, lojas oficiais |
-| 2 | Add-ons | Torrentio, KnightCrawler — scripts independentes |
-| 3 | Cache | Real-Debrid — cache gigante e rápido |
-| 4 | Armazenamento distribuído | Rede BitTorrent + DHT — sem servidor central |
+## 3. O Paradigma Stremio: Construindo algo Indestrutível
 
-Cada camada é independente. Derrubar uma não afeta as outras. O código do Stremio é legal e está em lojas oficiais. Os add-ons são mantidos pela comunidade. O cache é comercial mas substituível. O armazenamento distribuído não tem ponto central de falha.
+Foi então que trouxemos o aplicativo **Stremio** para a mesa. No início, parecia apenas uma metáfora, mas logo vimos que era o **padrão arquitetural perfeito**.
 
-O que torna o sistema **indestrutível** não é uma tecnologia específica. É o **desenho das camadas**.
+O Stremio é famoso por ser um sistema à prova de balas. O segredo dele? Ele é fatiado em quatro camadas totalmente independentes. Se uma camada cai, as outras continuam de pé:
 
----
+| Camada | O que faz? | O Exemplo no Stremio |
+| --- | --- | --- |
+| **1. Player (Interface)** | O aplicativo oficial que o usuário vê. | App nas lojas oficiais, 100% legal e de código aberto. |
+| **2. Add-ons (Extensões)** | Scripts independentes que encontram o conteúdo. | Mantidos pela comunidade, rodam separadamente. |
+| **3. Cache** | Memória rápida para entregar o conteúdo na hora. | Serviços comerciais externos, facilmente substituíveis. |
+| **4. Armazenamento** | Onde o conteúdo realmente vive (descentralizado). | Rede global (BitTorrent/DHT), sem um servidor central. |
 
-## 4. O Mapeamento para o AC
+> **A grande sacada:** O que torna um sistema "indestrutível" não é usar uma tecnologia mágica, mas sim desenhar fronteiras claras entre suas partes.
 
-A conversa mapeou cada camada do Stremio para o ecossistema AC:
+## 4. O Sistema de Add-ons do AC
 
-| Stremio | AC |
-|---------|-----|
-| Player | catalog-portal, ac15-web, artist-portal-base |
-| IMDb IDs | `@achorde/musical-domain` — tipos e contratos |
-| Add-ons (Torrentio, etc.) | Renderizadores, editores, provedores de catálogo |
-| Real-Debrid | Dexie/IndexedDB, cache local |
-| DHT | sync-engine (sincronização entre dispositivos) |
+Ao mapear a genialidade do Stremio para as nossas necessidades no AC, percebemos que não precisávamos de um gerenciador de dependências mais complexo. **Precisávamos de um verdadeiro sistema de Add-ons.**
 
-O insight fundamental: o que o AC precisa não é de um sistema de DI (injeção de dependência) mais sofisticado. O que o AC precisa é de um **sistema de add-ons** — porque um sistema de add-ons oferece três coisas que DI não oferece:
+Veja como o AC se espelha no Stremio:
 
-1. **Descoberta** — add-ons são encontrados via manifesto público, não via código
-2. **Isolamento** — a falha de um add-on não quebra o core
-3. **Escolha do usuário** — quem decide qual add-on está ativo é o usuário, não o desenvolvedor
+* **Player:** Nossos aplicativos e portais web.
+* **Identificadores universais:** Nossa biblioteca de contratos de música (`@achorde/musical-domain`).
+* **Add-ons:** Ferramentas que renderizam diagramas, editores de partituras e catálogos.
+* **Cache:** Bancos de dados locais no navegador do usuário (como o IndexedDB).
+* **Armazenamento Descentralizado:** Nosso motor de sincronização entre os dispositivos do usuário.
 
----
+Optar por add-ons nos trouxe três superpoderes:
 
-## 5. As Interfaces de Extensão
-
-Foram identificadas cinco famílias de add-ons no ecossistema AC:
-
-1. **Renderização de diagramas** — SVGuitar, tab-renderer, interactive-fretboard, visualização 3D
-2. **Editores de chord chart** — tab-editor, editor visual, editor Monaco
-3. **Provedores de catálogo** — source-catalog, contribution-protocol, arquivo local, API remota
-4. **Mecanismos de busca** — local, remota, difusa, por artista, por tom
-5. **Armazenamento e cache** — IndexedDB, SQLite, API remota, IPFS
-
-Cada família define uma **interface TypeScript pura**. Qualquer add-on que implemente a interface pode ser plugado.
+1. **Descoberta:** O sistema encontra as ferramentas via internet, e não lendo arquivos de código.
+2. **Isolamento:** Se um add-on quebrar, o aplicativo principal continua funcionando normalmente.
+3. **Poder de Escolha:** É o usuário quem decide qual add-on ativar, não o programador.
 
 ---
 
-## 6. A Estrutura do Manifesto
+## 5. Como Funciona na Prática? O Motor do Sistema
 
-O manifesto de um add-on é um JSON que declara:
+Agora que entendemos o "Por que" e o "O que", vamos descer uma camada e ver o "Como".
 
-- **Identidade**: `id`, `version`, `name`, `description`, `author`, `icon`, `license`
-- **Técnico**: `entrypoint` (URL do bundle), `services[]` (lista de serviços oferecidos)
-- **Compatibilidade**: `hostVersion` (versão do host requerida), `dependencies` (dependências externas)
+### As Interfaces (Os Contratos)
 
-Cada serviço declarado tem `id`, `version`, `name`, `description`.
+Criamos cinco famílias de add-ons (ex: *Renderizadores de Diagramas*, *Editores*, *Mecanismos de Busca*). Cada família possui uma interface rigorosa escrita em TypeScript. É como uma tomada: se o seu add-on tem o formato certo para encaixar naquela tomada, ele vai funcionar.
 
----
+### O Manifesto (O Documento de Identidade)
 
-## 7. O Mecanismo de Descoberta
+Todo add-on precisa de um "RG" em formato JSON, chamado Manifesto. Ele conta ao sistema tudo sobre a extensão:
 
-Quatro formas de um add-on ser descoberto:
+* **Quem sou eu:** Nome, autor, versão, descrição.
+* **Como eu funciono:** Onde está o meu código e quais serviços eu presto.
+* **Do que eu preciso:** Com quais versões do aplicativo eu sou compatível.
 
-1. **Catálogo central** — repositório público de manifests
-2. **Instalação direta** — usuário cola a URL do manifesto
-3. **Escopo de npm** — pacotes com keyword `ac-addon`
-4. **Registro federado** — múltiplos catálogos independentes
+### A Magia do Fallback (O Plano B, C e D)
 
----
-
-## 8. O Carregamento Dinâmico
-
-O add-on é um bundle JavaScript ESM. O host faz:
-
-```
-const module = await import(url)
-module.setup(hostAPI)
-```
-
-Se o carregamento falhar, o add-on é ignorado. Se o setup falhar, o add-on é desativado. Se o serviço falhar em uso, o fallback assume.
+O que acontece se um serviço falhar no meio do uso? O sistema usa uma rede de segurança chamada **Cadeia de Fallback**.
+Se o seu aplicativo precisa renderizar um diagrama de guitarra, ele tenta o *Add-on 1*. Falhou? Ele tenta o *Add-on 2* automaticamente, sem que o usuário perceba. No fim da linha, sempre há uma opção básica e nativa garantindo que a tela não fique em branco.
 
 ---
 
-## 9. A Cadeia de Fallback
+## 6. A História do Joaquim: O Sistema Visto de Fora
 
-Cada serviço tem uma lista ordenada de implementações. Quando o host precisa de um serviço:
+Para visualizar como isso é poderoso, imagine o Joaquim. Ele é um desenvolvedor independente e teve uma ideia brilhante: um visualizador de acordes em 3D.
 
-1. Tenta a primeira implementação (maior prioridade)
-2. Se falhar, tenta a segunda
-3. Se falhar, tenta a terceira
-4. No final da cadeia, sempre tem uma implementação padrão
+Com a nossa nova arquitetura, o fluxo do Joaquim é o seguinte:
 
-O usuário pode reordenar a lista de preferências.
+1. Ele cria seu código usando nossos "contratos" (interfaces).
+2. Ele hospeda o código dele e o seu Manifesto (JSON) na nuvem, de graça.
+3. Ele posta o link em um fórum.
 
----
-
-## 10. O Cenário Concreto (Add-on do Joaquim)
-
-Joaquim é um desenvolvedor que criou um visualizador de acordes em 3D. Ele:
-
-1. Cria um pacote que depende apenas de `@achorde/musical-domain`
-2. Implementa a interface `ChordDiagramRenderer`
-3. Publica o manifesto num GitHub Pages
-4. Publica o bundle num CDN gratuito
-5. Avisa num fórum da comunidade
-
-Um usuário cola a URL do manifesto no gerenciador de add-ons. O portal carrega, valida, registra. Pronto. Joaquim não precisou de permissão de ninguém.
+Um usuário vê o post, copia o link e cola no seu aplicativo AC. O aplicativo lê o Manifesto, carrega a ferramenta do Joaquim e... *voilà!* O usuário agora vê acordes em 3D. O Joaquim não precisou pedir permissão para a nossa equipe e nós não precisamos atualizar o nosso aplicativo.
 
 ---
 
-## 11. As Quatro Camadas de Indestrutibilidade do AC
+## 7. O "Grilling": 13 Perguntas Difíceis, 13 Decisões Claras
 
-Aplicando o padrão Stremio ao AC:
+Antes de escrever a primeira linha de código, decidimos criar uma Prova de Conceito (o projeto `addons-app-poc`). Para garantir que a ideia era sólida, nós a submetemos a um "grilling" (um interrogatório intenso). Aqui estão as decisões mais importantes que tomamos:
 
-| Camada | O que é | Resiliente porque |
-|--------|---------|-------------------|
-| 1 | Portais (catalog-portal, ac15-web) | Código aberto, qualquer um deploya |
-| 2 | Add-ons (renderizadores, editores, provedores) | Independentes, fallback automático |
-| 3 | Tipos e interfaces (`@achorde/musical-domain`) | Só TypeScript, sem servidor, distribuído via npm |
-| 4 | Armazenamento (IndexedDB, servidor AC12, IPFS) | Múltiplas fontes, configurável por add-on |
+* **Identidade:** Como sabemos quem é quem? A própria URL (link) do manifesto é o CPF único do add-on.
+* **Falhas na Inicialização:** Se um add-on der erro ao ligar, ele é ignorado e o aplicativo principal segue a vida.
+* **Carregamento:** Usamos o padrão web nativo (ESM) para importar os arquivos JavaScript diretamente pelo navegador.
+* **Estrutura Inicial:** Separamos rigorosamente o motor do sistema (`core`), o aplicativo principal (`host-app`) e os add-ons de teste (`addon-hello`, `addon-counter`).
 
----
+E a estrutura final de pastas refletiu essa clareza:
 
-## 12. A Decisão de Criar um POC
-
-Depois de toda a discussão arquitetural, a decisão foi: **não tentar implementar isso dentro do AC existente**. Em vez disso, criar um projeto separado — uma prova de conceito — que pudesse validar o protocolo antes de qualquer migração.
-
-Nasceu o `addons-app-poc`.
-
----
-
-## 13. O Grilling — 13 Perguntas, 13 Decisões
-
-Antes de implementar, cada aspecto do design foi questionado e resolvido:
-
-### Pergunta 1 — Identidade
-**Decisão:** A URL do manifesto é a identidade única do add-on.
-
-### Pergunta 2 — Ciclo de Vida
-**Decisão:** Add-on exporta `manifest` (declaração) + `setup` (inicialização). O host lê o manifesto antes de executar o setup.
-
-### Pergunta 3 — HostAPI
-**Decisão:** `HostAPI` contém `services` (registry), `onUnload` (cleanup), `log` (debugging). Sem acesso ao DOM ou router na Fase 1.
-
-### Pergunta 4 — Resolução de Serviços
-**Decisão:** Prioridade explícita no registro + reordenação pelo usuário. `get()` retorna o de maior prioridade. `getAll()` retorna todos ordenados para fallback.
-
-### Pergunta 5 — Erro no Setup
-**Decisão:** Add-on é marcado como `error`, registros parciais descartados, host continua.
-
-### Pergunta 6 — Erro no Serviço
-**Decisão:** Fallback automático — registry tenta o próximo da lista. O host não vê o erro.
-
-### Pergunta 7 — Formato do Manifesto
-**Decisão:** Completo com metadados de exibição (nome, descrição, autor, ícone, licença).
-
-### Pergunta 8 — Bundling
-**Decisão:** ESM puro com Vite. `import()` nativo do navegador.
-
-### Pergunta 9 — Localização dos Add-ons na Fase 1
-**Decisão:** No mesmo workspace, Vite resolve os imports entre pacotes automaticamente.
-
-### Pergunta 10 — Testes
-**Decisão:** Unitários no `core` (registry, validation, loader). Integração manual no host.
-
-### Pergunta 11 — Estrutura de Diretórios
-**Decisão:** `packages/core`, `packages/host-app`, `packages/addon-hello`, `packages/addon-counter`.
-
-### Pergunta 12 — Nomes dos Pacotes
-**Decisão:** `@addons/core`, `@addons/host-app`, `@addons/addon-hello`, `@addons/addon-counter`.
-
-### Pergunta 13 — Ordem de Implementação
-**Decisão:** manifest → validation → registry → testes → loader → testes → addon-hello → addon-counter → host-app → teste manual.
-
----
-
-## 14. A Estrutura Final
-
-```
+```text
 addons-app-poc/
-├── package.json
-├── pnpm-workspace.yaml
-├── tsconfig.base.json
-├── README.md
-├── AGENTS.md
-├── docs/
-│   ├── PLANNING.md          (este arquivo)
-│   ├── PRD.md
-│   ├── ARCHITECTURE.md
-│   ├── MANIFEST-SPEC.md
-│   ├── PHASES.md
-│   └── GLOSSARY.md
-└── packages/
-    ├── core/
-    │   └── src/
-    │       ├── index.ts
-    │       ├── manifest.ts
-    │       ├── registry.ts
-    │       ├── loader.ts
-    │       └── validation.ts
-    ├── host-app/
-    │   └── src/
-    │       ├── main.tsx
-    │       ├── App.tsx
-    │       └── components/
-    │           ├── AddonList.tsx
-    │           └── AddonViewer.tsx
-    ├── addon-hello/
-    │   └── src/index.ts
-    └── addon-counter/
-        └── src/index.ts
+├── packages/
+│   ├── core/              (O motor: registros, validadores, carregamento)
+│   ├── host-app/          (O aplicativo que o usuário vê)
+│   ├── addon-hello/       (Add-on de teste 1)
+│   └── addon-counter/     (Add-on de teste 2)
+└── docs/                  (Toda a nossa documentação viva)
+
 ```
 
 ---
 
-## 15. Status Atual
+## 8. A Evolução: O que Aconteceu Depois do Plano
 
-**Fase 1 — Planejamento Concluído** ✅
+Um bom planejamento permite que o projeto evolua de forma orgânica. Depois da Fase 1, alcançamos marcos impressionantes:
 
-A documentação está completa. A implementação está prestes a começar, seguindo a ordem definida na Pergunta 13.
+### Fase 2: O Sistema Visual e as Redes de Segurança
 
----
+Criamos a função `withFallback`, tornando a transição entre add-ons que falham super elegante. Também desenvolvemos o painel visual no `host-app`, onde o usuário pode instalar e gerenciar os add-ons livremente como se fosse uma "App Store" particular.
 
-## 16. A Evolução Depois do Planejamento
+### Fase 3: A Virada para Servidores Remotos (O Modelo Torrentio)
 
-O planejamento original (seções 1–15) cobria até a Fase 2. A conversa continuou e o projeto evoluiu em três movimentos, todos registrados aqui para o histórico.
+A evolução mais espetacular. O usuário pediu: *"Vamos nos inspirar no Torrentio do Stremio"*.
+No Stremio, muitos add-ons não são apenas pedaços de código no navegador; eles são **servidores inteiros** na nuvem que respondem a pedidos do aplicativo.
 
-### 16.1 Fase 2 Entregue (fallback + interfaces tipadas)
+Adaptamos isso para o nosso ecossistema focando em **textos e dados**.
 
-- `Greeter` e `Counter` em `domain/interfaces.ts` — add-ons implementam interfaces explicitamente
-- `withFallback(registry, serviceId, fn)` — cadeia de fallback sincrona com `AggregateFallbackError`
-- `addon-hello-pt` registra o mesmo serviço `greeter` com prioridade 10, criando concorrência real
-- Vitest com `SilentLogger` para testes sem poluição de stdout/stderr
+* **O Novo Manifesto:** O arquivo JSON agora pode declarar "recursos" em servidores remotos (ex: catálogos de busca, bibliotecas de texto).
+* **Servidores Independentes:** Criamos uma ferramenta (`@addons/addon-server`) que permite que qualquer desenvolvedor suba um servidor de add-on em minutos, comunicando-se perfeitamente com o nosso aplicativo via internet (HTTP).
+* **Resultados Mágicos:** Implementamos add-ons reais que buscam dados em APIs públicas (como bibliotecas de poemas ou citações). O aplicativo pede a lista de poemas para o add-on remoto, o add-on vai até a base de dados, processa e devolve tudo formatado para a tela do usuário.
 
-### 16.2 App Visual Interativo
-
-- O host-app ganhou abas: Saudação, Contador, Fallback, Inspetor
-- Add-ons são carregados por importação estática de pacotes do workspace (`@addons/addon-hello`, etc.)
-- `AddonManager` permite instalar/remover add-ons do catálogo
-
-### 16.3 A Virada para o Torrentio (add-ons de texto por HTTP)
-
-O usuário pediu: **"crie um servidor para cada add-on"**, e em seguida: **"pense na interface do Torrentio para o Stremio, use como referência"** — mas adaptado para **compartilhamento de textos** (busca, conteúdo), não vídeo.
-
-O paralelo ficou explícito:
-
-| Torrentio no Stremio | Add-ons de texto no POC |
-|----------------------|------------------------|
-| Add-on = servidor HTTP | Add-on = servidor HTTP (portas 5291–5293) |
-| Manifest declara `resources` (stream/meta) | Manifest declara `resources` (catalog/search/text) |
-| Responde `GET /stream/<type>/<id>.json` | Responde `GET /text/<type>/<id>.json` |
-| Devolve `{ streams: [...] }` | Devolve `{ texts: [...] }` (formato subtitles) |
-| Busca em indexadores de torrent | Busca em APIs públicas (DummyJSON, PoetryDB) |
-| Recurso `subtitles` devolve `url` para o arquivo SRT | Recurso `text` devolve `url` para o conteúdo em texto puro |
-
-**Decisões desta etapa:**
-
-1. O manifesto ganhou um segundo formato (Stremio): `resources` + `types` + `idPrefixes` + `catalogs`. O formato em-processo (`services` + `entrypoint`) continua válido — `validateManifest` aceita os dois.
-2. `@addons/addon-server` — framework Node com zero dependências que monta o servidor do add-on a partir de `manifest` + `handlers` (catalog/search/text/content), com CORS habilitado.
-3. `HttpTextAddonClient` no core — cliente que consome add-ons remotos (port + adapter com fetch injetável).
-4. O recurso `text` espelha o formato `subtitles` do Stremio: `{ texts: [{ id, url, lang, name }] }` — a URL aponta para o conteúdo servido em texto puro, e o host busca separadamente.
-5. Add-ons de texto são **JS puro** (não arrastam o runtime TS do core) — o servidor tem validação mínima própria.
-6. Três add-ons de exemplo: biblioteca (acervo embutido), citações (API DummyJSON) e poemas (API PoetryDB com busca real — escolhida a partir do repositório `public-apis`).
-7. Host-app ganhou a aba **Textos**: lista add-ons remotos, navega catálogos, busca e lê conteúdo.
-
-**Status: Fase 3.0 Entregue** · 77 testes passando (core 41, addon-server 7, biblioteca 8, citações 9, poemas 12).
-
----
-
-*Este documento foi gerado em 2025 como parte do addons-app-poc.*
+Hoje, nossa prova de conceito conta com dezenas de testes passando perfeitamente. O que começou como uma tentativa de limpar um código espaguete, se tornou uma plataforma descentralizada, extensível e pronta para o futuro.

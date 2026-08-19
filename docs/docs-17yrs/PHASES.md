@@ -1,153 +1,102 @@
-# As Fases do Projeto — Do Simples ao Complexo
+# O Mapa da Jornada: Fases do Projeto
 
-*Cada fase é um degrau. No final de cada uma, o sistema já funciona e faz alguma coisa útil.*
-
----
-
-## Fase 1 — O Núcleo (Entregue ✅)
-
-**Objetivo:** Um aplicativo que carrega add-ons.
-
-### O que vai ser construído
-
-#### 1.1 — O Domínio (tipos, validation, registry)
-Arquivos: `packages/core/src/domain/`
-
-O coração puro, sem dependência externa:
-- **manifest.ts** — tipos do manifesto (AddonManifest, ServiceRegistration)
-- **instance.ts** — AddonInstance (um add-on carregado)
-- **host-api.ts** — o que o host oferece pro add-on
-- **validation.ts** — função que valida manifesto
-- **registry.ts** — o ServiceRegistry, que guarda e resolve serviços
-
-#### 1.2 — As Portas (interfaces)
-Arquivos: `packages/core/src/ports/`
-
-Interfaces que o domínio espera do mundo exterior:
-- **addon-loader.ts** — "preciso de algo que carregue add-ons"
-- **logger.ts** — "preciso de algo que logue mensagens"
-
-#### 1.3 — Os Adaptadores (implementações)
-Arquivos: `packages/core/src/adapters/`
-
-Implementações concretas que conectam o domínio ao mundo real:
-- **http-loader.ts** — FetchAddonLoader: faz fetch, import(), setup
-- **console-logger.ts** — ConsoleLogger: loga no console
-
-#### 1.4 — Testes do Core
-Testes unitários pra tudo. O domínio é testado sem fetch, sem I/O — puro.
-
-#### 1.5 — Add-on Hello
-O primeiro add-on de exemplo. Faz uma coisa simples: registra um serviço de saudação.
-
-#### 1.6 — Add-on Counter
-Segundo add-on de exemplo. Registra um serviço de contador (incrementar, decrementar, mostrar valor).
-
-#### 1.7 — Host App
-O aplicativo que junta tudo:
-- Cria o registry e os adaptadores
-- Carrega os add-ons
-- Mostra numa lista o que foi carregado
-- Permite invocar os serviços
-
-#### 1.8 — Teste Manual
-Abrir no navegador, ver os add-ons carregados, testar se funcionam.
+*Como construímos um sistema complexo sem perder a sanidade? Um passo de cada vez. Enxergue cada fase deste projeto como um degrau de uma escada. Ao final de cada etapa, não temos apenas um pedaço de código solto, mas um sistema vivo, funcional e pronto para entregar valor.*
 
 ---
 
-## Fase 2 — Fallback e Domínio (Entregue ✅)
+## Fase 1 — O Alicerce (Entregue ✅)
 
-**Objetivo:** Serviços com fallback automático.
+**O Problema:** Antes de criarmos extensões mirabolantes que buscam dados na internet, precisamos de um chão firme. Precisamos de um aplicativo capaz de carregar e gerenciar extensões (add-ons) de forma segura e organizada.
+**O Objetivo:** Criar o "núcleo" do sistema, focado puramente em carregar e registrar add-ons simples.
 
-### O que foi construído
+### Como nós construímos isso:
 
-#### 2.1 — Interfaces Tipadas
-Em vez de `registry.get("greeter")` devolver `unknown`, agora devolve um tipo específico: `registry.get<Greeter>("greeter")`. As interfaces `Greeter` e `Counter` estão definidas em `@addons/core`.
+**1. A Arquitetura Central (`@addons/core`)**
+Criamos o cérebro do sistema totalmente isolado do mundo exterior.
 
-#### 2.2 — Fallback Automático
-Se o serviço de maior prioridade falhar, o `withFallback()` tenta o próximo automaticamente. O host nem percebe. Se todos falharem, um `AggregateFallbackError` é lançado com todos os erros.
+* **O Domínio (`domain/`):** As regras puras. Aqui definimos os formatos de identidade (Manifestos), o estado de um add-on carregado (Instância) e, claro, o nosso famoso intermediário, o `ServiceRegistry`.
+* **As Portas (`ports/`):** Os "contratos". Onde o sistema diz: *"Preciso de algo que baixe arquivos e algo que anote logs"*.
+* **Os Adaptadores (`adapters/`):** As implementações reais dessas portas, como o `FetchAddonLoader` (que baixa arquivos da web) e o `ConsoleLogger`.
 
-#### 2.3 — Add-on Concorrente
-O `addon-hello-pt` registra o mesmo serviço `greeter` mas com prioridade 10 (maior que o hello padrão, que é 0). O host troca de implementação sem saber. Se você passar o nome "error", o hello-pt lança um erro, e o fallback automático usa o hello padrão.
+**2. A Prova de Fogo (Testes e Exemplos)**
 
-#### 2.4 — Testes de Fallback
-5 testes que verificam: prioridade, fallback em ação, erro total, implementação única, e nenhuma implementação.
+* **Testes do Core:** Garantimos que a lógica pura funciona com dezenas de testes unitários rápidos, sem depender de internet.
+* **Add-ons Pioneiros:** Criamos o `addon-hello` (um serviço simples de saudação) e o `addon-counter` (um contador interativo) para provar que a teoria funciona na prática.
 
----
-
-## Fase 3 — Add-ons de Texto por HTTP (Entregue ✅)
-
-**Objetivo:** Add-ons que são servidores de internet, estilo Stremio/Torrentio.
-
-Aí vem a parte mais legal. A gente usou a interface do **Torrentio** (aquele add-on famoso do Stremio, que busca filmes) como referência — mas em vez de vídeo, **texto** (busca e conteúdo).
-
-### O que foi construído
-
-#### 3.0 — Um novo jeito de add-on: o add-on é um servidor
-- Antes, um add-on era um código que o app importava (formato em-processo).
-- Agora, um add-on pode ser um **servidor na internet**: ele tem uma URL, responde a pedidos HTTP, e o app conversa com ele por essa URL — exatamente como o Torrentio funciona no Stremio.
-
-#### 3.1 — Manifesto estilo Stremio
-O manifesto agora pode declarar `resources` (recursos): `catalog` (catálogo), `search` (busca), `text` (conteúdo). Também tem `types` (que tipo de conteúdo, ex.: `text`, `quote`, `poem`) e `catalogs` (listas anunciadas).
-
-#### 3.2 — Os endpoints (as "portas" do servidor)
-Um add-on de texto responde em rotas estilo Stremio:
-- `GET /manifest.json` — se apresenta
-- `GET /catalog/<type>/<id>.json` — lista de itens
-- `GET /search/<type>/<query>.json` — busca
-- `GET /text/<type>/<id>.json` — versões de um texto
-- `GET /text/<type>/<id>/content.txt` — o conteúdo, em texto puro
-
-#### 3.3 — Formato "subtitles" para o conteúdo
-O Stremio entrega legendas assim: uma lista onde cada item tem uma `url` apontando pro arquivo. A gente copiou isso: o add-on de texto devolve `{ texts: [{ id, url, lang, name }] }`, e a `url` aponta pro conteúdo. O app busca a URL e mostra o texto.
-
-#### 3.4 — Processamento externo (buscar na internet)
-Como o Torrentio busca em indexadores de torrent, nossos add-ons de texto buscam em **APIs públicas**:
-- **Biblioteca** (5291) — acervo de textos guardados dentro do próprio add-on
-- **Citações** (5292) — busca na API DummyJSON
-- **Poemas** (5293) — busca na API PoetryDB (cidades reais, busca de verdade)
-
-#### 3.5 — Ferramentas novas
-- `packages/addon-server` — um "mini-servidor" pronto, que o add-on de texto usa pra responder as rotas. Zero dependências.
-- `HttpTextAddonClient` no core — a "central de chamadas" que o app usa pra falar com os add-ons remotos.
-- Aba **📄 Textos** no app — lista os add-ons, navega catálogos, busca e lê.
-
-#### 3.6 — Testes
-77 testes no total: core (41), addon-server (7), biblioteca (8), citações (9), poemas (12).
-
-#### 3.7 — Ainda falta (por enquanto)
-- Cache do manifesto (pra não buscar toda hora)
-- Version negotiation (combinar versão do host com a do add-on)
+**3. O Aplicativo Anfitrião (Host App)**
+A interface final que junta tudo. Ele liga o registro, baixa os add-ons de exemplo, exibe uma lista bonita na tela e permite que você clique e teste os serviços rodando ao vivo.
 
 ---
 
-## Fase 4 — Resiliência (Planejado)
+## Fase 2 — O Plano B Automático (Entregue ✅)
 
-**Objetivo:** Nenhum add-on quebra o host.
+**O Problema:** No mundo real, coisas quebram. Se o Host tentar usar um serviço que falhou ou sumiu, o aplicativo inteiro não pode travar. Precisamos de redundância.
+**O Objetivo:** Implementar um sistema inteligente de *Fallback* (Plano B) e refinar a forma como o Host conversa com os serviços.
 
-### O que vai ser construído
+### Como nós construímos isso:
 
-#### 4.1 — Error Boundary
-Cada chamada de serviço é isolada. Se um add-on falha, ele não leva os outros junto.
-
-#### 4.2 — Preferências do Usuário
-O usuário pode:
-- Ligar/desligar add-ons
-- Reordenar prioridade (arrastar na lista)
-- As preferências são salvas
-
-#### 4.3 — Sandbox (Investigação)
-Estudo sobre usar Web Worker ou Iframe pra isolar completamente o add-on do host. Comunicação via mensagens.
+* **Comunicação Tipada:** Em vez do Host pedir um serviço às cegas, agora ele usa TypeScript para garantir que o serviço devolvido tenha o formato exato esperado (ex: `registry.get<Greeter>("greeter")`).
+* **Fallback Invisível (`withFallback`):** Se o serviço principal falhar no meio do trabalho, o sistema intercepta o erro e tenta o próximo serviço da fila automaticamente. O usuário nem percebe o tropeço.
+* **A Batalha das Prioridades:** Criamos um novo add-on (`addon-hello-pt`) que faz a mesma coisa que o saudador original, mas com uma **prioridade maior** (10 contra 0). O sistema é inteligente o suficiente para trocar de implementação sozinho, escolhendo sempre a melhor opção disponível.
+* **Rede de Segurança:** Se *todos* os serviços de uma fila falharem, o sistema coleta todos os erros em um único pacote (`AggregateFallbackError`) para facilitar a investigação.
 
 ---
 
-## Resumo Visual
+## Fase 3 — A Revolução dos Servidores (Entregue ✅)
+
+**O Problema:** Até agora, todo add-on precisava ser baixado para dentro do aplicativo. Isso limita o tamanho deles e dificulta atualizações. E se os add-ons pudessem morar na nuvem, sendo mantidos por outras pessoas?
+**O Objetivo:** Permitir que add-ons funcionem como servidores HTTP independentes (inspirado na brilhante arquitetura do Stremio e seu add-on Torrentio).
+
+### Como nós construímos isso:
+
+**1. O Novo Modelo Stremio**
+O manifesto do add-on evoluiu. Agora, ele pode declarar que possui catálogos, sistemas de busca e entrega de conteúdo (`resources`, `types`, `catalogs`). O Host não baixa mais o código do add-on, ele apenas conversa com o servidor dele.
+
+**2. As Novas "Portas" de Comunicação**
+O add-on agora é um servidor de internet que responde a perguntas específicas (endpoints):
+
+| Pergunta (Endpoint) | O que o Host quer saber? |
+| --- | --- |
+| `GET /manifest.json` | *"Quem é você e o que você oferece?"* |
+| `GET /catalog/<tipo>/<id>.json` | *"Me mostre a lista de itens deste catálogo."* |
+| `GET /search/<tipo>/<busca>.json` | *"Tem algo relacionado a essa palavra?"* |
+| `GET /text/<tipo>/<id>.json` | *"Quais versões deste texto você tem?"* |
+
+**3. Carregamento Preguiçoso (Lazy Loading)**
+Copiamos o jeito que o Stremio lida com legendas de filmes. O add-on não envia um livro inteiro pela internet. Ele envia apenas um "link" (`{ url: "..." }`). O aplicativo só baixa o conteúdo de verdade (`content.txt`) se o usuário clicar para ler.
+
+**4. Integração com o Mundo Real**
+Criamos três servidores independentes na nossa máquina para provar o conceito:
+
+* **Biblioteca:** Textos guardados no próprio servidor.
+* **Citações:** Busca frases inspiradoras conversando com uma API externa (`DummyJSON`).
+* **Poemas:** Busca poemas reais em uma base de dados pública na internet (`PoetryDB`).
+
+*(Nota: Na próxima iteração desta fase, implementaremos o cache do manifesto para economizar banda e a negociação de versões entre Host e Add-on).*
+
+---
+
+## Fase 4 — Blindagem Total (Planejado 🚧)
+
+**O Problema:** Mesmo com o *Fallback*, um add-on que roda código malicioso ou incrivelmente pesado dentro do aplicativo ainda pode causar lentidão ou problemas de segurança.
+**O Objetivo:** Isolar os add-ons completamente. Nenhum add-on, sob nenhuma circunstância, pode derrubar o Host.
+
+### O que vamos construir:
+
+* **Zonas de Quarentena (Error Boundaries):** Um isolamento visual e lógico no React. Se a interface de um add-on quebrar, apenas a "caixinha" dele na tela fica vermelha, o resto do app segue intacto.
+* **Controle nas Mãos do Usuário:** Uma tela de configurações onde o usuário poderá ligar/desligar add-ons com um clique, reordenar prioridades arrastando os itens, e salvar essas preferências.
+* **Pesquisa de Sandboxing:** Vamos investigar a fundo se devemos colocar os add-ons para rodar dentro de `Web Workers` (threads separadas) ou `Iframes`, garantindo que eles se comuniquem com o Host apenas através de mensagens restritas, sem acesso ao coração do sistema.
+
+---
+
+## O Resumo da Ópera
+
+Veja onde estamos agora. Cada bloco concluído é um sistema que já funciona sozinho e gera valor:
+
+```text
+Fase 1: [████████████████░░] 80% — O alicerce e o núcleo funcionando.
+Fase 2: [████████████████░░] 80% — Plano B e trocas automáticas perfeitas.
+Fase 3: [████████████████░░] 80% — Add-ons morando na nuvem e buscando dados.
+Fase 4: [░░░░░░░░░░░░░░░░░░] 0%  — A blindagem final do sistema.
 
 ```
-Fase 1: [████████████████░░] 80% — Núcleo funcionando
-Fase 2: [████████████████░░] 80% — Fallback automático
-Fase 3: [████████████████░░] 80% — Add-ons de texto por HTTP
-Fase 4: [░░░░░░░░░░░░░░░░░░] 0%  — Resiliência
-```
-
-Cada fase depende da anterior. Mas cada uma é funcional por si só — no final de cada fase você já tem algo que roda.

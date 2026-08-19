@@ -1,364 +1,236 @@
-# Arquitetura — Como o Sistema Funciona por Dentro
+# Arquitetura: Como Tudo Funciona por Dentro
 
-*Um guia visual e explicado de como as peças se encaixam.*
+*Um guia visual, passo a passo, para você entender perfeitamente como as peças deste sistema se encaixam e conversam entre si.*
 
 ---
 
 ## 1. A Grande Ideia
 
-O host não conhece os add-ons. Os add-ons não conhecem o host. Eles se encontram através de um **intermediário**: o **ServiceRegistry**.
+Imagine que você está construindo um aplicativo incrível (o **Host**) e quer permitir que outras pessoas criem extensões para ele (os **Add-ons**). O grande desafio arquitetural aqui é: como fazer o Host usar os Add-ons sem que eles fiquem eternamente "amarrados" um ao outro?
 
-É como um leilão. Os add-ons oferecem serviços ( "eu tenho um serviço de saudação!" ). O host pede serviços ( "alguém tem um serviço de saudação?" ). O registry faz a ponte.
+A resposta é introduzir um intermediário: o **ServiceRegistry** (Registro de Serviços).
 
-```
+Pense no ServiceRegistry como um grande painel de classificados. Os Add-ons vão até o painel e colam um anúncio: *"Eu sei fazer saudações!"*. Quando o Host precisa saudar um usuário, ele não procura por um Add-on específico. Ele simplesmente vai ao painel e pergunta: *"Alguém aqui sabe fazer saudações?"*.
+
+Dessa forma, o Host não conhece os Add-ons, e os Add-ons não conhecem o Host. Ambos conhecem apenas o intermediário.
+
+```text
 ┌───────────────────────────────────────────────┐
-│                   Host App                     │
-│                                                 │
-│  ┌─────────────────────────────────────────┐   │
-│  │           ServiceRegistry               │   │
-│  │  ┌──────────┐  ┌──────────┐             │   │
-│  │  │ greeter  │  │ counter  │  ...        │   │
-│  │  │ [impl1]  │  │ [impl1]  │             │   │
-│  │  │ [impl2]  │  │          │             │   │
-│  │  └──────────┘  └──────────┘             │   │
-│  └─────────────────────────────────────────┘   │
-│         ▲                      ▲                │
-│         │ setup(hostAPI)       │ get/getAll     │
-│         ▼                      │                │
-│  ┌──────────────┐  ┌────────────────────┐       │
-│  │ addon-hello  │  │  addon-counter     │       │
-│  │ ┌──────────┐ │  │  ┌──────────────┐  │       │
-│  │ │ manifest │ │  │  │ manifest     │  │       │
-│  │ │ setup()  │─┼──┼──┤ setup()      │  │       │
-│  │ └──────────┘ │  │  └──────────────┘  │       │
-│  └──────────────┘  └────────────────────┘       │
+│                   Host App                    │
+│                                               │
+│  ┌─────────────────────────────────────────┐  │
+│  │           ServiceRegistry               │  │
+│  │  ┌──────────┐  ┌──────────┐             │  │
+│  │  │ greeter  │  │ counter  │  ...        │  │
+│  │  │ [impl1]  │  │ [impl1]  │             │  │
+│  │  │ [impl2]  │  │          │             │  │
+│  │  └──────────┘  └──────────┘             │  │
+│  └─────────────────────────────────────────┘  │
+│         ▲                      ▲              │
+│         │ setup(hostAPI)       │ get/getAll   │
+│         ▼                      │              │
+│  ┌──────────────┐  ┌────────────────────┐     │
+│  │ addon-hello  │  │  addon-counter     │     │
+│  │ ┌──────────┐ │  │  ┌──────────────┐  │     │
+│  │ │ manifest │ │  │  │ manifest     │  │     │
+│  │ │ setup()  │─┼──┼──┤ setup()      │  │     │
+│  │ └──────────┘ │  │  └──────────────┘  │     │
+│  └──────────────┘  └────────────────────┘     │
 └───────────────────────────────────────────────┘
+
 ```
 
 ---
 
-## 2. As Camadas
+## 2. As Camadas do Sistema
 
-### Camada Core (`@addons/core`)
+Para manter tudo organizado e fácil de manter, nós dividimos o sistema em três grandes camadas. Vamos construir a complexidade aos poucos:
 
-É o cérebro. Não depende de nada — nem React, nem Vite, nem jQuery. Só TypeScript puro.
+### A Camada Core (`@addons/core`)
 
-O core é dividido em **três zonas** pra deixar claro o que é regra de negócio e o que é detalhe técnico:
+Este é o cérebro da operação. A regra de ouro aqui é a **pureza**. O Core não sabe o que é React, Vite, navegador ou internet. Ele é escrito puramente em TypeScript.
 
-```
-packages/core/src/
-├── domain/              ← O NEGÓCIO. Regras puras, sem efeito colateral
-│   ├── manifest.ts      #   AddonManifest, ServiceRegistration
-│   ├── instance.ts      #   AddonInstance (um add-on carregado)
-│   ├── registry.ts      #   ServiceRegistry (o coração)
-│   ├── host-api.ts      #   O que o host oferece pro add-on
-│   └── validation.ts    #   Validação de manifesto
-├── ports/               ← AS PORTAS. Interfaces que o domínio espera
-│   ├── addon-loader.ts  #   "Preciso de algo que carregue add-ons"
-│   └── logger.ts        #   "Preciso de algo que logue mensagens"
-└── adapters/            ← AS TOMADAS. Implementações reais
-    ├── http-loader.ts   #   FetchAddonLoader (fetch + import())
-    └── console-logger.ts
-```
+Nós dividimos o Core em três zonas para separar as regras de negócio dos detalhes técnicos:
 
-**A regra de ouro:** o `domain/` não sabe que `ports/` e `adapters/` existem. Ele é puro, testável, transportável. Os adapters são as "tomadas" que conectam o domínio puro ao mundo real — HTTP, console, React, etc.
+1. **Domínio (`domain/`):** A essência do sistema. Aqui vivem as regras puras, sem efeitos colaterais (como o próprio `ServiceRegistry`). O Domínio não faz ideia de como o mundo exterior funciona.
+2. **Portas (`ports/`):** As interfaces. É como se o Domínio dissesse: *"Eu preciso de algo que carregue add-ons, não me importa como"*.
+3. **Adaptadores (`adapters/`):** As tomadas. São as implementações reais que se conectam às "portas". Por exemplo, um adaptador que usa HTTP para carregar um Add-on da internet.
 
-### Camada Add-ons (`@addons/addon-*`)
+**Por que essa separação é importante?**
+Imagine que você precisa testar se o `ServiceRegistry` está funcionando. Como ele está isolado no Domínio, você pode testá-lo instantaneamente, sem precisar de conexão com a internet ou de um navegador. Além disso, se amanhã você quiser parar de carregar add-ons via internet (HTTP) e passar a carregá-los de um banco de dados local, basta trocar a "tomada" (Adaptador). O resto do sistema continua intacto!
 
-São módulos independentes. Cada um exporta:
+### A Camada Add-ons (`@addons/addon-*`)
 
-- **`manifest`** — quem é, o que oferece
-- **`setup`** — função que registra os serviços no host
+São as extensões independentes. Cada Add-on precisa fornecer apenas duas coisas para o sistema:
 
-### Camada Host App (`@addons/host-app`)
+* **`manifest`**: Sua identidade (Quem sou eu? O que eu ofereço?).
+* **`setup`**: Uma função que, quando chamada, registra seus serviços no painel do Host.
 
-É o aplicativo que junta tudo. Ele é um **adaptador de UI** — uma "tomada" que conecta o domínio puro ao React:
+### A Camada Host App (`@addons/host-app`)
 
-1. Cria um ServiceRegistry
-2. Cria os adaptadores concretos (FetchAddonLoader, ConsoleLogger)
-3. Usa o AddonLoaderPort pra carregar add-ons
-4. Chama o `setup` de cada add-on
-5. Usa os serviços registrados
-6. Mostra tudo na tela
+Este é o aplicativo que você vê na tela (sua interface de usuário). Ele funciona como um grande "Adaptador de Interface" que conecta o cérebro (Core) ao usuário. Seu trabalho é:
 
-### Por que separar em três zonas?
-
-Imagina que você quer testar o ServiceRegistry. Com o código separado, você testa o `domain/registry.ts` sem precisar de fetch, sem HTTP, sem navegador. É uma função pura: entra dado, sai resultado. Se o teste falhar, o problema é na lógica, não na internet.
-
-E se um dia você quiser trocar o loader de HTTP por um loader de cache local? Você cria um novo adapter em `adapters/cache-loader.ts` e pronto. O domínio não muda. As portas não mudam. Só a tomada.
+1. Criar o `ServiceRegistry`.
+2. Ligar as tomadas (como logs no console e carregadores de internet).
+3. Encontrar e carregar os Add-ons.
+4. Chamar a função `setup` de cada um.
+5. Consumir os serviços e mostrá-los na tela para o usuário.
 
 ---
 
 ## 3. O Ciclo de Vida de um Add-on
 
-### Passo a passo do carregamento
+O que exatamente acontece nos bastidores quando o aplicativo tenta carregar um Add-on? É um processo rigoroso de validação para garantir que nada quebre o seu aplicativo principal.
 
-```
-1. Host descobre uma URL de manifesto
-   ↓
-2. Host faz fetch do manifesto (HTTP GET)
-   ↓
-3. Host valida o manifesto (campos obrigatórios, versão, URL)
-   ↓
-4. Se inválido → loga erro, nunca carrega esse add-on
-   ↓
-5. Se válido → host faz import(URL_do_entrypoint)
-   ↓
-6. Se o import falhar → loga erro, não carrega
-   ↓
-7. Host verifica se o módulo exporta manifest e setup
-   ↓
-8. Se faltar algo → loga erro, não carrega
-   ↓
-9. Host chama setup(hostAPI)
-   ↓
-10. Se setup lançar erro → marca add-on como "error", descarta registros
-   ↓
-11. Se setup funcionar → add-on fica "ready" e pronto pra uso
-```
+### Passo a passo do Carregamento:
 
-### O que acontece quando o host usa um serviço
+1. O Host descobre a URL de um manifesto.
+2. O Host faz o download (via HTTP GET) desse manifesto.
+3. **Validação:** O Host checa se os campos obrigatórios e a versão estão corretos.
+4. *Se inválido:* O erro é registrado e o carregamento é abortado imediatamente.
+5. *Se válido:* O Host importa o código-fonte do Add-on.
+6. O Host verifica se o código exporta o `manifest` e a função `setup`.
+7. O Host executa o `setup(hostAPI)`.
+8. *Se falhar:* O Add-on é marcado com erro e ignorado.
+9. *Se der tudo certo:* O Add-on é marcado como **"ready"** (pronto) e seus serviços ficam disponíveis!
 
-```
-1. Host: registry.get("greeter")
-2. Registry: olha a lista de implementações de "greeter"
-3. Registry: ordena por prioridade (maior primeiro)
-4. Registry: retorna a de maior prioridade
-   ↓
-   (Se o host quiser todas, pra fallback manual:)
-1. Host: registry.getAll("greeter")
-2. Registry: retorna array ordenado por prioridade
-3. Host: tenta a primeira, se falhar tenta a segunda...
-```
+### Como o Host consome um serviço:
+
+Quando o Host precisa de algo (por exemplo, o serviço `"greeter"`), o fluxo é simples:
+
+1. O Host pede ao Registry: `registry.get("greeter")`.
+2. O Registry olha na sua lista quem oferece esse serviço.
+3. Se houver mais de um, ele ordena pela **prioridade** (quem tiver o número maior, ganha).
+4. O Registry devolve a melhor implementação disponível.
+
+> **Dica de mestre:** O Host também pode usar `registry.getAll("greeter")` para pegar a lista inteira de opções. Isso é útil se ele quiser tentar a opção A e, caso ela falhe, ter a opção B como plano de segurança (fallback).
 
 ---
 
-## 3.5 O Novo Modelo: Add-ons que São Servidores (estilo Stremio)
+## 4. O Novo Modelo: Add-ons como Servidores (Estilo Stremio)
 
-Até aqui, todo add-on era um **código que o app importava**. A partir da Fase 3, existe um segundo modelo: o add-on **é um servidor na internet** — exatamente como o Torrentio é pro Stremio.
+Até aqui, vimos Add-ons que são pedaços de código importados para dentro do aplicativo. Mas existe um segundo modelo muito mais poderoso: **o Add-on como um servidor independente na internet**.
 
-### A diferença
+Pense no *Torrentio*, o famoso add-on do *Stremio*. O Torrentio não vive dentro do código do Stremio; ele é um servidor externo mantido pela comunidade. O Stremio apenas faz perguntas a ele via internet.
 
-| | Formato em-processo | Formato Stremio (servidor) |
-|---|---|---|
-| O add-on é... | Um módulo JS que o app importa | Um servidor HTTP com URL própria |
-| Como se apresenta | `manifest` + `setup()` | `manifest.json` servido por HTTP |
-| O que declara | `services` + `entrypoint` | `resources` + `types` + `catalogs` |
-| Como o host usa | Chama funções direto | Faz pedidos HTTP (GET) |
-| Exemplo real | addon-hello, addon-counter | Torrentio no Stremio |
+### Por que isso é incrível?
 
-### O fluxo do modelo servidor
+* **Atualizações invisíveis:** O criador do Add-on pode atualizá-lo a qualquer momento no servidor dele, e o usuário recebe a melhoria sem precisar atualizar o aplicativo principal.
+* **Resiliência:** Se o Add-on cair ou bugar, o aplicativo principal continua funcionando perfeitamente.
+* **Liberdade:** Qualquer pessoa pode criar e hospedar um Add-on em qualquer lugar do mundo.
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                    Host App (navegador)                     │
-│                                                            │
-│   HttpTextAddonClient ── GET /manifest.json ─────────────┐ │
-│   HttpTextAddonClient ── GET /catalog/text/1.json ───────┼─┤
-│   HttpTextAddonClient ── GET /search/text/amor.json ─────┼─┤
-│   HttpTextAddonClient ── GET /text/text/1.json ──────────┼─┤
-│   fetch(item.url) ────── GET /text/text/1/content.txt ───┼─┤
-└──────────────────────────────────────────────────────────┼─┼─┘
-                                                           │ │
-   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │ │
-   │ biblioteca   │  │ citacoes     │  │ poemas       │    │ │
-   │ :5291        │  │ :5292        │  │ :5293        │◄───┘ │
-   │ (embutido)   │  │ (DummyJSON)  │  │ (PoetryDB)   │◄─────┘
-   └──────────────┘  └──────────────┘  └──────────────┘
-```
+### Comparando os dois mundos
 
-### Por que isso é genial (a lição do Torrentio)
+| Característica | Formato Interno (Em-processo) | Formato Servidor (Estilo Stremio) |
+| --- | --- | --- |
+| **O que é?** | Um módulo de código importado | Um servidor HTTP independente |
+| **Identidade** | Arquivo de código (`manifest` + `setup`) | Arquivo `manifest.json` via URL |
+| **O que oferece?** | Serviços programáticos (`services`) | Catálogos e Recursos de dados |
+| **Como o Host usa?** | Executa as funções diretamente | Faz requisições web (HTTP GET) |
 
-O Torrentio é um add-on do Stremio que **não mora dentro do Stremio**. Ele mora num servidor na internet, mantido pela comunidade. O Stremio só conversa com ele por HTTP. Resultado:
+### O Formato de "Entrega Preguiçosa" (Lazy Loading)
 
-- O Torrentio pode ser atualizado **sem atualizar o Stremio**
-- Se o Torrentio cair, o Stremio continua funcionando (só perde aquele add-on)
-- Qualquer pessoa pode criar um add-on servidor e hospedar onde quiser
-
-No nosso POC, a mesma coisa: os add-ons de texto (biblioteca, citações, poemas) são servidores independentes nas portas 5291–5293. O app conversa com eles por HTTP. Os de citações e poemas ainda fazem **processamento externo** — buscam em APIs públicas da internet, como o Torrentio busca em indexadores de torrent.
-
-### O formato "subtitles" para conteúdo
-
-O Stremio entrega legendas assim: `{ subtitles: [{ id, url, lang, name }] }` — uma lista onde cada item tem uma **URL** apontando pro arquivo de legenda. A gente copiou esse formato pro recurso `text`:
+Para economizar internet e memória, usamos uma tática inteligente para entrega de conteúdo. Em vez de o Add-on enviar um texto ou livro inteiro de uma vez, ele entrega apenas um **menu** (uma lista com o nome e a URL de onde o texto mora):
 
 ```json
-{ "texts": [{ "id": "1", "url": "http://localhost:5291/text/text/1/content.txt", "lang": "pt", "name": "O Amanhecer" }] }
+{ 
+  "texts": [
+    { 
+      "id": "1", 
+      "url": "http://localhost:5291/text/1/content.txt", 
+      "name": "O Amanhecer" 
+    }
+  ] 
+}
+
 ```
 
-O app recebe a lista, e só então faz `fetch(url)` pra baixar o conteúdo. O add-on não precisa enviar o texto inteiro junto com a lista — igual o Stremio não baixa a legenda até você pedir.
+O aplicativo principal recebe essa lista, mostra os títulos para o usuário e **só faz o download do texto real (acessando a URL) se o usuário decidir clicar para ler**.
 
 ---
 
-## 4. Os Tipos Principais
+## 5. Os Tipos Principais (Dicionário de Dados)
 
-### AddonManifest — O Cartão de Visita
+Para os desenvolvedores, estas são as principais "fichas cadastrais" que usamos no código TypeScript:
 
-```typescript
-interface AddonManifest {
-  id: string;              // Nome amigável, tipo "hello"
-  version: string;         // Versão, tipo "1.0.0"
-  name: string;            // Nome bonito pro usuário
-  description: string;     // O que faz
-  author: string;          // Quem fez
-  icon?: string;           // URL do ícone (opcional)
-  license: string;         // Licença, tipo "MIT"
-  // Formato em-processo (Fases 1–2):
-  entrypoint?: string;     // URL do bundle JavaScript
-  services?: ServiceRegistration[];
-  // Formato Stremio (Fase 3):
-  resources?: AddonResource[];   // { name, types, idPrefixes? }
-  types?: string[];              // ["text"], ["quote"], ["poem"]...
-  idPrefixes?: string[];
-  catalogs?: AddonCatalog[];     // { type, id, name }
-}
-```
+**1. `AddonManifest` (O Cartão de Visita):**
 
-### ServiceRegistration — Um Serviço Específico
+Diz quem o add-on é (id, versão, nome, autor, descrição) e o que ele faz. Dependendo do modelo, ele lista os `services` (para add-ons de código) ou os `resources` e `catalogs` (para add-ons de servidor).
 
-```typescript
-interface ServiceRegistration {
-  id: string;              // ID do serviço, tipo "greeter"
-  version: string;         // Versão da interface
-  name: string;            // Nome amigável
-  description: string;     // O que o serviço faz
-}
-```
+**2. `ServiceRegistration` (O Serviço Específico):**
 
-### ServiceEntry — Um Registro no Registry
+O anúncio de um talento. Ex: `"Eu sou o serviço 'greeter', versão 1.0, e eu saúdo pessoas."`
 
-```typescript
-interface ServiceEntry<T = unknown> {
-  serviceId: string;        // ID do serviço
-  instance: T;              // A implementação de verdade
-  addonId: string;          // URL do manifesto do add-on que registrou
-  priority: number;         // Prioridade (maior = mais preferido)
-}
-```
+**3. `ServiceEntry` (O Registro Efetivado):**
 
-### AddonInstance — Um Add-on Carregado
+É a ficha que fica guardada no ServiceRegistry, contendo a lógica real do serviço, de onde ele veio e qual a sua prioridade.
 
-```typescript
-interface AddonInstance {
-  manifest: AddonManifest;       // O manifesto do add-on
-  manifestUrl: string;           // URL do manifesto (a identidade)
-  status: 'loading' | 'ready' | 'error';  // Estado atual
-  error?: Error;                 // Se deu erro, qual foi
-  services: string[];            // IDs dos serviços registrados
-}
-```
+**4. `HostAPI` (O Kit de Ferramentas):**
 
-### HostAPI — O que o Add-on Recebe
-
-```typescript
-interface HostAPI {
-  services: ServiceRegistry;                          // O registro
-  onUnload: (callback: () => void) => void;           // Gancho de limpeza
-  log: (level: 'info' | 'warn' | 'error', message: string) => void;  // Logger
-}
-```
+Quando o Host chama a função `setup` de um Add-on, ele entrega esse "kit", que contém acesso ao ServiceRegistry (para o add-on se registrar) e a um sistema de logs.
 
 ---
 
-## 5. ServiceRegistry — A API Completa
+## 6. A API do ServiceRegistry
+
+O painel de controle tem comandos simples e diretos:
 
 ```typescript
 class ServiceRegistry {
-  // Registra um serviço
+  // Cadastra um novo serviço
   register<T>(serviceId: string, instance: T, addonId: string, priority?: number): void;
 
-  // Remove um registro específico
+  // Remove um serviço específico
   unregister(serviceId: string, addonId: string): void;
 
-  // Pega a implementação de maior prioridade
+  // Pega a melhor opção de um serviço (a de maior prioridade)
   get<T>(serviceId: string): T | undefined;
 
-  // Pega todas as implementações ordenadas por prioridade
+  // Pega todas as opções disponíveis, ordenadas por prioridade
   getAll<T>(serviceId: string): T[];
 
-  // Pergunta se existe pelo menos uma implementação
+  // Checa se alguém oferece um determinado serviço
   has(serviceId: string): boolean;
 
-  // Limpa tudo
-  clear(): void;
-
-  // Remove todos os registros de um add-on específico
+  // Apaga todos os serviços de um add-on específico
   clearAddon(addonId: string): void;
 }
+
 ```
 
 ---
 
-## 6. Tratamento de Erros
+## 7. Lidando com Imprevistos (Tratamento de Erros)
 
-| Onde | O que pode dar errado | O que acontece |
-|------|----------------------|----------------|
-| Fetch do manifesto | URL inválida, servidor offline | Add-on não carrega, loga erro |
-| Validação | Campos faltando, versão errada | Add-on não carrega, loga erro |
-| `import()` do bundle | Bundle corrompido, URL inválida | Add-on não carrega, loga erro |
-| `setup()` | Exceção no código do add-on | Add-on marcado como "error", registros descartados |
-| Chamada de serviço | Exceção no serviço | Fallback pra próxima implementação (Fase 2) |
+O Host foi desenhado para ser como um ótimo goleiro: ele pode até tomar boladas, mas não cai. **Nenhum erro de um Add-on deve ser capaz de quebrar (crashar) o aplicativo principal.**
 
-**Nenhum erro quebra o host.** O host é tipo um bom goleiro: pode tomar chute, mas nunca cai.
-
----
-
-## 7. Dependências entre os Pacotes
-
-```
-@addons/host-app
-    │
-    ▼ (depende de)
-@addons/core
-    ▲
-    │ (implementa as interfaces)
-    │
-@addons/addon-hello    @addons/addon-counter
-    │                        │
-    ▼                        ▼
-@addons/core            @addons/core
-```
-
-Regras:
-- Add-ons dependem do `core` (precisam dos tipos)
-- Host-app depende do `core` (precisa do registry e loader)
-- Add-ons **nunca** dependem do host-app
-- Host-app **nunca** depende de add-ons em tempo de compilação (só em tempo de execução)
+| O que deu errado? | Como o sistema reage? |
+| --- | --- |
+| **Link fora do ar** (O manifesto não baixa) | O erro é logado e o Add-on é ignorado. |
+| **Manifesto inválido** (Faltam dados essenciais) | O erro é logado e o Add-on é ignorado. |
+| **Erro no código do Add-on** (O `setup` falha) | O Add-on é marcado com "Erro". O sistema limpa tudo que ele tentou registrar e segue a vida. |
+| **O serviço falhou na hora do uso** | O Host lida com o erro e pode tentar usar a próxima implementação da lista (fallback). |
 
 ---
 
-## 8. As Decisões Arquiteturais (em Português Simples)
+## 8. Arquitetura de Dependências
 
-### ADR-001: URL é a identidade
-**Problema:** Como identificar um add-on de forma única?
-**Decisão:** A URL do manifesto é a identidade. Não existe ID único global.
-**Por quê:** URL é única por natureza. Não precisa de cadastro central.
+A regra de quem conhece quem é estrita para evitar bagunça:
 
-### ADR-002: Manifest separado do Setup
-**Problema:** Como o host descobre o que o add-on oferece sem executar ele?
-**Decisão:** O add-on exporta `manifest` (dados) e `setup` (código) separadamente.
-**Por quê:** O host pode ler o manifesto (JSON puro, seguro) antes de executar código.
+* O **Core** fica no centro absoluto. Ele não depende de ninguém.
+* Os **Add-ons** e o **Host** dependem do Core para entender os formatos e ferramentas.
+* Os **Add-ons NUNCA** dependem do Host.
+* O **Host NUNCA** depende dos Add-ons diretamente na hora de programar (ele só os descobre enquanto o aplicativo está rodando).
 
-### ADR-003: Prioridade explícita
-**Problema:** Se dois add-ons registram o mesmo serviço, qual usar?
-**Decisão:** Cada registro tem um número de prioridade. Maior número = maior preferência.
-**Por quê:** Resolução determinística e controlável pelo usuário.
+---
 
-### ADR-004: Core sem dependências
-**Problema:** O core precisa ser portável pra qualquer projeto.
-**Decisão:** `@addons/core` não depende de React, Vite, ou nenhum framework.
-**Por quê:** Qualquer aplicação TypeScript pode usar o protocolo.
+## 9. Decisões Arquiteturais Importantes (ADRs)
 
-### ADR-005: Add-on pode ser servidor HTTP (estilo Stremio)
-**Problema:** Como permitir add-ons que moram fora do app, como o Torrentio?
-**Decisão:** O manifesto ganhou um segundo formato: `resources` + `types` + `catalogs`. O add-on vira um servidor que responde em `/<resource>/<type>/<id>.json`. O formato em-processo continua valendo.
-**Por quê:** O add-on pode ser hospedado e atualizado em qualquer lugar, sem tocar no host.
+Para finalizar, aqui está o resumo do *porquê* tomamos certas decisões de design ao longo do tempo:
 
-### ADR-006: Conteúdo no formato "subtitles"
-**Problema:** Como o add-on entrega o conteúdo de um texto?
-**Decisão:** Igual o Stremio faz com legendas: `{ texts: [{ id, url, lang, name }] }`, onde `url` aponta pro conteúdo em texto puro. O host busca a URL quando o usuário abre.
-**Por quê:** O mesmo padrão que o ecossistema Stremio já validou; o host controla quando baixar o conteúdo.
-
-### ADR-007: Servidor de add-on em JS puro
-**Problema:** O core é TypeScript e não roda direto no Node sem build.
-**Decisão:** `@addons/addon-server` e os add-ons de texto são JavaScript puro, com uma validação mínima própria (a validação completa vive no core).
-**Por quê:** Um add-on implantado não precisa arrastar o "motor" TypeScript do core.
+* **A URL é a Identidade (ADR-001):** Não usamos IDs complexos. A própria URL de onde o Add-on vem serve como seu identificador único. É universal e dispensa cadastros centrais.
+* **Separação entre Manifesto e Código (ADR-002):** Lemos os dados de identidade (JSON) antes de executar o código do Add-on. É mais seguro e rápido.
+* **Uso de Prioridades (ADR-003):** Quando há empate (dois add-ons oferecendo o mesmo serviço), um número de prioridade resolve a disputa de forma previsível.
+* **Core Livre de Frameworks (ADR-004):** O coração do sistema não usa React, Vite, ou qualquer framework visual. Isso garante que ele viverá por anos, independente da tecnologia da moda.
+* **O Modelo de Servidor HTTP (ADR-005):** Ao permitir que Add-ons vivam em servidores remotos, criamos um ecossistema descentralizado onde atualizações são transparentes.
+* **Servidores JS Puros (ADR-007):** Os servidores de Add-on não precisam do motor TypeScript pesado do Core. Eles podem ser escritos em JavaScript puro para rodarem de forma levíssima em qualquer servidor simples na nuvem.
