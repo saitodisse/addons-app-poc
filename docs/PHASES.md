@@ -190,6 +190,25 @@ Re-exportar tudo que é público: domain, ports, adapters.
 - Loader compara com a versão do host
 - Se incompatível, add-on não carrega com mensagem clara
 
+### 3.4 Add-ons em-processo que compõem serviços ✅
+
+**Objetivo: mostrar que add-ons também consomem outros serviços/recursos.**
+
+- `addon-markdown` — registra o serviço `textFormatter` (título+conteúdo → Markdown/HTML),
+  construído sobre helpers puros do núcleo (`toMarkdown`, `htmlFromMarkdown` em `domain/formatting.ts`)
+- `addon-aggregator` — registra o serviço `searchProvider` (meta-search): consulta todos os
+  add-ons de texto remotos em paralelo (`Promise.allSettled`) e mescla resultados com tolerância a falhas
+- `addon-favorites` — registra o serviço `favorites`: consome `bookmarkStore` (serviço de
+  infraestrutura registrado pelo host, ex.: `LocalStorageBookmarkStore`) com degradação a memória
+- `addon-text-wikipedia` — add-on de texto (porta 5294): busca e resumos de artigos na Wikipédia
+  (processamento externo real — opensearch + REST v1 page/summary)
+- `addon-health` — registra o serviço `healthCheck`: verifica disponibilidade e latência de cada
+  add-on remoto buscando o manifesto (`getManifest` + cronômetro), reportando `ok`/erro sem lançar exceção
+
+**Padrão novo no host-app:** o host registra serviços de infraestrutura com `addonId: 'host'`
+(ex.: `bookmarkStore`), e os add-ons os consomem via `host.services.get(...)` — composição
+de serviços sem acoplamento.
+
 ---
 
 ## Fase 4 — Isolamento e Resiliência

@@ -1,5 +1,6 @@
 {
   "name": "addons-poc",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "test": "pnpm -r --filter './packages/**' test",

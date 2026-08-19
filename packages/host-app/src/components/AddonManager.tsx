@@ -15,6 +15,10 @@ const LABELS: Record<AddonKey, { name: string; desc: string }> = {
   hello: { name: 'Hello', desc: 'Add-on de saudação em português' },
   'hello-pt': { name: 'Hello PT', desc: 'Versão prioritária do saudador' },
   counter: { name: 'Counter', desc: 'Add-on de contador' },
+  markdown: { name: 'Markdown', desc: 'Formata texto em Markdown/HTML' },
+  aggregator: { name: 'Aggregator', desc: 'Meta-search tolerante a falhas' },
+  favorites: { name: 'Favorites', desc: 'Favoritos com persistência' },
+  health: { name: 'Health', desc: 'Verifica disponibilidade dos add-ons' },
 };
 
 export function AddonManager({ addons, activeKeys, allKeys, onAdd, onRemove, loading }: AddonManagerProps) {

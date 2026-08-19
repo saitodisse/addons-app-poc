@@ -11,6 +11,10 @@ export default defineConfig({
       '/packages/addon-hello': path.resolve(workspaceRoot, 'addon-hello'),
       '/packages/addon-hello-pt': path.resolve(workspaceRoot, 'addon-hello-pt'),
       '/packages/addon-counter': path.resolve(workspaceRoot, 'addon-counter'),
+      '/packages/addon-markdown': path.resolve(workspaceRoot, 'addon-markdown'),
+      '/packages/addon-aggregator': path.resolve(workspaceRoot, 'addon-aggregator'),
+      '/packages/addon-favorites': path.resolve(workspaceRoot, 'addon-favorites'),
+      '/packages/addon-health': path.resolve(workspaceRoot, 'addon-health'),
     },
   },
   server: {

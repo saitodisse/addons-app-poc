@@ -12,6 +12,10 @@
     "@addons/addon-hello": "workspace:*",
     "@addons/addon-hello-pt": "workspace:*",
     "@addons/addon-counter": "workspace:*",
+    "@addons/addon-markdown": "workspace:*",
+    "@addons/addon-aggregator": "workspace:*",
+    "@addons/addon-favorites": "workspace:*",
+    "@addons/addon-health": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

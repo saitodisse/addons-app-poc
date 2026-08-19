@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
-import { ServiceRegistry, ConsoleLogger } from '@addons/core';
+import { ServiceRegistry, ConsoleLogger, LocalStorageBookmarkStore } from '@addons/core';
 import type { AddonInstance, HostAPI, AddonModule } from '@addons/core';
 import { Header } from './components/Header';
 import { AddonCard } from './components/AddonCard';
@@ -9,6 +9,7 @@ import { CounterDemo } from './components/CounterDemo';
 import { FallbackDemo } from './components/FallbackDemo';
 import { RegistryInspector } from './components/RegistryInspector';
 import { TextosDemo } from './components/TextosDemo';
+import { ExtrasDemo } from './components/ExtrasDemo';
 
 // Hello add-on
 import * as helloModule from '@addons/addon-hello';
@@ -16,8 +17,16 @@ import * as helloModule from '@addons/addon-hello';
 import * as helloPtModule from '@addons/addon-hello-pt';
 // Counter add-on
 import * as counterModule from '@addons/addon-counter';
+// Markdown add-on
+import * as markdownModule from '@addons/addon-markdown';
+// Aggregator add-on
+import * as aggregatorModule from '@addons/addon-aggregator';
+// Favorites add-on
+import * as favoritesModule from '@addons/addon-favorites';
+// Health Check add-on
+import * as healthModule from '@addons/addon-health';
 
-type AddonKey = 'hello' | 'hello-pt' | 'counter';
+type AddonKey = 'hello' | 'hello-pt' | 'counter' | 'markdown' | 'aggregator' | 'favorites' | 'health';
 
 interface AddonInfo {
   key: AddonKey;
@@ -50,12 +59,40 @@ const ADDONS: Record<AddonKey, AddonInfo> = {
     manifestUrl: 'http://localhost:5280/packages/addon-counter/manifest.json',
     module: () => counterModule,
   },
+  markdown: {
+    key: 'markdown',
+    name: markdownModule.manifest.name,
+    description: markdownModule.manifest.description,
+    manifestUrl: 'http://localhost:5280/packages/addon-markdown/manifest.json',
+    module: () => markdownModule,
+  },
+  aggregator: {
+    key: 'aggregator',
+    name: aggregatorModule.manifest.name,
+    description: aggregatorModule.manifest.description,
+    manifestUrl: 'http://localhost:5280/packages/addon-aggregator/manifest.json',
+    module: () => aggregatorModule,
+  },
+  favorites: {
+    key: 'favorites',
+    name: favoritesModule.manifest.name,
+    description: favoritesModule.manifest.description,
+    manifestUrl: 'http://localhost:5280/packages/addon-favorites/manifest.json',
+    module: () => favoritesModule,
+  },
+  health: {
+    key: 'health',
+    name: healthModule.manifest.name,
+    description: healthModule.manifest.description,
+    manifestUrl: 'http://localhost:5280/packages/addon-health/manifest.json',
+    module: () => healthModule,
+  },
 };
 
-const DEFAULT_KEYS: AddonKey[] = ['hello', 'hello-pt', 'counter'];
-const ALL_KEYS: AddonKey[] = ['hello', 'hello-pt', 'counter'];
+const DEFAULT_KEYS: AddonKey[] = ['hello', 'hello-pt', 'counter', 'markdown', 'aggregator', 'favorites', 'health'];
+const ALL_KEYS: AddonKey[] = ['hello', 'hello-pt', 'counter', 'markdown', 'aggregator', 'favorites', 'health'];
 
-export type Tab = 'greeter' | 'counter' | 'fallback' | 'inspector' | 'textos';
+export type Tab = 'greeter' | 'counter' | 'fallback' | 'textos' | 'inspector' | 'extras';
 
 export function App() {
   const [registry] = useState(() => new ServiceRegistry());
@@ -69,6 +106,12 @@ export function App() {
   const loadAddons = useCallback(async (keys: AddonKey[]) => {
     setLoading(true);
     const instances: AddonInstance[] = [];
+
+    // Serviço de infraestrutura fornecido pelo host (não é add-on):
+    // o add-on favorites consome 'bookmarkStore' com degradação a memória.
+    if (!registry.has('bookmarkStore')) {
+      registry.register('bookmarkStore', new LocalStorageBookmarkStore(), 'host');
+    }
 
     for (const key of keys) {
       const info = ADDONS[key];
@@ -154,6 +197,10 @@ export function App() {
     getValue: () => number;
     reset: () => number;
   }>('counter');
+  const formatter = registry.get<{ format: (s: { title: string; content: string }) => { title: string; markdown: string; html: string } }>('textFormatter');
+  const searchProvider = registry.get<{ search: (q: string, limit?: number) => Promise<{ title: string; snippet?: string }[]> }>('searchProvider');
+  const favorites = registry.get<{ list: () => Promise<{ id: string; title: string; url?: string; createdAt: number }[]>; add: (title: string, url?: string) => Promise<{ id: string; title: string; url?: string; createdAt: number }>; remove: (id: string) => Promise<boolean> }>('favorites');
+  const healthCheck = registry.get<{ checkAll: () => Promise<{ baseUrl: string; ok: boolean; latencyMs: number | null; error?: string }[]> }>('healthCheck');
 
   return (
     <div style={{
@@ -191,6 +238,7 @@ export function App() {
               { id: 'fallback' as Tab, label: '🔄 Fallback' },
               { id: 'textos' as Tab, label: '📄 Textos' },
               { id: 'inspector' as Tab, label: '🔍 Inspetor' },
+              { id: 'extras' as Tab, label: '🧪 Extras' },
             ]).map((tab) => (
               <button
                 key={tab.id}
@@ -226,6 +274,14 @@ export function App() {
             {activeTab === 'fallback' && <FallbackDemo registry={registry} />}
             {activeTab === 'textos' && <TextosDemo />}
             {activeTab === 'inspector' && <RegistryInspector registry={registry} />}
+            {activeTab === 'extras' && (
+              <ExtrasDemo
+                formatter={formatter}
+                searchProvider={searchProvider}
+                favorites={favorites}
+                healthCheck={healthCheck}
+              />
+            )}
           </div>
         </section>
       </main>

@@ -8,6 +8,19 @@ importers:
 
   .: {}
 
+  packages/addon-aggregator:
+    dependencies:
+      '@addons/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7
+
   packages/addon-counter:
     dependencies:
       '@addons/core':
@@ -17,6 +30,32 @@ importers:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
+
+  packages/addon-favorites:
+    dependencies:
+      '@addons/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7
+
+  packages/addon-health:
+    dependencies:
+      '@addons/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7
 
   packages/addon-hello:
     dependencies:
@@ -37,6 +76,19 @@ importers:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
+
+  packages/addon-markdown:
+    dependencies:
+      '@addons/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7
 
   packages/addon-server:
     devDependencies:
@@ -74,6 +126,16 @@ importers:
         specifier: ^3.0.0
         version: 3.2.7
 
+  packages/addon-text-wikipedia:
+    dependencies:
+      '@addons/addon-server':
+        specifier: workspace:*
+        version: link:../addon-server
+    devDependencies:
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7
+
   packages/core:
     devDependencies:
       typescript:
@@ -85,15 +147,27 @@ importers:
 
   packages/host-app:
     dependencies:
+      '@addons/addon-aggregator':
+        specifier: workspace:*
+        version: link:../addon-aggregator
       '@addons/addon-counter':
         specifier: workspace:*
         version: link:../addon-counter
+      '@addons/addon-favorites':
+        specifier: workspace:*
+        version: link:../addon-favorites
+      '@addons/addon-health':
+        specifier: workspace:*
+        version: link:../addon-health
       '@addons/addon-hello':
         specifier: workspace:*
         version: link:../addon-hello
       '@addons/addon-hello-pt':
         specifier: workspace:*
         version: link:../addon-hello-pt
+      '@addons/addon-markdown':
+        specifier: workspace:*
+        version: link:../addon-markdown
       '@addons/core':
         specifier: workspace:*
         version: link:../core

@@ -38,9 +38,9 @@ Nenhum pacote deve importar de outro pacote sem passar pelo `core`. Add-ons não
 
 - `pnpm install` — instalar dependências
 - `pnpm test` — rodar todos os testes (core, addon-server, add-ons)
-- `pnpm dev` — subir host app + todos os add-ons de texto (host :5280, biblioteca 5291, citações 5292, poemas 5293)
+- `pnpm dev` — subir host app + todos os add-ons de texto (host :5280, biblioteca 5291, citações 5292, poemas 5293, wikipedia 5294)
 - `pnpm kill-all` — encerrar todos os processos do dev (host-app e add-ons de texto)
-- `pnpm dev:addons` — subir apenas os servidores dos add-ons de texto (5291 biblioteca, 5292 citações, 5293 poemas)
+- `pnpm dev:addons` — subir apenas os servidores dos add-ons de texto (5291 biblioteca, 5292 citações, 5293 poemas, 5294 wikipedia)
 - `pnpm --filter @addons/host-app dev` — rodar host app isolado
 - `pnpm --filter @addons/addon-text-biblioteca serve` — subir um add-on específico
 
@@ -111,7 +111,12 @@ Este índice ajuda o agente a localizar rapidamente qualquer arquivo do projeto 
 | `@addons/addon-hello` | `packages/addon-hello/` | Add-on de exemplo (serviço greeter) |
 | `@addons/addon-hello-pt` | `packages/addon-hello-pt/` | Add-on de exemplo (greeter com prioridade 10) |
 | `@addons/addon-counter` | `packages/addon-counter/` | Add-on de exemplo (serviço counter) |
+| `@addons/addon-markdown` | `packages/addon-markdown/` | Add-on de exemplo (serviço textFormatter: Markdown/HTML) |
+| `@addons/addon-aggregator` | `packages/addon-aggregator/` | Add-on (serviço searchProvider: meta-search entre add-ons remotos) |
+| `@addons/addon-favorites` | `packages/addon-favorites/` | Add-on (serviço favorites com persistência via bookmarkStore) |
+| `@addons/addon-health` | `packages/addon-health/` | Add-on (serviço healthCheck: disponibilidade/latência dos add-ons remotos) |
 | `@addons/addon-server` | `packages/addon-server/` | Framework Node (zero deps) que serve manifest.json + endpoints de resource estilo Stremio com CORS |
 | `@addons/addon-text-biblioteca` | `packages/addon-text-biblioteca/` | Add-on de texto (porta 5291) — acervo embutido: catálogo + busca + texto |
 | `@addons/addon-text-citacoes` | `packages/addon-text-citacoes/` | Add-on de texto (porta 5292) — processamento externo: API DummyJSON Quotes |
 | `@addons/addon-text-poemas` | `packages/addon-text-poemas/` | Add-on de texto (porta 5293) — processamento externo real com busca: API PoetryDB |
+| `@addons/addon-text-wikipedia` | `packages/addon-text-wikipedia/` | Add-on de texto (porta 5294) — processamento externo real com busca: API Wikipédia |

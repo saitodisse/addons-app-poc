@@ -6,6 +6,7 @@
     "strict": true,
     "jsx": "react-jsx",
     "skipLibCheck": true,
+    "noEmit": true,
     "baseUrl": ".",
     "paths": {
       "@addons/core": ["../core/src/index.ts"],

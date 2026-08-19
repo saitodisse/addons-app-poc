@@ -1,7 +1,7 @@
 /**
  * Sobe o host-app E os servidores dos add-ons de texto juntos.
  * Uso: pnpm dev
- * Portas: host-app :5280 · biblioteca :5291 · citações :5292 · poemas :5293
+ * Portas: host-app :5280 · biblioteca :5291 · citações :5292 · poemas :5293 · wikipedia :5294
  */
 import { spawn } from 'node:child_process';
 
@@ -27,6 +27,7 @@ const children = [
   spawn('pnpm', ['--filter', '@addons/addon-text-biblioteca', 'serve'], { stdio: 'inherit', shell: true }),
   spawn('pnpm', ['--filter', '@addons/addon-text-citacoes', 'serve'], { stdio: 'inherit', shell: true }),
   spawn('pnpm', ['--filter', '@addons/addon-text-poemas', 'serve'], { stdio: 'inherit', shell: true }),
+  spawn('pnpm', ['--filter', '@addons/addon-text-wikipedia', 'serve'], { stdio: 'inherit', shell: true }),
 ];
 
 if (isWSL) {

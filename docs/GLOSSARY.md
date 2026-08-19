@@ -33,5 +33,10 @@
 | **Serviço** | Unidade funcional que um add-on oferece. Identificado por um serviceId único |
 | **Setup** | Função que o host chama para ativar o add-on, passando o HostAPI. É onde o add-on registra seus serviços |
 | **Texts** | Formato de resposta do recurso `text` (espelha `subtitles` do Stremio): `{ texts: [{ id, url, lang, name }] }` — a `url` aponta para o conteúdo em texto puro |
+| **Meta-search / Agregador** | Serviço `searchProvider` do addon-aggregator: consulta vários add-ons de texto remotos em paralelo e mescla os resultados, tolerando falhas individuais |
+| **textFormatter** | Serviço do addon-markdown que converte título+conteúdo em Markdown e HTML |
+| **bookmarkStore** | Serviço de infraestrutura registrado pelo host (ex.: `LocalStorageBookmarkStore`) que o addon-favorites consome para persistir marcadores |
+| **Composição de serviços** | Quando um add-on consome serviços de outros add-ons ou do host via `host.services.get(...)` — ex.: aggregator buscando em add-ons remotos, favorites usando `bookmarkStore` |
+| **healthCheck** | Serviço do addon-health que verifica disponibilidade e latência dos add-ons de texto remotos (busca o manifesto e mede o tempo de resposta) |
 | **URL** | No contexto deste projeto, URL do manifesto = identidade do add-on |
 | **Validação** | Processo de verificar se um manifesto é estruturalmente e semanticamente válido |

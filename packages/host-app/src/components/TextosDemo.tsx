@@ -10,6 +10,7 @@ const TEXT_ADDONS = [
   { baseUrl: 'http://localhost:5291', emoji: '📚' },
   { baseUrl: 'http://localhost:5292', emoji: '💬' },
   { baseUrl: 'http://localhost:5293', emoji: '🪶' },
+  { baseUrl: 'http://localhost:5294', emoji: '🌐' },
 ];
 
 interface LoadedAddon {
@@ -363,7 +364,7 @@ export function TextosDemo({ client = new HttpTextAddonClient() }: TextosDemoPro
 
       {!selected && (
         <div style={{ padding: 32, textAlign: 'center', color: '#64748b', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '2px dashed rgba(255,255,255,0.1)', fontSize: 14 }}>
-          Selecione um add-on de texto acima. Os servidores rodam nas portas 5291–5293
+          Selecione um add-on de texto acima. Os servidores rodam nas portas 5291–5294
           (<code>pnpm dev:addons</code>).
         </div>
       )}

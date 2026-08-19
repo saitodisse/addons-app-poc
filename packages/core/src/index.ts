@@ -9,6 +9,9 @@ export type { ValidationResult } from './domain/validation';
 export { withFallback, withFallbackAsync, AggregateFallbackError } from './domain/fallback';
 export type { Greeter, Counter, SearchProvider, SearchResult, HttpFetcher } from './domain/interfaces';
 export type { TextItem, TextMeta, TextCatalogPayload, TextSearchPayload, TextPayload } from './domain/text';
+export { toMarkdown, htmlFromMarkdown, createTextFormatter } from './domain/formatting';
+export type { TextFormatter } from './domain/formatting';
+export type { Bookmark, BookmarkStore, FavoritesService } from './domain/bookmarks';
 
 // Ports
 export type { AddonLoaderPort } from './ports/addon-loader';
@@ -17,6 +20,8 @@ export type { TextAddonClientPort } from './ports/text-addon-client';
 
 // Adapters
 export { FetchAddonLoader } from './adapters/http-loader';
+export { MemoryBookmarkStore } from './adapters/memory-bookmark-store';
+export { LocalStorageBookmarkStore } from './adapters/local-storage-bookmark-store';
 export { HttpTextAddonClient } from './adapters/http-text-client';
 export { ConsoleLogger } from './adapters/console-logger';
 export { SilentLogger } from './adapters/silent-logger';

@@ -23,10 +23,15 @@ Este POC traduz essa lição para o universo do TypeScript e aplicações web mo
 | `@addons/addon-hello` | Add-on de exemplo que registra um serviço de saudação |
 | `@addons/addon-hello-pt` | Add-on de exemplo (saudação com prioridade 10) |
 | `@addons/addon-counter` | Add-on de exemplo que registra um serviço de contador |
+| `@addons/addon-markdown` | Add-on de exemplo que registra o serviço `textFormatter` (Markdown/HTML) |
+| `@addons/addon-aggregator` | Add-on que registra o serviço `searchProvider` (meta-search tolerante a falhas) |
+| `@addons/addon-favorites` | Add-on que registra o serviço `favorites` (persistência via `bookmarkStore`) |
+| `@addons/addon-health` | Add-on que registra o serviço `healthCheck` (disponibilidade/latência dos add-ons remotos) |
 | `@addons/addon-server` | Framework Node (zero dependências) que serve um add-on de texto por HTTP, estilo Stremio |
 | `@addons/addon-text-biblioteca` | Add-on de texto (porta 5291) — acervo embutido com catálogo, busca e leitura |
 | `@addons/addon-text-citacoes` | Add-on de texto (porta 5292) — citações com **processamento externo** (API DummyJSON) |
 | `@addons/addon-text-poemas` | Add-on de texto (porta 5293) — poemas com **processamento externo e busca** (API PoetryDB) |
+| `@addons/addon-text-wikipedia` | Add-on de texto (porta 5294) — resumos de artigos com **processamento externo real** (API Wikipédia) |
 
 ---
 
@@ -36,7 +41,7 @@ Este POC traduz essa lição para o universo do TypeScript e aplicações web mo
 pnpm install
 
 # Sobe tudo de uma vez: host app (http://localhost:5280)
-# + servidores dos add-ons de texto (5291 biblioteca, 5292 citações, 5293 poemas)
+# + servidores dos add-ons de texto (5291 biblioteca, 5292 citações, 5293 poemas, 5294 wikipedia)
 pnpm dev
 
 # Encerra todos os processos do dev (host app + add-ons de texto)
@@ -45,7 +50,13 @@ pnpm kill-all
 
 > **No WSL2:** o `pnpm dev` detecta WSL, não tenta abrir o navegador (o browser fica no Windows) e o Vite escuta em `0.0.0.0`. Abra manualmente **http://localhost:5280/** no navegador do Windows.
 
-No host app, abra a aba **📄 Textos**: os três add-ons remotos aparecem automaticamente. Navegue catálogos, faça buscas (os add-ons de citações e poemas buscam em APIs públicas na web) e leia o conteúdo.
+No host app, abra a aba **📄 Textos**: os quatro add-ons remotos aparecem automaticamente. Navegue catálogos, faça buscas (citações, poemas e a Wikipédia buscam em APIs públicas na web) e leia o conteúdo.
+
+Na aba **🧪 Extras** você encontra os add-ons em processo que compõem serviços:
+- **📝 Formatador Markdown** — serviço `textFormatter` do addon-markdown;
+- **🔎 Busca Agregada** — serviço `searchProvider` do addon-aggregator, que busca em todos os add-ons remotos e tolera falhas;
+- **⭐ Favoritos** — serviço `favorites` do addon-favorites, persistido via `bookmarkStore` fornecido pelo host.
+- **❤️ Health Check** — serviço `healthCheck` do addon-health, que verifica disponibilidade e latência dos add-ons remotos.
 
 ```bash
 pnpm test   # todos os testes (core + addon-server + add-ons)
@@ -64,10 +75,15 @@ pnpm test   # todos os testes (core + addon-server + add-ons)
 | `packages/addon-hello/` | **`@addons/addon-hello`** — add-on de exemplo (serviço de saudação) |
 | `packages/addon-hello-pt/` | **`@addons/addon-hello-pt`** — add-on de exemplo (saudação, prioridade 10) |
 | `packages/addon-counter/` | **`@addons/addon-counter`** — add-on de exemplo (serviço de contador) |
+| `packages/addon-markdown/` | **`@addons/addon-markdown`** — add-on de exemplo (serviço `textFormatter`) |
+| `packages/addon-aggregator/` | **`@addons/addon-aggregator`** — add-on (meta-search entre add-ons remotos) |
+| `packages/addon-favorites/` | **`@addons/addon-favorites`** — add-on (favoritos com persistência) |
+| `packages/addon-health/` | **`@addons/addon-health`** — add-on (health-check dos add-ons remotos) |
 | `packages/addon-server/` | **`@addons/addon-server`** — framework Node que serve manifest.json + endpoints de resource estilo Stremio |
 | `packages/addon-text-biblioteca/` | **`@addons/addon-text-biblioteca`** — add-on de texto (5291): catálogo + busca + leitura |
 | `packages/addon-text-citacoes/` | **`@addons/addon-text-citacoes`** — add-on de texto (5292): citações via API externa |
 | `packages/addon-text-poemas/` | **`@addons/addon-text-poemas`** — add-on de texto (5293): poemas via API externa com busca |
+| `packages/addon-text-wikipedia/` | **`@addons/addon-text-wikipedia`** — add-on de texto (5294): resumos da Wikipédia via API externa |
 | `docs/ARCHITECTURE.md` | Arquitetura do sistema — camadas, fluxos, modelos, ADRs |
 | `docs/GLOSSARY.md` | Dicionário de todos os termos técnicos do projeto |
 | `docs/MANIFEST-SPEC.md` | Especificação completa do formato do manifesto de add-on (em-processo + Stremio) |

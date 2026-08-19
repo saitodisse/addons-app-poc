@@ -1,0 +1,19 @@
+{
+  "name": "@addons/addon-text-wikipedia",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "serve": "node src/server.mjs",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@addons/addon-server": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0"
+  }
+}
