@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import type { AddonInstance, ServiceRegistry } from '@addons/core';
+import { withFallback, AggregateFallbackError } from '@addons/core';
+import type { AddonInstance, ServiceRegistry, Greeter, Counter } from '@addons/core';
 
 interface AddonViewerProps {
   addon: AddonInstance;
@@ -8,6 +9,7 @@ interface AddonViewerProps {
 
 export function AddonViewer({ addon, registry }: AddonViewerProps) {
   const [counterValue, setCounterValue] = useState(0);
+  const [fallbackResult, setFallbackResult] = useState<string | null>(null);
 
   if (addon.status === 'error') {
     return (
@@ -28,13 +30,9 @@ export function AddonViewer({ addon, registry }: AddonViewerProps) {
     return { id: serviceId, available: !!service };
   });
 
-  const greeter = registry.get<{ greet: (name: string) => string }>('greeter');
-  const counter = registry.get<{
-    increment: () => number;
-    decrement: () => number;
-    getValue: () => number;
-    reset: () => number;
-  }>('counter');
+  const greeter = registry.get<Greeter>('greeter');
+  const greeters = registry.getAll<Greeter>('greeter');
+  const counter = registry.get<Counter>('counter');
 
   return (
     <div>
@@ -81,6 +79,28 @@ export function AddonViewer({ addon, registry }: AddonViewerProps) {
         </ul>
       </section>
 
+      {/* Fallback Info */}
+      {greeters.length > 1 && (
+        <section style={{ marginBottom: 20 }}>
+          <h3 style={{ fontSize: 14, marginBottom: 8, color: '#374151' }}>Cadeia de Fallback</h3>
+          <div style={{ fontSize: 13, color: '#666', lineHeight: 1.8 }}>
+            <p style={{ marginBottom: 8 }}>
+              O serviço <code>greeter</code> tem {greeters.length} implementações:
+            </p>
+            <ol style={{ margin: 0, paddingLeft: 20 }}>
+              {greeters.map((g, i) => (
+                <li key={i} style={{ marginBottom: 4 }}>
+                  {i === 0 ? '⭐ Prioritário' : `↪️ Fallback ${i}`}
+                  {i === 0 && (
+                    <span style={{ color: '#22c55e', marginLeft: 8 }}>— usado por padrão</span>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+      )}
+
       {/* Testar serviços */}
       <section>
         <h3 style={{ fontSize: 14, marginBottom: 8, color: '#374151' }}>Testar</h3>
@@ -88,23 +108,59 @@ export function AddonViewer({ addon, registry }: AddonViewerProps) {
         {greeter && (
           <div style={{ marginBottom: 12, padding: 12, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
             <div style={{ fontSize: 13, marginBottom: 8 }}><strong>Greeter</strong></div>
-            <button
-              onClick={() => {
-                const result = greeter.greet('visitante');
-                alert(result);
-              }}
-              style={{
-                padding: '6px 16px',
-                background: '#3b82f6',
-                color: '#fff',
-                border: 'none',
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => {
+                  const result = greeter.greet('visitante');
+                  alert(`Sem fallback: ${result}`);
+                }}
+                style={btnStyle('#3b82f6')}
+              >
+                Sem Fallback
+              </button>
+              <button
+                onClick={() => {
+                  try {
+                    const result = withFallback<Greeter, string>(
+                      registry, 'greeter', (g) => g.greet('visitante'),
+                    );
+                    setFallbackResult(`✅ ${result}`);
+                  } catch (e) {
+                    setFallbackResult(`❌ ${(e as AggregateFallbackError).message}`);
+                  }
+                }}
+                style={btnStyle('#22c55e')}
+              >
+                Com Fallback
+              </button>
+              <button
+                onClick={() => {
+                  try {
+                    const result = withFallback<Greeter, string>(
+                      registry, 'greeter', (g) => g.greet('error'),
+                    );
+                    setFallbackResult(`✅ ${result}`);
+                  } catch (e) {
+                    setFallbackResult(`❌ Fallback também falhou: ${(e as AggregateFallbackError).message}`);
+                  }
+                }}
+                style={btnStyle('#ef4444')}
+              >
+                Forçar Erro 🔥
+              </button>
+            </div>
+            {fallbackResult && (
+              <div style={{
+                marginTop: 8,
+                padding: '8px 12px',
                 borderRadius: 6,
-                cursor: 'pointer',
+                background: fallbackResult.startsWith('✅') ? '#f0fdf4' : '#fef2f2',
+                border: `1px solid ${fallbackResult.startsWith('✅') ? '#bbf7d0' : '#fecaca'}`,
                 fontSize: 13,
-              }}
-            >
-              Dizer Olá
-            </button>
+              }}>
+                {fallbackResult}
+              </div>
+            )}
           </div>
         )}
 
@@ -115,46 +171,13 @@ export function AddonViewer({ addon, registry }: AddonViewerProps) {
               {counterValue}
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-              <button
-                onClick={() => setCounterValue(counter.decrement())}
-                style={{
-                  padding: '6px 16px',
-                  background: '#ef4444',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 6,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                }}
-              >
+              <button onClick={() => setCounterValue(counter.decrement())} style={btnStyle('#ef4444')}>
                 -1
               </button>
-              <button
-                onClick={() => setCounterValue(counter.reset())}
-                style={{
-                  padding: '6px 16px',
-                  background: '#6b7280',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 6,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                }}
-              >
+              <button onClick={() => setCounterValue(counter.reset())} style={btnStyle('#6b7280')}>
                 Reset
               </button>
-              <button
-                onClick={() => setCounterValue(counter.increment())}
-                style={{
-                  padding: '6px 16px',
-                  background: '#22c55e',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 6,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                }}
-              >
+              <button onClick={() => setCounterValue(counter.increment())} style={btnStyle('#22c55e')}>
                 +1
               </button>
             </div>
@@ -163,4 +186,16 @@ export function AddonViewer({ addon, registry }: AddonViewerProps) {
       </section>
     </div>
   );
+}
+
+function btnStyle(color: string): React.CSSProperties {
+  return {
+    padding: '6px 16px',
+    background: color,
+    color: '#fff',
+    border: 'none',
+    borderRadius: 6,
+    cursor: 'pointer',
+    fontSize: 13,
+  };
 }

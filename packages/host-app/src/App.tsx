@@ -11,6 +11,11 @@ const ADDONS = [
     manifestUrl: 'http://localhost:5280/packages/addon-hello/manifest.json',
   },
   {
+    name: 'Hello PT',
+    url: '/packages/addon-hello-pt/src/index.ts',
+    manifestUrl: 'http://localhost:5280/packages/addon-hello-pt/manifest.json',
+  },
+  {
     name: 'Counter',
     url: '/packages/addon-counter/src/index.ts',
     manifestUrl: 'http://localhost:5280/packages/addon-counter/manifest.json',
