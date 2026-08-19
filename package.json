@@ -2,11 +2,10 @@
   "name": "addons-poc",
   "private": true,
   "scripts": {
-    "test": "pnpm --filter @addons/core test",
+    "test": "pnpm -r --filter './packages/**' test",
     "dev": "pnpm --filter @addons/host-app dev",
-    "build:core": "pnpm --filter @addons/core build",
-    "build:hello": "pnpm --filter @addons/addon-hello build",
-    "build:counter": "pnpm --filter @addons/addon-counter build",
+    "dev:addons": "pnpm -r --parallel --filter './packages/addon-text-*' serve",
+    "dev:hello": "pnpm --filter @addons/addon-hello serve",
     "build:host": "pnpm --filter @addons/host-app build"
   }
 }

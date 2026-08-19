@@ -9,6 +9,9 @@
   },
   "dependencies": {
     "@addons/core": "workspace:*",
+    "@addons/addon-hello": "workspace:*",
+    "@addons/addon-hello-pt": "workspace:*",
+    "@addons/addon-counter": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
