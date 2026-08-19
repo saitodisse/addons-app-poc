@@ -131,8 +131,32 @@ interface AddonManifest {
   author: string;          // Nome do autor
   icon?: string;           // URL do ícone
   license: string;         // Licença, ex: "MIT"
-  entrypoint: string;      // URL do bundle ESM
-  services: ServiceRegistration[];
+  // Formato em-processo (Fases 1–2):
+  entrypoint?: string;     // URL do bundle ESM
+  services?: ServiceRegistration[];
+  // Formato Stremio/HTTP (Fase 3):
+  resources?: AddonResource[];   // { name, types, idPrefixes? }
+  types?: string[];              // ex.: ["text"], ["quote"]
+  idPrefixes?: string[];
+  catalogs?: AddonCatalog[];     // { type, id, name }
+}
+```
+
+### AddonResource / AddonCatalog (formato Stremio)
+
+```typescript
+type AddonResourceName = 'catalog' | 'search' | 'text' | 'meta' | 'subtitles' | 'stream';
+
+interface AddonResource {
+  name: AddonResourceName;
+  types: string[];       // tipos de conteúdo atendidos
+  idPrefixes?: string[]; // ex.: ['tt'] como o IMDb no Torrentio
+}
+
+interface AddonCatalog {
+  type: string;
+  id: string;
+  name: string;
 }
 ```
 
@@ -213,6 +237,75 @@ class ServiceRegistry {
 ```
 
 Add-ons dependem de `@addons/core` para os tipos. O host-app depende de `@addons/core` para o registry e loader. Add-ons **não** dependem do host-app. O host-app **não** depende de add-ons em tempo de compilação.
+
+---
+
+## 7.1 Add-ons de Texto (formato Stremio/HTTP)
+
+A partir da Fase 3, um add-on pode ser um **servidor HTTP** — inspirado no protocolo Stremio (referência: Torrentio), adaptado para compartilhamento de textos.
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                        Host App (navegador)                          │
+│                                                                      │
+│   HttpTextAddonClient ── GET /manifest.json ──────────────────┐      │
+│   HttpTextAddonClient ── GET /catalog/<type>/<id>.json ──────┼──┐   │
+│   HttpTextAddonClient ── GET /search/<type>/<query>.json ────┼──┼─┐ │
+│   HttpTextAddonClient ── GET /text/<type>/<id>.json ─────────┼──┼─┼>│
+│   fetch(item.url) ────── GET /text/<type>/<id>/content.txt ──┼──┼─┼>│
+└──────────────────────────────────────────────────────────────┼──┼──┼─┘
+                                                               │  │  │
+        ┌──────────────┐   ┌──────────────┐   ┌──────────────┐  │  │  │
+        │ biblioteca   │   │ citacoes     │   │ poemas       │  │  │  │
+        │ :5291        │   │ :5292        │   │ :5293        │  │  │  │
+        │ (embutido)   │   │ (DummyJSON)  │   │ (PoetryDB)   │  │  │  │
+        └──────────────┘   └──────────────┘   └──────────────┘  │  │  │
+                                                               │  │  │
+   Processamento externo: citacoes/poemas fazem fetch de APIs   │  │  │
+   públicas (assim como o Torrentio busca em indexadores).      │  │  │
+   Todos os add-ons servem CORS * para o host-app (:5280).      │  │  │
+└───────────────────────────────────────────────────────────────┴──┴──┴─┘
+```
+
+**Fluxo:**
+
+1. O host conhece a **URL base** de cada add-on de texto (URL = identidade)
+2. `HttpTextAddonClient.getManifest(baseUrl)` busca e valida o manifesto (resources declarados)
+3. O usuário navega catálogos ou busca: `catalog()` / `search()` retornam `{ metas: [...] }`
+4. Ao abrir um item, `text()` retorna `{ texts: [...] }` — **formato subtitles**: cada item tem `url` apontando para o conteúdo
+5. O host faz `fetch(item.url)` e exibe o texto puro
+
+**Camadas novas no core:**
+
+```
+packages/core/src/
+├── domain/
+│   ├── manifest.ts   # + AddonResource, AddonCatalog (formato Stremio)
+│   └── text.ts       # TextItem, TextMeta, TextCatalogPayload, TextPayload
+├── ports/
+│   └── text-addon-client.ts   # TextAddonClientPort
+└── adapters/
+    └── http-text-client.ts    # HttpTextAddonClient (fetch injetável)
+```
+
+**Pacote novo:** `@addons/addon-server` — framework Node (zero dependências) que monta o servidor HTTP de um add-on a partir de `manifest` + `handlers` (`catalog`, `search`, `text`, `content`), com CORS habilitado. Os add-ons de texto são **JS puro** e não arrastam o runtime TS do core — apenas reusam o formato de endpoints.
+
+**ADRs adicionais:**
+
+### ADR-006: Add-on pode ser servidor HTTP (formato Stremio)
+**Contexto:** O usuário pediu add-ons que respondem HTTP/API e fazem busca/processamento externo, usando como referência a interface do Torrentio no Stremio.
+**Decisão:** O manifesto ganhou um segundo formato: `resources` + `types` + `catalogs`. O add-on é um servidor HTTP que atende `/<resource>/<type>/<id>.json`. O formato em-processo (`services`) permanece suportado.
+**Consequência:** Add-ons podem ser implantados em qualquer lugar (como o Torrentio é), e o host os consome via HTTP sem importar código.
+
+### ADR-007: Recurso text no formato subtitles
+**Contexto:** Precisávamos de um padrão de resposta para conteúdo de texto.
+**Decisão:** Espelhamos o recurso `subtitles` do Stremio: `{ texts: [{ id, url, lang, name }] }`, onde `url` aponta para o conteúdo servido em texto puro. O host busca a URL separadamente.
+**Consequência:** O mesmo padrão já validado pelo ecossistema Stremio; o host controla quando baixar o conteúdo.
+
+### ADR-008: Servidor de add-on em JS puro
+**Contexto:** O core é TypeScript e não roda direto no Node sem build.
+**Decisão:** `@addons/addon-server` e os add-ons de texto são JavaScript puro (ESM), com validação mínima de manifesto própria (a canônica vive no core).
+**Consequência:** Add-ons implantados não dependem do toolchain TS do core.
 
 ---
 

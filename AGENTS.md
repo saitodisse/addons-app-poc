@@ -10,9 +10,10 @@ Este é um **projeto independente de prova de conceito (POC)**. Não faz parte d
 
 - `packages/core/`: o protocolo central — **domain/** (regras puras), **ports/** (interfaces), **adapters/** (implementações). **Código mais crítico do projeto.**
 - `packages/host-app/`: aplicativo que consome add-ons. Depende de `core` mas não o modifica.
-- `packages/addon-*/`: add-ons de exemplo. Dependem de `core` para se registrar.
+- `packages/addon-*/`: add-ons de exemplo. Dependem de `core` para se registrar (formato em-processo) ou de `@addons/addon-server` para servir HTTP (formato Stremio).
+- `packages/addon-server/`: framework Node (zero dependências) que monta o servidor HTTP de um add-on de texto a partir de `manifest` + `handlers`.
 
-Nenhum pacote deve importar de outro pacote sem passar pelo `core`. Add-ons não importam do `host-app`.
+Nenhum pacote deve importar de outro pacote sem passar pelo `core`. Add-ons não importam do `host-app`. Add-ons de texto são JS puro e não arrastam o runtime TS do core.
 
 ## Decisões Arquiteturais Registradas
 
@@ -21,20 +22,24 @@ Nenhum pacote deve importar de outro pacote sem passar pelo `core`. Add-ons não
 3. **HostAPI mínimo**: o add-on recebe `services`, `onUnload` e `log` — nada mais.
 4. **Prioridade explícita**: serviços são resolvidos por prioridade, com fallback automático.
 5. **Erro no setup = add-on desativado**: exceção no setup desativa o add-on completamente.
-6. **Fallback automático**: se um serviço falha, o registry tenta o próximo da lista.
+6. **Fallback automático**: se um serviço falha, o registry tenta o próximo da lista (`withFallback` sincrono, `withFallbackAsync` assíncrono).
 7. **ESM puro**: add-ons são módulos ES importados dinamicamente com `import()`.
-8. **Testes no core**: testes unitários em `@addons/core` — registry, validação, loader.
-9. **Manifesto completo**: inclui `id`, `version`, `name`, `description`, `author`, `icon`, `license`, `entrypoint`, `services[]`.
+8. **Testes no core**: testes unitários em `@addons/core` — registry, validação, loader, cliente de texto.
+9. **Manifesto completo**: inclui `id`, `version`, `name`, `description`, `author`, `icon`, `license` + `services[]`/`entrypoint` (em-processo) **ou** `resources`/`types`/`catalogs` (Stremio/HTTP).
 10. **Fallback com withFallback**: `withFallback(registry, serviceId, fn)` tenta cada implementação; se a primeira falha, tenta a próxima.
-11. **Interfaces de domínio**: `Greeter`, `Counter` em `domain/interfaces.ts` — add-ons implementam interfaces explicitamente.
+11. **Interfaces de domínio**: `Greeter`, `Counter`, `SearchProvider`, `SearchResult`, `HttpFetcher` em `domain/interfaces.ts` — add-ons implementam interfaces explicitamente.
+12. **Add-on pode ser servidor HTTP (Stremio)**: o manifesto pode declarar `resources`; o add-on vira um servidor que responde `/<resource>/<type>/<id>.json` (referência: Torrentio no Stremio).
+13. **Recurso text no formato subtitles**: `{ texts: [{ id, url, lang, name }] }`, onde `url` aponta para o conteúdo em texto puro.
+14. **Servidor de add-on em JS puro**: `@addons/addon-server` e add-ons de texto são JS ESM puro, com validação mínima própria (a canônica vive no core).
 
 ## Comandos
 
 - `pnpm install` — instalar dependências
-- `pnpm test` — rodar testes
-- `pnpm --filter @addons/host-app dev` — rodar host app em desenvolvimento
-- `pnpm --filter @addons/core build` — build do core
-- `pnpm --filter @addons/addon-hello build` — build de um add-on
+- `pnpm test` — rodar todos os testes (core, addon-server, add-ons)
+- `pnpm dev` — rodar host app em desenvolvimento (http://localhost:5280)
+- `pnpm dev:addons` — subir os servidores dos add-ons de texto (5291 biblioteca, 5292 citações, 5293 poemas)
+- `pnpm --filter @addons/host-app dev` — rodar host app isolado
+- `pnpm --filter @addons/addon-text-biblioteca serve` — subir um add-on específico
 
 ## Convenções
 
@@ -98,7 +103,12 @@ Este índice ajuda o agente a localizar rapidamente qualquer arquivo do projeto 
 
 | Pacote | Caminho | Responsabilidade |
 |--------|---------|------------------|
-| `@addons/core` | `packages/core/` | Tipos, ServiceRegistry, AddonLoader, Validation |
-| `@addons/host-app` | `packages/host-app/` | App React que consome add-ons |
+| `@addons/core` | `packages/core/` | Tipos, ServiceRegistry, AddonLoader, Validation, TextAddonClient |
+| `@addons/host-app` | `packages/host-app/` | App React que consome add-ons (abas greeter/counter/fallback/textos/inspector) |
 | `@addons/addon-hello` | `packages/addon-hello/` | Add-on de exemplo (serviço greeter) |
+| `@addons/addon-hello-pt` | `packages/addon-hello-pt/` | Add-on de exemplo (greeter com prioridade 10) |
 | `@addons/addon-counter` | `packages/addon-counter/` | Add-on de exemplo (serviço counter) |
+| `@addons/addon-server` | `packages/addon-server/` | Framework Node (zero deps) que serve manifest.json + endpoints de resource estilo Stremio com CORS |
+| `@addons/addon-text-biblioteca` | `packages/addon-text-biblioteca/` | Add-on de texto (porta 5291) — acervo embutido: catálogo + busca + texto |
+| `@addons/addon-text-citacoes` | `packages/addon-text-citacoes/` | Add-on de texto (porta 5292) — processamento externo: API DummyJSON Quotes |
+| `@addons/addon-text-poemas` | `packages/addon-text-poemas/` | Add-on de texto (porta 5293) — processamento externo real com busca: API PoetryDB |

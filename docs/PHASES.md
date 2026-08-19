@@ -10,7 +10,7 @@ Este documento detalha cada fase do projeto, do mais simples ao mais complexo. C
 
 ## Fase 1 — Núcleo do Protocolo + App Base
 
-**Status: Em Andamento** · **Objetivo: Um aplicativo que carrega add-ons**
+**Status: Entregue** · **Objetivo: Um aplicativo que carrega add-ons**
 
 ### 1.1 Core — Domain (Manifest, Instance, HostAPI)
 
@@ -154,13 +154,29 @@ Re-exportar tudo que é público: domain, ports, adapters.
 
 ## Fase 3 — Descoberta Remota e Catálogo
 
-**Status: Planejado** · **Objetivo: Add-ons carregados de qualquer lugar**
+**Status: Parcial** · **Objetivo: Add-ons carregados de qualquer lugar**
+
+### 3.0 Add-ons de Texto estilo Stremio (HTTP) ✅
+
+**Referência: protocolo Stremio / add-on Torrentio**, adaptado para compartilhamento de textos (busca, conteúdo).
+
+- Manifesto no formato Stremio: `resources` (catalog/search/text), `types`, `idPrefixes`, `catalogs`
+- Cada add-on é um **servidor HTTP independente** servindo `manifest.json` + endpoints `/<resource>/<type>/<id>.json`
+- `@addons/addon-server` — framework Node (zero deps) que monta o servidor a partir de handlers
+- `HttpTextAddonClient` no core — cliente que consome add-ons remotos (port + adapter)
+- Recurso `text` no **formato subtitles** do Stremio: `{ texts: [{ id, url, lang, name }] }`, onde `url` aponta para o conteúdo servido em texto puro
+- Add-ons criados:
+  - `addon-text-biblioteca` (porta 5291) — acervo embutido com catálogos, busca e texto
+  - `addon-text-citacoes` (porta 5292) — processamento externo: API pública DummyJSON Quotes
+  - `addon-text-poemas` (porta 5293) — processamento externo real com busca: API PoetryDB (CORS aberto, sem auth)
+- Host-app: aba **Textos** que lista add-ons remotos, navega catálogos, busca e lê conteúdo
+- Testes: validação do manifesto Stremio, cliente HTTP, servidor, handlers de cada add-on (77 testes no total)
 
 ### 3.1 Manifesto Remoto
 
-- Loader faz fetch do manifesto de URL remota
-- Validação antes de carregar
-- Cache do manifesto para evitar refetch
+- Loader faz fetch do manifesto de URL remota ✅ (FetchAddonLoader + HttpTextAddonClient)
+- Validação antes de carregar ✅
+- Cache do manifesto para evitar refetch — pendente
 
 ### 3.2 Catálogo de Add-ons
 

@@ -10,6 +10,10 @@ O manifesto é o documento que um add-on publica para se anunciar. Ele contém t
 
 O manifesto é um arquivo JSON. Ele pode estar hospedado em qualquer URL acessível por HTTP GET.
 
+> **Dois formatos são suportados:**
+> - **Em-processo** (`services` + `entrypoint`): o add-on é um bundle ESM importado com `import()`, que registra serviços no registry (Fases 1–2).
+> - **Stremio/HTTP** (`resources` + `types`): o add-on é um **servidor HTTP** (como o Torrentio no Stremio) que declara `resources` (catalog/search/text) e responde em endpoints `/<resource>/<type>/<id>.json` (Fase 3).
+
 ---
 
 ## 2. Exemplo Completo
@@ -58,7 +62,51 @@ O manifesto é um arquivo JSON. Ele pode estar hospedado em qualquer URL acessí
 |-------|------|-----------|
 | `icon` | string | URL absoluta de um ícone para o add-on. Deve ser uma imagem SVG ou PNG |
 
-### 3.3 Campos Reservados para Versões Futuras
+### 3.3 Campos do Formato Stremio (Add-on HTTP)
+
+Neste formato, o add-on **é** um servidor HTTP (inspirado no protocolo Stremio, referência Torrentio). A URL do servidor é a identidade; o manifesto é servido em `/manifest.json`.
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `resources` | AddonResource[] | Recursos que o add-on atende. Cada um tem `name` (catalog/search/text/meta/subtitles/stream), `types[]` e opcional `idPrefixes[]` |
+| `types` | string[] | Tipos de conteúdo atendidos (ex.: `["text"]`, `["quote"]`, `["poem"]`) |
+| `idPrefixes` | string[] | Prefixos de id aceitos (como `tt` do IMDb no Torrentio) |
+| `catalogs` | AddonCatalog[] | Catálogos anunciados: `{ type, id, name }` |
+
+**Exemplo (formato Stremio):**
+
+```json
+{
+  "id": "text-biblioteca",
+  "version": "1.0.0",
+  "name": "Biblioteca de Textos",
+  "description": "Catálogo e busca de textos",
+  "author": "Equipe AC",
+  "license": "MIT",
+  "resources": [
+    { "name": "catalog", "types": ["text"], "idPrefixes": [] },
+    { "name": "search", "types": ["text"], "idPrefixes": [] },
+    { "name": "text", "types": ["text"], "idPrefixes": [] }
+  ],
+  "types": ["text"],
+  "idPrefixes": [],
+  "catalogs": [
+    { "type": "text", "id": "classicos", "name": "Textos Clássicos" }
+  ]
+}
+```
+
+**Endpoints servidos pelo add-on (estilo Stremio):**
+
+| Endpoint | Resposta |
+|----------|----------|
+| `GET /manifest.json` | O próprio manifesto |
+| `GET /catalog/<type>/<catalogId>.json` | `{ "metas": [TextMeta] }` |
+| `GET /search/<type>/<query>.json` | `{ "metas": [TextMeta] }` |
+| `GET /text/<type>/<id>.json` | `{ "texts": [TextItem] }` — formato subtitles: cada item tem `url` apontando para o conteúdo |
+| `GET /text/<type>/<id>/content.txt` | Conteúdo em texto puro (como um arquivo SRT) |
+
+### 3.4 Campos Reservados para Versões Futuras
 
 | Campo | Tipo | Previsto para |
 |-------|------|---------------|
@@ -87,13 +135,14 @@ Cada item da lista `services` descreve um serviço que o add-on implementa.
 ### 5.1 Regras de Estrutura
 
 1. O manifesto deve ser um objeto JSON válido
-2. Todos os campos obrigatórios devem estar presentes
-3. `id` deve ser uma string não vazia, em kebab-case (letras minúsculas, hífens)
-4. `version` deve seguir o formato semântico `X.Y.Z` onde X, Y, Z são inteiros não negativos
-5. `entrypoint` deve ser uma URL absoluta válida (começando com `http://` ou `https://`)
-6. `services` deve ser um array com pelo menos um item
-7. Cada serviço deve ter `id`, `version`, `name`, `description` não vazios
-8. `license` deve ser um identificador SPDX válido
+2. `id`, `version`, `name`, `description`, `author`, `license` são sempre obrigatórios
+3. O manifesto deve declarar **ou** `services` (em-processo) **ou** `resources` (Stremio/HTTP)
+4. No formato em-processo, `entrypoint` deve ser uma URL absoluta (`http://`/`https://`) e `services` deve ter ao menos um item
+5. No formato Stremio, cada `resource` deve ter `name` em {catalog, search, text, meta, subtitles, stream} e `types` não vazio
+6. `catalogs[]` deve referenciar tipos declarados em `types` ou nos `resources`
+7. `id` deve ser uma string não vazia, em kebab-case (letras minúsculas, hífens)
+8. `version` deve seguir o formato semântico `X.Y.Z` onde X, Y, Z são inteiros não negativos
+9. `license` deve ser um identificador SPDX válido
 
 ### 5.2 Regras de Negócio
 

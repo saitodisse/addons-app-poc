@@ -4,7 +4,7 @@
 
 ---
 
-## Fase 1 — O Núcleo (Em Andamento)
+## Fase 1 — O Núcleo (Entregue ✅)
 
 **Objetivo:** Um aplicativo que carrega add-ons.
 
@@ -75,20 +75,49 @@ O `addon-hello-pt` registra o mesmo serviço `greeter` mas com prioridade 10 (ma
 
 ---
 
-## Fase 3 — Descoberta Remota (Planejado)
+## Fase 3 — Add-ons de Texto por HTTP (Entregue ✅)
 
-**Objetivo:** Add-ons carregados de qualquer lugar.
+**Objetivo:** Add-ons que são servidores de internet, estilo Stremio/Torrentio.
 
-### O que vai ser construído
+Aí vem a parte mais legal. A gente usou a interface do **Torrentio** (aquele add-on famoso do Stremio, que busca filmes) como referência — mas em vez de vídeo, **texto** (busca e conteúdo).
 
-#### 3.1 — Manifesto Remoto
-Loader faz fetch do manifesto de uma URL na internet. Não precisa estar no mesmo computador.
+### O que foi construído
 
-#### 3.2 — Catálogo de Add-ons
-Uma lista de add-ons conhecidos que o usuário pode navegar e instalar.
+#### 3.0 — Um novo jeito de add-on: o add-on é um servidor
+- Antes, um add-on era um código que o app importava (formato em-processo).
+- Agora, um add-on pode ser um **servidor na internet**: ele tem uma URL, responde a pedidos HTTP, e o app conversa com ele por essa URL — exatamente como o Torrentio funciona no Stremio.
 
-#### 3.3 — Version Negotiation
-O manifesto declara "preciso da versão X do host pra funcionar". Se o host for mais velho, o add-on não carrega e avisa o motivo.
+#### 3.1 — Manifesto estilo Stremio
+O manifesto agora pode declarar `resources` (recursos): `catalog` (catálogo), `search` (busca), `text` (conteúdo). Também tem `types` (que tipo de conteúdo, ex.: `text`, `quote`, `poem`) e `catalogs` (listas anunciadas).
+
+#### 3.2 — Os endpoints (as "portas" do servidor)
+Um add-on de texto responde em rotas estilo Stremio:
+- `GET /manifest.json` — se apresenta
+- `GET /catalog/<type>/<id>.json` — lista de itens
+- `GET /search/<type>/<query>.json` — busca
+- `GET /text/<type>/<id>.json` — versões de um texto
+- `GET /text/<type>/<id>/content.txt` — o conteúdo, em texto puro
+
+#### 3.3 — Formato "subtitles" para o conteúdo
+O Stremio entrega legendas assim: uma lista onde cada item tem uma `url` apontando pro arquivo. A gente copiou isso: o add-on de texto devolve `{ texts: [{ id, url, lang, name }] }`, e a `url` aponta pro conteúdo. O app busca a URL e mostra o texto.
+
+#### 3.4 — Processamento externo (buscar na internet)
+Como o Torrentio busca em indexadores de torrent, nossos add-ons de texto buscam em **APIs públicas**:
+- **Biblioteca** (5291) — acervo de textos guardados dentro do próprio add-on
+- **Citações** (5292) — busca na API DummyJSON
+- **Poemas** (5293) — busca na API PoetryDB (cidades reais, busca de verdade)
+
+#### 3.5 — Ferramentas novas
+- `packages/addon-server` — um "mini-servidor" pronto, que o add-on de texto usa pra responder as rotas. Zero dependências.
+- `HttpTextAddonClient` no core — a "central de chamadas" que o app usa pra falar com os add-ons remotos.
+- Aba **📄 Textos** no app — lista os add-ons, navega catálogos, busca e lê.
+
+#### 3.6 — Testes
+77 testes no total: core (41), addon-server (7), biblioteca (8), citações (9), poemas (12).
+
+#### 3.7 — Ainda falta (por enquanto)
+- Cache do manifesto (pra não buscar toda hora)
+- Version negotiation (combinar versão do host com a do add-on)
 
 ---
 
@@ -115,10 +144,10 @@ Estudo sobre usar Web Worker ou Iframe pra isolar completamente o add-on do host
 ## Resumo Visual
 
 ```
-Fase 1: [████████████░░░░] 60% — Núcleo funcionando
-Fase 2: [░░░░░░░░░░░░░░] 0%  — Fallback automático
-Fase 3: [░░░░░░░░░░░░░░] 0%  — Descoberta remota
-Fase 4: [░░░░░░░░░░░░░░] 0%  — Resiliência
+Fase 1: [████████████████░░] 80% — Núcleo funcionando
+Fase 2: [████████████████░░] 80% — Fallback automático
+Fase 3: [████████████████░░] 80% — Add-ons de texto por HTTP
+Fase 4: [░░░░░░░░░░░░░░░░░░] 0%  — Resiliência
 ```
 
-Cada fase depende da anterior. Mas cada uma é funcional por si só — no final da Fase 1 você já tem algo que roda.
+Cada fase depende da anterior. Mas cada uma é funcional por si só — no final de cada fase você já tem algo que roda.

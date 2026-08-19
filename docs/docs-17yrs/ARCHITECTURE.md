@@ -133,6 +133,62 @@ E se um dia você quiser trocar o loader de HTTP por um loader de cache local? V
 
 ---
 
+## 3.5 O Novo Modelo: Add-ons que São Servidores (estilo Stremio)
+
+Até aqui, todo add-on era um **código que o app importava**. A partir da Fase 3, existe um segundo modelo: o add-on **é um servidor na internet** — exatamente como o Torrentio é pro Stremio.
+
+### A diferença
+
+| | Formato em-processo | Formato Stremio (servidor) |
+|---|---|---|
+| O add-on é... | Um módulo JS que o app importa | Um servidor HTTP com URL própria |
+| Como se apresenta | `manifest` + `setup()` | `manifest.json` servido por HTTP |
+| O que declara | `services` + `entrypoint` | `resources` + `types` + `catalogs` |
+| Como o host usa | Chama funções direto | Faz pedidos HTTP (GET) |
+| Exemplo real | addon-hello, addon-counter | Torrentio no Stremio |
+
+### O fluxo do modelo servidor
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                    Host App (navegador)                     │
+│                                                            │
+│   HttpTextAddonClient ── GET /manifest.json ─────────────┐ │
+│   HttpTextAddonClient ── GET /catalog/text/1.json ───────┼─┤
+│   HttpTextAddonClient ── GET /search/text/amor.json ─────┼─┤
+│   HttpTextAddonClient ── GET /text/text/1.json ──────────┼─┤
+│   fetch(item.url) ────── GET /text/text/1/content.txt ───┼─┤
+└──────────────────────────────────────────────────────────┼─┼─┘
+                                                           │ │
+   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │ │
+   │ biblioteca   │  │ citacoes     │  │ poemas       │    │ │
+   │ :5291        │  │ :5292        │  │ :5293        │◄───┘ │
+   │ (embutido)   │  │ (DummyJSON)  │  │ (PoetryDB)   │◄─────┘
+   └──────────────┘  └──────────────┘  └──────────────┘
+```
+
+### Por que isso é genial (a lição do Torrentio)
+
+O Torrentio é um add-on do Stremio que **não mora dentro do Stremio**. Ele mora num servidor na internet, mantido pela comunidade. O Stremio só conversa com ele por HTTP. Resultado:
+
+- O Torrentio pode ser atualizado **sem atualizar o Stremio**
+- Se o Torrentio cair, o Stremio continua funcionando (só perde aquele add-on)
+- Qualquer pessoa pode criar um add-on servidor e hospedar onde quiser
+
+No nosso POC, a mesma coisa: os add-ons de texto (biblioteca, citações, poemas) são servidores independentes nas portas 5291–5293. O app conversa com eles por HTTP. Os de citações e poemas ainda fazem **processamento externo** — buscam em APIs públicas da internet, como o Torrentio busca em indexadores de torrent.
+
+### O formato "subtitles" para conteúdo
+
+O Stremio entrega legendas assim: `{ subtitles: [{ id, url, lang, name }] }` — uma lista onde cada item tem uma **URL** apontando pro arquivo de legenda. A gente copiou esse formato pro recurso `text`:
+
+```json
+{ "texts": [{ "id": "1", "url": "http://localhost:5291/text/text/1/content.txt", "lang": "pt", "name": "O Amanhecer" }] }
+```
+
+O app recebe a lista, e só então faz `fetch(url)` pra baixar o conteúdo. O add-on não precisa enviar o texto inteiro junto com a lista — igual o Stremio não baixa a legenda até você pedir.
+
+---
+
 ## 4. Os Tipos Principais
 
 ### AddonManifest — O Cartão de Visita
@@ -146,8 +202,14 @@ interface AddonManifest {
   author: string;          // Quem fez
   icon?: string;           // URL do ícone (opcional)
   license: string;         // Licença, tipo "MIT"
-  entrypoint: string;      // URL do bundle JavaScript
-  services: ServiceRegistration[];  // Lista de serviços
+  // Formato em-processo (Fases 1–2):
+  entrypoint?: string;     // URL do bundle JavaScript
+  services?: ServiceRegistration[];
+  // Formato Stremio (Fase 3):
+  resources?: AddonResource[];   // { name, types, idPrefixes? }
+  types?: string[];              // ["text"], ["quote"], ["poem"]...
+  idPrefixes?: string[];
+  catalogs?: AddonCatalog[];     // { type, id, name }
 }
 ```
 
@@ -285,3 +347,18 @@ Regras:
 **Problema:** O core precisa ser portável pra qualquer projeto.
 **Decisão:** `@addons/core` não depende de React, Vite, ou nenhum framework.
 **Por quê:** Qualquer aplicação TypeScript pode usar o protocolo.
+
+### ADR-005: Add-on pode ser servidor HTTP (estilo Stremio)
+**Problema:** Como permitir add-ons que moram fora do app, como o Torrentio?
+**Decisão:** O manifesto ganhou um segundo formato: `resources` + `types` + `catalogs`. O add-on vira um servidor que responde em `/<resource>/<type>/<id>.json`. O formato em-processo continua valendo.
+**Por quê:** O add-on pode ser hospedado e atualizado em qualquer lugar, sem tocar no host.
+
+### ADR-006: Conteúdo no formato "subtitles"
+**Problema:** Como o add-on entrega o conteúdo de um texto?
+**Decisão:** Igual o Stremio faz com legendas: `{ texts: [{ id, url, lang, name }] }`, onde `url` aponta pro conteúdo em texto puro. O host busca a URL quando o usuário abre.
+**Por quê:** O mesmo padrão que o ecossistema Stremio já validou; o host controla quando baixar o conteúdo.
+
+### ADR-007: Servidor de add-on em JS puro
+**Problema:** O core é TypeScript e não roda direto no Node sem build.
+**Decisão:** `@addons/addon-server` e os add-ons de texto são JavaScript puro, com uma validação mínima própria (a validação completa vive no core).
+**Por quê:** Um add-on implantado não precisa arrastar o "motor" TypeScript do core.

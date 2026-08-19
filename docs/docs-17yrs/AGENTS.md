@@ -22,10 +22,13 @@ Esse arquivo é um conjunto de lembretes pra qualquer agente de IA que vier a tr
 3. **HostAPI mínimo** — o add-on só recebe o necessário: registry, onUnload, log
 4. **Prioridade** — serviços têm prioridade; o maior vence, e se falhar, cai pro próximo
 5. **Erro no setup = add-on desligado** — quebrou? desativa. O host nem sente.
-6. **Fallback automático** — serviço falhou? próximo da fila. Sem stress.
+6. **Fallback automático** — serviço falhou? próximo da fila. Sem stress. (Tem versão síncrona `withFallback` e assíncrona `withFallbackAsync`)
 7. **ESM puro** — os add-ons são módulos JavaScript modernos, carregados com `import()`
 8. **Testes no core** — o core tem que ser testado. O resto a gente testa na mão.
-9. **Manifesto completo** — nome, versão, descrição, autor, entrypoint, serviços
+9. **Manifesto completo** — nome, versão, descrição, autor, entrypoint (ou resources), serviços
+10. **Add-on pode ser servidor (estilo Stremio)** — o manifesto pode declarar `resources`; o add-on vira um servidor HTTP que responde em `/<resource>/<type>/<id>.json` (referência: Torrentio)
+11. **Conteúdo no formato "subtitles"** — o add-on devolve `{ texts: [{ id, url, lang, name }] }`; a `url` aponta pro conteúdo em texto puro
+12. **Servidor em JS puro** — `@addons/addon-server` e os add-ons de texto são JavaScript puro; não arrastam o TypeScript do core
 
 ## O que NÃO fazer
 

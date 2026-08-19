@@ -72,6 +72,18 @@ O Stremio provou que existe uma terceira via: **add-ons independentes descoberto
 | F3.3 | O sistema deve manter um catálogo de add-ons conhecidos | Média |
 | F3.4 | O host-app deve permitir instalação de add-ons por URL | Alta |
 
+### Fase 3.0 — Add-ons de Texto estilo Stremio (HTTP)
+
+| ID | Requisito | Prioridade |
+|----|-----------|------------|
+| F3.0.1 | O manifesto deve suportar o formato Stremio: `resources` (catalog/search/text), `types`, `idPrefixes`, `catalogs` | Alta |
+| F3.0.2 | Cada add-on de texto deve ser um servidor HTTP independente que serve `manifest.json` + endpoints `/<resource>/<type>/<id>.json` | Alta |
+| F3.0.3 | O recurso `text` deve seguir o formato subtitles do Stremio: `{ texts: [{ id, url, lang, name }] }` com `url` apontando para o conteúdo | Alta |
+| F3.0.4 | O core deve fornecer um cliente HTTP (`HttpTextAddonClient`) para consumir add-ons remotos | Alta |
+| F3.0.5 | O host-app deve ter uma aba para navegar catálogos, buscar e ler conteúdo dos add-ons de texto | Alta |
+| F3.0.6 | Add-ons devem poder fazer processamento externo (buscar em APIs públicas), como o Torrentio busca em indexadores | Média |
+| F3.0.7 | O framework de servidor (`@addons/addon-server`) deve servir CORS para permitir acesso do host no navegador | Alta |
+
 ### Fase 4 — Resiliência
 
 | ID | Requisito | Prioridade |
@@ -124,6 +136,24 @@ O Stremio provou que existe uma terceira via: **add-ons independentes descoberto
 4. Registry tenta o próximo da lista
 5. Host recebe o resultado sem saber da falha
 
+### UC4: Navegar textos de um add-on remoto (estilo Stremio)
+
+1. Usuário abre a aba **Textos** no host-app
+2. Host busca o `manifest.json` de cada add-on de texto conhecido (URL = identidade)
+3. Host exibe os `resources` e `catalogs` declarados no manifesto
+4. Usuário navega um catálogo → host chama `GET /catalog/<type>/<catalogId>.json`
+5. Usuário busca → host chama `GET /search/<type>/<query>.json`
+6. Usuário abre um item → host chama `GET /text/<type>/<id>.json` (formato subtitles)
+7. Host faz `fetch(item.url)` e exibe o conteúdo em texto puro
+
+### UC5: Add-on com processamento externo
+
+1. Usuário busca poemas no add-on de poemas
+2. Add-on chama a API pública PoetryDB (como o Torrentio busca em indexadores)
+3. Add-on converte a resposta no formato `metas` do Stremio
+4. Ao ler um poema, o add-on busca o texto completo na API externa
+5. Host exibe o conteúdo sem saber que veio de uma API externa
+
 ---
 
 ## 7. Critérios de Sucesso
@@ -136,6 +166,10 @@ A POC será considerada bem-sucedida quando:
 4. Se o de maior prioridade falhar, o fallback assume automaticamente
 5. Um add-on com erro no setup não impede o funcionamento do host
 6. Testes unitários do core passam com 100% de cobertura nos cenários principais
+7. Um add-on de texto servido por HTTP é descoberto pelo host via manifesto (formato Stremio)
+8. Catálogo, busca e leitura de conteúdo funcionam de ponta a ponta (estilo Stremio/Torrentio)
+9. Um add-on faz processamento externo real (busca em API pública) e devolve resultados formatados
+10. O host-app consome add-ons remotos via HTTP sem importar o código deles
 
 ---
 
@@ -148,3 +182,4 @@ A POC será considerada bem-sucedida quando:
 - Autenticação ou autorização
 - Loja de add-ons com backend
 - Publicação no npm
+- Busca com cache/ranking sofisticado nos add-ons de texto (a busca é demonstração do protocolo)

@@ -480,6 +480,41 @@ A ordem em que as coisas vão ser construídas:
 9. **Host app** — o app que junta tudo
 10. **Teste manual** — abrir no navegador e ver funcionando
 
+## 14. O Que Veio Depois: Add-ons que São Servidores (estilo Torrentio)
+
+As 13 decisões acima foram o planejamento inicial. Mas o projeto continuou evoluindo, e veio uma das partes mais legais.
+
+### O pedido
+
+O usuário pediu duas coisas:
+1. **"Crie um servidor para cada add-on"**
+2. **"Pense na interface do Torrentio para o Stremio, use como referência"** — mas adaptado pra **compartilhamento de textos** (busca, conteúdo), não vídeo.
+
+### O paralelo com o Torrentio
+
+O Torrentio é um add-on do Stremio que **não mora dentro do Stremio**. Ele é um servidor na internet que responde a pedidos HTTP. O Stremio conversa com ele pela URL. A gente copiou esse formato:
+
+| Torrentio no Stremio | Nossos add-ons de texto |
+|----------------------|------------------------|
+| Add-on = servidor HTTP | Add-on = servidor HTTP (portas 5291–5293) |
+| Manifest declara `resources` | Manifest declara `resources` (catalog/search/text) |
+| Responde `GET /stream/<type>/<id>.json` | Responde `GET /text/<type>/<id>.json` |
+| Devolve `{ streams: [...] }` | Devolve `{ texts: [...] }` |
+| Busca em indexadores de torrent | Busca em APIs públicas (DummyJSON, PoetryDB) |
+
+### As novidades
+
+1. **Manifesto com dois formatos**: o antigo (`services` + `entrypoint`) continua; o novo (`resources` + `types` + `catalogs`) permite add-on-servidor.
+2. **`@addons/addon-server`**: um "mini-servidor" pronto que transforma funções (handlers) em rotas HTTP. Zero dependências.
+3. **`HttpTextAddonClient`**: a "central de chamadas" do core que o app usa pra falar com os add-ons remotos.
+4. **Formato subtitles**: o add-on devolve `{ texts: [{ id, url, lang, name }] }` — a `url` aponta pro conteúdo, igual o Stremio faz com legendas (SRT).
+5. **Três add-ons de texto**: biblioteca (conteúdo embutido), citações (API DummyJSON), poemas (API PoetryDB — busca real).
+6. **Aba Textos no app**: navega catálogos, busca e lê conteúdo.
+
+### O resumo novo
+
+> Um add-on pode ser **dois tipos de coisa**: um módulo que o app importa (formato em-processo) **ou** um servidor na internet que o app consulta por HTTP (formato Stremio, como o Torrentio). Os dois convivem no mesmo sistema.
+
 ---
 
 ### O Resumo em Uma Frase Só (de novo, porque é importante)

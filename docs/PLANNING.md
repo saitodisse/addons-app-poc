@@ -257,4 +257,50 @@ A documentação está completa. A implementação está prestes a começar, seg
 
 ---
 
+## 16. A Evolução Depois do Planejamento
+
+O planejamento original (seções 1–15) cobria até a Fase 2. A conversa continuou e o projeto evoluiu em três movimentos, todos registrados aqui para o histórico.
+
+### 16.1 Fase 2 Entregue (fallback + interfaces tipadas)
+
+- `Greeter` e `Counter` em `domain/interfaces.ts` — add-ons implementam interfaces explicitamente
+- `withFallback(registry, serviceId, fn)` — cadeia de fallback sincrona com `AggregateFallbackError`
+- `addon-hello-pt` registra o mesmo serviço `greeter` com prioridade 10, criando concorrência real
+- Vitest com `SilentLogger` para testes sem poluição de stdout/stderr
+
+### 16.2 App Visual Interativo
+
+- O host-app ganhou abas: Saudação, Contador, Fallback, Inspetor
+- Add-ons são carregados por importação estática de pacotes do workspace (`@addons/addon-hello`, etc.)
+- `AddonManager` permite instalar/remover add-ons do catálogo
+
+### 16.3 A Virada para o Torrentio (add-ons de texto por HTTP)
+
+O usuário pediu: **"crie um servidor para cada add-on"**, e em seguida: **"pense na interface do Torrentio para o Stremio, use como referência"** — mas adaptado para **compartilhamento de textos** (busca, conteúdo), não vídeo.
+
+O paralelo ficou explícito:
+
+| Torrentio no Stremio | Add-ons de texto no POC |
+|----------------------|------------------------|
+| Add-on = servidor HTTP | Add-on = servidor HTTP (portas 5291–5293) |
+| Manifest declara `resources` (stream/meta) | Manifest declara `resources` (catalog/search/text) |
+| Responde `GET /stream/<type>/<id>.json` | Responde `GET /text/<type>/<id>.json` |
+| Devolve `{ streams: [...] }` | Devolve `{ texts: [...] }` (formato subtitles) |
+| Busca em indexadores de torrent | Busca em APIs públicas (DummyJSON, PoetryDB) |
+| Recurso `subtitles` devolve `url` para o arquivo SRT | Recurso `text` devolve `url` para o conteúdo em texto puro |
+
+**Decisões desta etapa:**
+
+1. O manifesto ganhou um segundo formato (Stremio): `resources` + `types` + `idPrefixes` + `catalogs`. O formato em-processo (`services` + `entrypoint`) continua válido — `validateManifest` aceita os dois.
+2. `@addons/addon-server` — framework Node com zero dependências que monta o servidor do add-on a partir de `manifest` + `handlers` (catalog/search/text/content), com CORS habilitado.
+3. `HttpTextAddonClient` no core — cliente que consome add-ons remotos (port + adapter com fetch injetável).
+4. O recurso `text` espelha o formato `subtitles` do Stremio: `{ texts: [{ id, url, lang, name }] }` — a URL aponta para o conteúdo servido em texto puro, e o host busca separadamente.
+5. Add-ons de texto são **JS puro** (não arrastam o runtime TS do core) — o servidor tem validação mínima própria.
+6. Três add-ons de exemplo: biblioteca (acervo embutido), citações (API DummyJSON) e poemas (API PoetryDB com busca real — escolhida a partir do repositório `public-apis`).
+7. Host-app ganhou a aba **Textos**: lista add-ons remotos, navega catálogos, busca e lê conteúdo.
+
+**Status: Fase 3.0 Entregue** · 77 testes passando (core 41, addon-server 7, biblioteca 8, citações 9, poemas 12).
+
+---
+
 *Este documento foi gerado em 2025 como parte do addons-app-poc.*

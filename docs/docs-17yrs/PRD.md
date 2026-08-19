@@ -90,6 +90,18 @@ Esses são os requisitos da primeira fase. O "mínimo necessário" pra prova de 
 | F3.3 | Catálogo de add-ons conhecidos |
 | F3.4 | Usuário pode instalar add-on colando a URL |
 
+### Fase 3.0 — Add-ons de Texto por HTTP (estilo Stremio/Torrentio) ✅
+
+| ID | Requisito |
+|----|-----------|
+| F3.0.1 | O manifesto pode usar o formato Stremio: `resources` + `types` + `catalogs` |
+| F3.0.2 | Cada add-on de texto é um servidor HTTP que responde em `/<resource>/<type>/<id>.json` |
+| F3.0.3 | O recurso `text` usa o formato subtitles: `{ texts: [{ id, url, lang, name }] }` |
+| F3.0.4 | O core tem um cliente (`HttpTextAddonClient`) pra consumir add-ons remotos |
+| F3.0.5 | O app tem uma aba Textos: navega catálogos, busca e lê conteúdo |
+| F3.0.6 | Add-ons podem fazer processamento externo (buscar em APIs públicas) |
+| F3.0.7 | Os servidores de add-on liberam CORS pro app principal |
+
 ### Fase 4 — Resiliência
 
 | ID | Requisito |
@@ -121,3 +133,7 @@ A prova de conceito é bem-sucedida quando:
 4. Se o de maior prioridade falhar, o fallback assume automaticamente
 5. Um add-on com erro no setup não impede o host de funcionar
 6. Os testes unitários do core passam
+7. Um add-on de texto servido por HTTP é descoberto pelo app via manifesto (formato Stremio)
+8. Catálogo, busca e leitura de conteúdo funcionam de ponta a ponta
+9. Um add-on faz processamento externo real (busca em API pública) e devolve resultados
+10. O app consome add-ons remotos via HTTP sem importar o código deles

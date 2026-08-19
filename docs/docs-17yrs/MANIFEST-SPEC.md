@@ -86,17 +86,69 @@ Cada serviço dentro da lista `services` descreve uma funcionalidade que o add-o
 
 ---
 
+## 4.5 O Outro Formato: Stremio (o add-on é um servidor)
+
+A partir da Fase 3, um add-on pode ser um **servidor na internet** — igual o Torrentio é pro Stremio. Em vez de `services` + `entrypoint` (código que o app importa), ele declara `resources` e responde a pedidos HTTP.
+
+### Exemplo (o add-on Biblioteca de Textos de verdade)
+
+```json
+{
+  "id": "text-biblioteca",
+  "version": "1.0.0",
+  "name": "Biblioteca de Textos",
+  "description": "Catálogo e busca de textos",
+  "author": "Equipe AC",
+  "license": "MIT",
+  "resources": [
+    { "name": "catalog", "types": ["text"], "idPrefixes": [] },
+    { "name": "search", "types": ["text"], "idPrefixes": [] },
+    { "name": "text", "types": ["text"], "idPrefixes": [] }
+  ],
+  "types": ["text"],
+  "idPrefixes": [],
+  "catalogs": [
+    { "type": "text", "id": "destaques", "name": "Textos em Destaque" }
+  ]
+}
+```
+
+### Os campos novos
+
+| Campo | O que é |
+|-------|---------|
+| `resources` | Os recursos que o add-on atende. Cada um tem `name` (catalog/search/text/meta/subtitles/stream) e `types` (que tipos de conteúdo) |
+| `types` | Os tipos de conteúdo: `text`, `quote`, `poem`... |
+| `idPrefixes` | Prefixos de id que o add-on aceita (o Torrentio usa `tt` do IMDb) |
+| `catalogs` | Listas que o add-on anuncia (ex.: "Textos em Destaque") |
+
+### As rotas do servidor
+
+| Rota | O que responde |
+|------|----------------|
+| `GET /manifest.json` | O próprio manifesto |
+| `GET /catalog/<type>/<id>.json` | Uma lista de itens: `{ metas: [...] }` |
+| `GET /search/<type>/<query>.json` | Resultados de busca: `{ metas: [...] }` |
+| `GET /text/<type>/<id>.json` | Versões do texto: `{ texts: [{ id, url, lang, name }] }` — igual legendas do Stremio |
+| `GET /text/<type>/<id>/content.txt` | O conteúdo, em texto puro |
+
+> **Regra:** um manifesto precisa declarar **ou** `services` (formato em-processo) **ou** `resources` (formato Stremio). Os dois são válidos.
+
+---
+
 ## 5. Regras de Validação
 
 ### Regras de Estrutura (o que o host verifica)
 
 1. O manifesto precisa ser um JSON válido (não pode estar quebrado)
-2. Todos os campos obrigatórios precisam existir
+2. Os campos obrigatórios (`id`, `version`, `name`, `description`, `author`, `license`) precisam existir
 3. `id` precisa ser em **kebab-case**: letras minúsculas, números, hífens. Nada de espaços ou caracteres especiais
 4. `version` precisa ser no formato `X.Y.Z` (ex: `1.0.0`, `2.3.1`)
-5. `entrypoint` precisa ser uma URL absoluta começando com `http://` ou `https://`
-6. `services` precisa ter pelo menos um item
-7. Cada serviço precisa ter `id`, `version`, `name`, `description` não vazios
+5. O manifesto precisa ter **ou** `services` (formato em-processo) **ou** `resources` (formato Stremio)
+6. No formato em-processo: `entrypoint` precisa ser uma URL absoluta (`http://` ou `https://`) e `services` precisa ter pelo menos um item
+7. No formato Stremio: cada `resource` precisa ter `name` válido (catalog/search/text/meta/subtitles/stream) e `types` não vazio
+8. `catalogs` precisa referenciar tipos que existem no manifesto
+9. Cada serviço precisa ter `id`, `version`, `name`, `description` não vazios
 
 ### Regras de Negócio (como o sistema interpreta)
 

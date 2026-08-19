@@ -21,7 +21,32 @@ Este POC traduz essa lição para o universo do TypeScript e aplicações web mo
 | `@addons/core` | O protocolo central: **domain/** (regras puras), **ports/** (interfaces), **adapters/** (implementações) |
 | `@addons/host-app` | Um aplicativo React mínimo que carrega e gerencia add-ons |
 | `@addons/addon-hello` | Add-on de exemplo que registra um serviço de saudação |
+| `@addons/addon-hello-pt` | Add-on de exemplo (saudação com prioridade 10) |
 | `@addons/addon-counter` | Add-on de exemplo que registra um serviço de contador |
+| `@addons/addon-server` | Framework Node (zero dependências) que serve um add-on de texto por HTTP, estilo Stremio |
+| `@addons/addon-text-biblioteca` | Add-on de texto (porta 5291) — acervo embutido com catálogo, busca e leitura |
+| `@addons/addon-text-citacoes` | Add-on de texto (porta 5292) — citações com **processamento externo** (API DummyJSON) |
+| `@addons/addon-text-poemas` | Add-on de texto (porta 5293) — poemas com **processamento externo e busca** (API PoetryDB) |
+
+---
+
+## Como Rodar
+
+```bash
+pnpm install
+
+# Terminal 1 — servidores dos add-ons de texto (5291, 5292, 5293)
+pnpm dev:addons
+
+# Terminal 2 — host app (http://localhost:5280)
+pnpm dev
+```
+
+No host app, abra a aba **📄 Textos**: os três add-ons remotos aparecem automaticamente. Navegue catálogos, faça buscas (os add-ons de citações e poemas buscam em APIs públicas na web) e leia o conteúdo.
+
+```bash
+pnpm test   # todos os testes (core + addon-server + add-ons)
+```
 
 ---
 
@@ -34,10 +59,15 @@ Este POC traduz essa lição para o universo do TypeScript e aplicações web mo
 | `packages/core/` | **`@addons/core`** — domain/ (regras), ports/ (interfaces), adapters/ (implementações) |
 | `packages/host-app/` | **`@addons/host-app`** — aplicativo React mínimo que carrega add-ons |
 | `packages/addon-hello/` | **`@addons/addon-hello`** — add-on de exemplo (serviço de saudação) |
+| `packages/addon-hello-pt/` | **`@addons/addon-hello-pt`** — add-on de exemplo (saudação, prioridade 10) |
 | `packages/addon-counter/` | **`@addons/addon-counter`** — add-on de exemplo (serviço de contador) |
+| `packages/addon-server/` | **`@addons/addon-server`** — framework Node que serve manifest.json + endpoints de resource estilo Stremio |
+| `packages/addon-text-biblioteca/` | **`@addons/addon-text-biblioteca`** — add-on de texto (5291): catálogo + busca + leitura |
+| `packages/addon-text-citacoes/` | **`@addons/addon-text-citacoes`** — add-on de texto (5292): citações via API externa |
+| `packages/addon-text-poemas/` | **`@addons/addon-text-poemas`** — add-on de texto (5293): poemas via API externa com busca |
 | `docs/ARCHITECTURE.md` | Arquitetura do sistema — camadas, fluxos, modelos, ADRs |
 | `docs/GLOSSARY.md` | Dicionário de todos os termos técnicos do projeto |
-| `docs/MANIFEST-SPEC.md` | Especificação completa do formato do manifesto de add-on |
+| `docs/MANIFEST-SPEC.md` | Especificação completa do formato do manifesto de add-on (em-processo + Stremio) |
 | `docs/PHASES.md` | Divisão do projeto em fases, do simples ao complexo |
 | `docs/PLANNING.md` | Histórico completo da conversa de planejamento |
 | `docs/PRD.md` | Documento de requisitos do produto |

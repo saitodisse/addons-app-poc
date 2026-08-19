@@ -156,4 +156,32 @@ Cada fase é funcional por si só. No final da fase 1, já dá pra abrir o naveg
 
 ---
 
+## Capítulo 12: A Virada do Torrentio (o que veio depois)
+
+O planejamento original chegava até a Fase 2. Mas a conversa continuou, e o projeto mudou de rumo de um jeito importante.
+
+### O pedido
+
+O usuário pediu:
+1. **"Crie um servidor para cada add-on"**
+2. **"Pense na interface do Torrentio para o Stremio, use como referência"** — mas adaptada pra **compartilhamento de textos** (busca, conteúdo), não vídeo.
+
+### O que aconteceu
+
+A gente copiou o formato do Torrentio (add-on = servidor HTTP que responde a pedidos), mas pra textos:
+
+- O manifesto ganhou um segundo formato: `resources` (catalog/search/text) + `types` + `catalogs`
+- Cada add-on de texto virou um **servidor na internet** (portas 5291–5293)
+- O recurso `text` usa o **formato subtitles** do Stremio: `{ texts: [{ id, url, lang, name }] }`, onde a `url` aponta pro conteúdo
+- `@addons/addon-server` — um mini-servidor pronto, zero dependências
+- `HttpTextAddonClient` no core — a central de chamadas pro app falar com add-ons remotos
+- Três add-ons de exemplo: biblioteca (conteúdo embutido), citações (API DummyJSON), poemas (API PoetryDB com busca real)
+- Aba **Textos** no app: navega catálogos, busca e lê conteúdo
+
+### O resultado
+
+**77 testes passando.** O sistema agora tem dois tipos de add-on convivendo: o em-processo (módulo importado) e o servidor HTTP (estilo Torrentio).
+
+---
+
 *Essa é a história de como a gente chegou aqui. O próximo capítulo é escrito com código.*
