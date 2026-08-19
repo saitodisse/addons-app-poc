@@ -8,7 +8,7 @@ Este é um **projeto independente de prova de conceito (POC)**. Não faz parte d
 
 ## Fronteiras
 
-- `packages/core/`: o protocolo central — tipos, registry, loader, validação. **Código mais crítico do projeto.**
+- `packages/core/`: o protocolo central — **domain/** (regras puras), **ports/** (interfaces), **adapters/** (implementações). **Código mais crítico do projeto.**
 - `packages/host-app/`: aplicativo que consome add-ons. Depende de `core` mas não o modifica.
 - `packages/addon-*/`: add-ons de exemplo. Dependem de `core` para se registrar.
 

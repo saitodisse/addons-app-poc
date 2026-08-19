@@ -43,14 +43,25 @@ O host não conhece os add-ons. Os add-ons não conhecem o host. Eles se encontr
 
 É o cérebro. Não depende de nada — nem React, nem Vite, nem jQuery. Só TypeScript puro.
 
-O que tem dentro:
+O core é dividido em **três zonas** pra deixar claro o que é regra de negócio e o que é detalhe técnico:
 
-| Arquivo | O que faz |
-|---------|-----------|
-| `manifest.ts` | Define os tipos do manifesto (AddonManifest, ServiceRegistration) |
-| `registry.ts` | O ServiceRegistry — guarda e resolve serviços |
-| `loader.ts` | O AddonLoader — carrega add-ons de URLs |
-| `validation.ts` | Valida manifests |
+```
+packages/core/src/
+├── domain/              ← O NEGÓCIO. Regras puras, sem efeito colateral
+│   ├── manifest.ts      #   AddonManifest, ServiceRegistration
+│   ├── instance.ts      #   AddonInstance (um add-on carregado)
+│   ├── registry.ts      #   ServiceRegistry (o coração)
+│   ├── host-api.ts      #   O que o host oferece pro add-on
+│   └── validation.ts    #   Validação de manifesto
+├── ports/               ← AS PORTAS. Interfaces que o domínio espera
+│   ├── addon-loader.ts  #   "Preciso de algo que carregue add-ons"
+│   └── logger.ts        #   "Preciso de algo que logue mensagens"
+└── adapters/            ← AS TOMADAS. Implementações reais
+    ├── http-loader.ts   #   FetchAddonLoader (fetch + import())
+    └── console-logger.ts
+```
+
+**A regra de ouro:** o `domain/` não sabe que `ports/` e `adapters/` existem. Ele é puro, testável, transportável. Os adapters são as "tomadas" que conectam o domínio puro ao mundo real — HTTP, console, React, etc.
 
 ### Camada Add-ons (`@addons/addon-*`)
 
@@ -61,13 +72,20 @@ São módulos independentes. Cada um exporta:
 
 ### Camada Host App (`@addons/host-app`)
 
-É o aplicativo que junta tudo. Ele:
+É o aplicativo que junta tudo. Ele é um **adaptador de UI** — uma "tomada" que conecta o domínio puro ao React:
 
 1. Cria um ServiceRegistry
-2. Usa o AddonLoader pra carregar add-ons
-3. Chama o `setup` de cada add-on
-4. Usa os serviços registrados
-5. Mostra tudo na tela
+2. Cria os adaptadores concretos (FetchAddonLoader, ConsoleLogger)
+3. Usa o AddonLoaderPort pra carregar add-ons
+4. Chama o `setup` de cada add-on
+5. Usa os serviços registrados
+6. Mostra tudo na tela
+
+### Por que separar em três zonas?
+
+Imagina que você quer testar o ServiceRegistry. Com o código separado, você testa o `domain/registry.ts` sem precisar de fetch, sem HTTP, sem navegador. É uma função pura: entra dado, sai resultado. Se o teste falhar, o problema é na lógica, não na internet.
+
+E se um dia você quiser trocar o loader de HTTP por um loader de cache local? Você cria um novo adapter em `adapters/cache-loader.ts` e pronto. O domínio não muda. As portas não mudam. Só a tomada.
 
 ---
 

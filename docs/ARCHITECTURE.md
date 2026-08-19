@@ -39,31 +39,44 @@ A arquitetura segue o padrão de **inversão de controle via registry de serviç
 
 ### 2.1 Core (`@addons/core`)
 
-O coração do sistema. Zero dependências externas. Define:
+O coração do sistema. Zero dependências externas. Organizado em três subcamadas seguindo Clean/Hexagonal leve:
 
-- **Tipos do manifesto** — `AddonManifest`, `ServiceRegistration`
-- **ServiceRegistry** — mapa de serviceId → implementações ordenadas
-- **AddonLoader** — carregamento dinâmico via `import()`
-- **Validation** — validação de manifests
-- **HostAPI** — interface que o host expõe para add-ons
+```
+packages/core/src/
+├── domain/              # ← NÚCLEO. Regras de negócio PURAS.
+│   ├── manifest.ts      #   AddonManifest, ServiceRegistration (value objects)
+│   ├── instance.ts      #   AddonInstance (entity)
+│   ├── registry.ts      #   ServiceRegistry (domain service)
+│   ├── host-api.ts      #   HostAPI (port que o host implementa p/ o add-on)
+│   └── validation.ts    #   validateManifest() — função pura, sem I/O
+├── ports/               # ← Interfaces que o domínio espera do mundo externo
+│   ├── addon-loader.ts  #   AddonLoaderPort
+│   └── logger.ts        #   LoggerPort
+└── adapters/            # ← Implementações concretas das portas
+    ├── http-loader.ts   #   FetchAddonLoader (fetch + import())
+    └── console-logger.ts
+```
+
+**Regra fundamental:** o `domain/` não importa nada de `ports/` ou `adapters/`. O domínio é puro. As portas são interfaces que o domínio espera. Os adapters são implementações que o mundo exterior fornece.
 
 ### 2.2 Add-ons (`@addons/addon-*`)
 
 Módulos ESM independentes que exportam `manifest` e `setup`. Cada add-on:
 
 1. Declara no manifesto quais serviços oferece
-2. Implementa os serviços de acordo com as interfaces
+2. Implementa os serviços de acordo com as interfaces do domínio
 3. No `setup`, registra os serviços no `HostAPI.services`
 
 ### 2.3 Host App (`@addons/host-app`)
 
-Aplicação React que:
+Aplicação React que atua como **adaptador de UI**:
 
 1. Instancia um `ServiceRegistry`
-2. Carrega add-ons via `AddonLoader`
-3. Chama `setup` de cada add-on com o `HostAPI`
-4. Usa os serviços registrados para interagir com o usuário
-5. Exibe status dos add-ons na interface
+2. Injeta adaptadores concretos (FetchAddonLoader, ConsoleLogger) no loader
+3. Carrega add-ons via `AddonLoaderPort`
+4. Chama `setup` de cada add-on com o `HostAPI`
+5. Usa os serviços registrados para interagir com o usuário
+6. Exibe status dos add-ons na interface
 
 ---
 
@@ -247,3 +260,8 @@ Nenhum erro em nenhum desses pontos quebra o host. O host continua funcionando n
 **Contexto:** O core deve ser portável para qualquer projeto.
 **Decisão:** `@addons/core` não depende de React, Vite, ou qualquer framework.
 **Consequência:** Qualquer aplicação TypeScript pode usar o protocolo.
+
+### ADR-005: Clean/Hexagonal leve no core
+**Contexto:** O core original misturava regras de negócio com detalhes de infraestrutura (loader, logger).
+**Decisão:** Separar o core em `domain/` (regras, tipos, serviços puros), `ports/` (interfaces que o domínio espera), e `adapters/` (implementações concretas das portas).
+**Consequência:** O domínio pode ser testado isoladamente sem mock de fetch, I/O, ou React. Trocas de implementação (ex: HTTP loader → cache loader) viram apenas um novo adapter.

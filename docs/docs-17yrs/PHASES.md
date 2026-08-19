@@ -10,59 +10,47 @@
 
 ### O que vai ser construído
 
-#### 1.1 — Os Tipos do Manifesto
-Arquivo: `packages/core/src/manifest.ts`
+#### 1.1 — O Domínio (tipos, validation, registry)
+Arquivos: `packages/core/src/domain/`
 
-Criar as interfaces TypeScript que definem:
-- Como é um manifesto
-- Como é um serviço
-- Como é o HostAPI
-- Como é um add-on carregado
+O coração puro, sem dependência externa:
+- **manifest.ts** — tipos do manifesto (AddonManifest, ServiceRegistration)
+- **instance.ts** — AddonInstance (um add-on carregado)
+- **host-api.ts** — o que o host oferece pro add-on
+- **validation.ts** — função que valida manifesto
+- **registry.ts** — o ServiceRegistry, que guarda e resolve serviços
 
-#### 1.2 — A Validação
-Arquivo: `packages/core/src/validation.ts`
+#### 1.2 — As Portas (interfaces)
+Arquivos: `packages/core/src/ports/`
 
-Uma função que recebe um JSON e diz se ele é um manifesto válido ou não. Verifica:
-- Campos obrigatórios
-- Formato da versão
-- URL do entrypoint
-- Estrutura dos serviços
+Interfaces que o domínio espera do mundo exterior:
+- **addon-loader.ts** — "preciso de algo que carregue add-ons"
+- **logger.ts** — "preciso de algo que logue mensagens"
 
-#### 1.3 — O Registry
-Arquivo: `packages/core/src/registry.ts`
+#### 1.3 — Os Adaptadores (implementações)
+Arquivos: `packages/core/src/adapters/`
 
-O coração do sistema. Um mapa que guarda serviços e permite:
-- Registrar (add-on oferece um serviço)
-- Desregistrar (add-on remove um serviço)
-- Consultar (host pede um serviço)
-- Listar (host pede todos os serviços de um tipo)
+Implementações concretas que conectam o domínio ao mundo real:
+- **http-loader.ts** — FetchAddonLoader: faz fetch, import(), setup
+- **console-logger.ts** — ConsoleLogger: loga no console
 
-#### 1.4 — O Loader
-Arquivo: `packages/core/src/loader.ts`
+#### 1.4 — Testes do Core
+Testes unitários pra tudo. O domínio é testado sem fetch, sem I/O — puro.
 
-Responsável por:
-- Fazer fetch do manifesto
-- Importar o bundle JavaScript
-- Chamar o setup do add-on
-- Tratar erros em cada etapa
-
-#### 1.5 — Testes do Core
-Testes unitários pra tudo que foi criado acima. Registry, validation, loader.
-
-#### 1.6 — Add-on Hello
+#### 1.5 — Add-on Hello
 O primeiro add-on de exemplo. Faz uma coisa simples: registra um serviço de saudação.
 
-#### 1.7 — Add-on Counter
+#### 1.6 — Add-on Counter
 Segundo add-on de exemplo. Registra um serviço de contador (incrementar, decrementar, mostrar valor).
 
-#### 1.8 — Host App
+#### 1.7 — Host App
 O aplicativo que junta tudo:
-- Cria o registry e o loader
+- Cria o registry e os adaptadores
 - Carrega os add-ons
 - Mostra numa lista o que foi carregado
 - Permite invocar os serviços
 
-#### 1.9 — Teste Manual
+#### 1.8 — Teste Manual
 Abrir no navegador, ver os add-ons carregados, testar se funcionam.
 
 ---

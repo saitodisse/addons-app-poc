@@ -18,7 +18,7 @@ Este POC traduz essa lição para o universo do TypeScript e aplicações web mo
 
 | Pacote | Descrição |
 |--------|-----------|
-| `@addons/core` | O protocolo central: tipos do manifesto, registry de serviços, loader dinâmico, validação |
+| `@addons/core` | O protocolo central: **domain/** (regras puras), **ports/** (interfaces), **adapters/** (implementações) |
 | `@addons/host-app` | Um aplicativo React mínimo que carrega e gerencia add-ons |
 | `@addons/addon-hello` | Add-on de exemplo que registra um serviço de saudação |
 | `@addons/addon-counter` | Add-on de exemplo que registra um serviço de contador |
@@ -31,7 +31,7 @@ Este POC traduz essa lição para o universo do TypeScript e aplicações web mo
 |---------|---------|
 | `README.md` | Este arquivo — visão geral do projeto |
 | `AGENTS.md` | Regras e convenções para agentes de IA que trabalham aqui |
-| `packages/core/` | **`@addons/core`** — o protocolo central: tipos do manifesto, registry, loader, validação |
+| `packages/core/` | **`@addons/core`** — domain/ (regras), ports/ (interfaces), adapters/ (implementações) |
 | `packages/host-app/` | **`@addons/host-app`** — aplicativo React mínimo que carrega add-ons |
 | `packages/addon-hello/` | **`@addons/addon-hello`** — add-on de exemplo (serviço de saudação) |
 | `packages/addon-counter/` | **`@addons/addon-counter`** — add-on de exemplo (serviço de contador) |

@@ -12,22 +12,24 @@ Este documento detalha cada fase do projeto, do mais simples ao mais complexo. C
 
 **Status: Em Andamento** · **Objetivo: Um aplicativo que carrega add-ons**
 
-### 1.1 Core — Manifest Types
+### 1.1 Core — Domain (Manifest, Instance, HostAPI)
 
-**Arquivo:** `packages/core/src/manifest.ts`
+**Arquivos:** `packages/core/src/domain/manifest.ts`, `instance.ts`, `host-api.ts`
 
-Criar os tipos TypeScript do manifesto:
+Criar os tipos Value Object e Entity do domínio:
 
-- `AddonManifest` — interface com todos os campos do manifesto
-- `ServiceRegistration` — interface com id, version, name, description
-- `AddonInstance` — representação de um add-on carregado (status, erro, serviços)
+- `AddonManifest` — value object com todos os campos do manifesto
+- `ServiceRegistration` — value object com id, version, name, description
 - `ServiceEntry<T>` — entrada no registry (instância, addonId, prioridade)
-- `HostAPI` — interface que o host expõe para add-ons
+- `AddonInstance` — entity com identidade (manifestUrl), status, erro, serviços
+- `HostAPI` — port que o host implementa: services, onUnload, log
 - `AddonModule` — interface do que um add-on exporta (manifest + setup)
 
-### 1.2 Core — Validation
+### 1.2 Core — Domain (Validation)
 
-**Arquivo:** `packages/core/src/validation.ts`
+**Arquivo:** `packages/core/src/domain/validation.ts`
+
+Função pura (sem I/O, sem efeito colateral):
 
 - `validateManifest(data: unknown): { valid: boolean; errors: string[] }`
 - Validar campos obrigatórios
@@ -35,9 +37,11 @@ Criar os tipos TypeScript do manifesto:
 - Validar URL do entrypoint
 - Validar estrutura dos serviços
 
-### 1.3 Core — Registry
+### 1.3 Core — Domain (Registry)
 
-**Arquivo:** `packages/core/src/registry.ts`
+**Arquivo:** `packages/core/src/domain/registry.ts`
+
+Domain service — lógica de negócio pura:
 
 - `class ServiceRegistry`
 - `register<T>(serviceId, instance, addonId, priority?)` — registra um serviço
@@ -48,31 +52,40 @@ Criar os tipos TypeScript do manifesto:
 - `clear()` — remove todos os registros
 - `clearAddon(addonId)` — remove todos os registros de um add-on
 
-### 1.4 Core — Loader
+### 1.4 Core — Ports
 
-**Arquivo:** `packages/core/src/loader.ts`
+**Arquivos:** `packages/core/src/ports/addon-loader.ts`, `logger.ts`
 
-- `class AddonLoader`
-- `load(manifestUrl: string): Promise<AddonInstance>` — carrega um add-on da URL
-- `loadFromManifest(manifest: AddonManifest, manifestUrl: string): Promise<AddonInstance>` — carrega de um manifesto já obtido
-- `loadFromModule(module: AddonModule, manifestUrl: string, registry: ServiceRegistry): AddonInstance` — registra a partir de um módulo já importado
-- Tratamento de erro em cada etapa
+Interfaces que o domínio espera do mundo externo:
 
-### 1.5 Core — Index
+- `AddonLoaderPort` — interface com `load(manifestUrl): Promise<AddonInstance>`
+- `LoggerPort` — interface com `log(level, message): void`
+
+### 1.5 Core — Adapters
+
+**Arquivos:** `packages/core/src/adapters/http-loader.ts`, `console-logger.ts`
+
+Implementações concretas das portas:
+
+- `FetchAddonLoader` — faz fetch do manifesto + import() do bundle + validação + setup
+- `ConsoleLogger` — implementa LoggerPort usando console.log
+
+### 1.6 Core — Index
 
 **Arquivo:** `packages/core/src/index.ts`
 
-Re-exportar tudo que é público.
+Re-exportar tudo que é público: domain, ports, adapters.
 
-### 1.6 Testes do Core
+### 1.7 Testes do Core
 
-**Arquivos:** `packages/core/src/*.test.ts`
+**Arquivos:** `packages/core/src/**/*.test.ts`
 
-- Registry: register, unregister, get, getAll, prioridade, fallback, limpeza
-- Validation: manifesto válido, inválido, campos faltando, versão inválida
-- Loader: mock de fetch, mock de import(), erro não quebra
+- **Domain/Registry:** register, unregister, get, getAll, prioridade, fallback, limpeza
+- **Domain/Validation:** manifesto válido, inválido, campos faltando, versão inválida
+- **Adapters/Loader:** mock de fetch, mock de import(), erro não quebra
+- **Domínio testado com mocks das portas** — sem fetch real, sem I/O real
 
-### 1.7 Add-on Hello
+### 1.8 Add-on Hello
 
 **Arquivo:** `packages/addon-hello/src/index.ts`
 
@@ -80,7 +93,7 @@ Re-exportar tudo que é público.
 - Exportar `setup` que registra um serviço `greeter`
 - O serviço `greeter` tem um método `greet(name: string): string`
 
-### 1.8 Add-on Counter
+### 1.9 Add-on Counter
 
 **Arquivo:** `packages/addon-counter/src/index.ts`
 
@@ -88,17 +101,18 @@ Re-exportar tudo que é público.
 - Exportar `setup` que registra um serviço `counter`
 - O serviço `counter` tem métodos `increment()`, `decrement()`, `getValue(): number`
 
-### 1.9 Host App
+### 1.10 Host App
 
 **Arquivos:** `packages/host-app/src/`
 
-- App React que instancia ServiceRegistry e AddonLoader
+- App React que instancia ServiceRegistry, FetchAddonLoader, ConsoleLogger
+- Injeta os adaptadores no loader
 - Carrega add-ons de uma lista pré-configurada
 - `AddonList.tsx` — mostra add-ons instalados com status
 - `AddonViewer.tsx` — detalhes de um add-on e botão para invocar serviços
 - UI simples, funcional, sem estilo elaborado
 
-### 1.10 Teste Manual
+### 1.11 Teste Manual
 
 - Abrir host-app no navegador
 - Ver add-ons carregados
