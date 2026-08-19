@@ -7,6 +7,7 @@
     "dev:host": "pnpm --filter @addons/host-app dev",
     "dev:addons": "pnpm -r --parallel --filter './packages/addon-text-*' serve",
     "dev:hello": "pnpm --filter @addons/addon-hello serve",
+    "kill-all": "node scripts/kill-all.mjs",
     "build:host": "pnpm --filter @addons/host-app build"
   }
 }

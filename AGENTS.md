@@ -38,8 +38,9 @@ Nenhum pacote deve importar de outro pacote sem passar pelo `core`. Add-ons não
 
 - `pnpm install` — instalar dependências
 - `pnpm test` — rodar todos os testes (core, addon-server, add-ons)
-- `pnpm dev` — rodar host app em desenvolvimento (http://localhost:5280)
-- `pnpm dev:addons` — subir os servidores dos add-ons de texto (5291 biblioteca, 5292 citações, 5293 poemas)
+- `pnpm dev` — subir host app + todos os add-ons de texto (host :5280, biblioteca 5291, citações 5292, poemas 5293)
+- `pnpm kill-all` — encerrar todos os processos do dev (host-app e add-ons de texto)
+- `pnpm dev:addons` — subir apenas os servidores dos add-ons de texto (5291 biblioteca, 5292 citações, 5293 poemas)
 - `pnpm --filter @addons/host-app dev` — rodar host app isolado
 - `pnpm --filter @addons/addon-text-biblioteca serve` — subir um add-on específico
 

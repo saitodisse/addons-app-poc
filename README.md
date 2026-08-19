@@ -35,11 +35,12 @@ Este POC traduz essa lição para o universo do TypeScript e aplicações web mo
 ```bash
 pnpm install
 
-# Terminal 1 — servidores dos add-ons de texto (5291, 5292, 5293)
-pnpm dev:addons
-
-# Terminal 2 — host app (http://localhost:5280)
+# Sobe tudo de uma vez: host app (http://localhost:5280)
+# + servidores dos add-ons de texto (5291 biblioteca, 5292 citações, 5293 poemas)
 pnpm dev
+
+# Encerra todos os processos do dev (host app + add-ons de texto)
+pnpm kill-all
 ```
 
 No host app, abra a aba **📄 Textos**: os três add-ons remotos aparecem automaticamente. Navegue catálogos, faça buscas (os add-ons de citações e poemas buscam em APIs públicas na web) e leia o conteúdo.
