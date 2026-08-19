@@ -25,6 +25,8 @@ Nenhum pacote deve importar de outro pacote sem passar pelo `core`. Add-ons não
 7. **ESM puro**: add-ons são módulos ES importados dinamicamente com `import()`.
 8. **Testes no core**: testes unitários em `@addons/core` — registry, validação, loader.
 9. **Manifesto completo**: inclui `id`, `version`, `name`, `description`, `author`, `icon`, `license`, `entrypoint`, `services[]`.
+10. **Fallback com withFallback**: `withFallback(registry, serviceId, fn)` tenta cada implementação; se a primeira falha, tenta a próxima.
+11. **Interfaces de domínio**: `Greeter`, `Counter` em `domain/interfaces.ts` — add-ons implementam interfaces explicitamente.
 
 ## Comandos
 

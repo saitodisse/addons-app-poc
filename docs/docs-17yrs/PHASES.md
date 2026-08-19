@@ -55,23 +55,23 @@ Abrir no navegador, ver os add-ons carregados, testar se funcionam.
 
 ---
 
-## Fase 2 — Fallback e Domínio (Planejado)
+## Fase 2 — Fallback e Domínio (Entregue ✅)
 
 **Objetivo:** Serviços com fallback automático.
 
-### O que vai ser construído
+### O que foi construído
 
 #### 2.1 — Interfaces Tipadas
-Em vez de `registry.get("greeter")` devolver `unknown`, vai devolver um tipo específico: `registry.get<Greeter>("greeter")`.
+Em vez de `registry.get("greeter")` devolver `unknown`, agora devolve um tipo específico: `registry.get<Greeter>("greeter")`. As interfaces `Greeter` e `Counter` estão definidas em `@addons/core`.
 
 #### 2.2 — Fallback Automático
-Se o serviço de maior prioridade falhar, o registry tenta o próximo automaticamente. O host nem percebe.
+Se o serviço de maior prioridade falhar, o `withFallback()` tenta o próximo automaticamente. O host nem percebe. Se todos falharem, um `AggregateFallbackError` é lançado com todos os erros.
 
 #### 2.3 — Add-on Concorrente
-Criar um `addon-hello-pt` que registra o mesmo serviço `greeter` mas com prioridade maior. O host troca de implementação sem saber.
+O `addon-hello-pt` registra o mesmo serviço `greeter` mas com prioridade 10 (maior que o hello padrão, que é 0). O host troca de implementação sem saber. Se você passar o nome "error", o hello-pt lança um erro, e o fallback automático usa o hello padrão.
 
 #### 2.4 — Testes de Fallback
-Testar se o fallback funciona: registrar dois serviços, o de maior prioridade falha, o de menor assume.
+5 testes que verificam: prioridade, fallback em ação, erro total, implementação única, e nenhuma implementação.
 
 ---
 

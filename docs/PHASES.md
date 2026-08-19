@@ -123,31 +123,32 @@ Re-exportar tudo que é público: domain, ports, adapters.
 
 ## Fase 2 — Interfaces de Domínio + Cadeia de Fallback
 
-**Status: Planejado** · **Objetivo: Serviços tipados com fallback automático**
+**Status: Entregue** · **Objetivo: Serviços tipados com fallback automático**
 
-### 2.1 Interfaces Tipadas
+### 2.1 Interfaces Tipadas ✅
 
-- Definir `interface Greeter { greet(name: string): string }` em `@addons/core`
-- O registry passa a ser genérico: `registry.get<Greeter>("greeter")`
-- Add-ons implementam a interface explicitamente
+- `Greeter` — `greet(name: string): string`
+- `Counter` — `increment()`, `decrement()`, `getValue()`, `reset()`
+- Definidas em `packages/core/src/domain/interfaces.ts` e exportadas pelo `@addons/core`
 
-### 2.2 Fallback Chain
+### 2.2 Fallback Chain ✅
 
-- `registry.get<T>(serviceId)` wrapped em try/catch
-- Se falhar, tenta `getAll<T>(serviceId)` e itera
-- Fallback automático sem o host precisar fazer nada
+- `withFallback<T,R>(registry, serviceId, fn)` — tenta cada implementação em ordem
+- Se a primeira falhar, tenta a próxima
+- Se todas falharem, lança `AggregateFallbackError`
+- 5 testes unitários de fallback
 
-### 2.3 Add-on Concorrente
+### 2.3 Add-on Concorrente ✅
 
-- Criar `addon-hello-pt` que registra `greeter` com prioridade maior
-- Host usa o `greeter` do novo add-on sem saber que trocou
-- Se o novo falhar, fallback para o original
+- `addon-hello-pt` registra `greeter` com prioridade 10 (maior que o hello padrão)
+- Se o nome passado for `"error"`, o hello-pt lança exceção
+- O hello padrão (prioridade 0) funciona como fallback
 
-### 2.4 Testes de Fallback
+### 2.4 Testes de Fallback ✅
 
-- Registrar dois serviços com prioridades diferentes
-- Verificar que o de maior prioridade é usado
-- Simular falha e verificar fallback
+- Prioridade: o de maior prioridade é usado
+- Fallback: se o primeiro falha, cai para o segundo
+- Erro total: se todos falham, lança AggregateFallbackError
 
 ---
 
