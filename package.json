@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "test": "pnpm -r --filter './packages/**' test",
-    "dev": "pnpm --filter @addons/host-app dev",
+    "dev": "node scripts/dev-all.mjs --open",
+    "dev:host": "pnpm --filter @addons/host-app dev",
     "dev:addons": "pnpm -r --parallel --filter './packages/addon-text-*' serve",
     "dev:hello": "pnpm --filter @addons/addon-hello serve",
     "build:host": "pnpm --filter @addons/host-app build"
