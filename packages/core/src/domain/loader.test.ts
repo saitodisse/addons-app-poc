@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ServiceRegistry } from './registry';
-import { ConsoleLogger } from '../adapters/console-logger';
+import { SilentLogger } from '../adapters/silent-logger';
 
 const mockManifest = {
   id: 'hello',
@@ -23,7 +23,7 @@ const mockAddonModule = {
 describe('FetchAddonLoader', () => {
   async function createLoader(importFn?: (url: string) => Promise<unknown>) {
     const registry = new ServiceRegistry();
-    const logger = new ConsoleLogger();
+    const logger = new SilentLogger();
     const { FetchAddonLoader } = await import('../adapters/http-loader');
     return { registry, loader: new FetchAddonLoader(registry, logger, importFn) };
   }

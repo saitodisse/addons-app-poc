@@ -16,3 +16,4 @@ export type { LoggerPort } from './ports/logger';
 // Adapters
 export { FetchAddonLoader } from './adapters/http-loader';
 export { ConsoleLogger } from './adapters/console-logger';
+export { SilentLogger } from './adapters/silent-logger';
