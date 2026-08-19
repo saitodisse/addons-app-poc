@@ -43,6 +43,8 @@ pnpm dev
 pnpm kill-all
 ```
 
+> **No WSL2:** o `pnpm dev` detecta WSL, não tenta abrir o navegador (o browser fica no Windows) e o Vite escuta em `0.0.0.0`. Abra manualmente **http://localhost:5280/** no navegador do Windows.
+
 No host app, abra a aba **📄 Textos**: os três add-ons remotos aparecem automaticamente. Navegue catálogos, faça buscas (os add-ons de citações e poemas buscam em APIs públicas na web) e leia o conteúdo.
 
 ```bash

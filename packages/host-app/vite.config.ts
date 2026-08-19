@@ -15,6 +15,9 @@ export default defineConfig({
   },
   server: {
     port: 5280,
+    // Escuta em todas as interfaces (0.0.0.0) para funcionar no WSL2:
+    // o localhost-forwarding do Windows só repassa IPv4.
+    host: '0.0.0.0',
     fs: {
       allow: [workspaceRoot],
     },
