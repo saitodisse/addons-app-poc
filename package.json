@@ -1,0 +1,12 @@
+{
+  "name": "addons-poc",
+  "private": true,
+  "scripts": {
+    "test": "pnpm --filter @addons/core test",
+    "dev": "pnpm --filter @addons/host-app dev",
+    "build:core": "pnpm --filter @addons/core build",
+    "build:hello": "pnpm --filter @addons/addon-hello build",
+    "build:counter": "pnpm --filter @addons/addon-counter build",
+    "build:host": "pnpm --filter @addons/host-app build"
+  }
+}
