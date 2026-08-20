@@ -1,122 +1,111 @@
-# Instruções para Agentes de IA — addons-app-poc
+# Guia para agentes de IA
 
-Este documento estabelece as regras e convenções para agentes de IA que trabalham neste projeto.
+Este arquivo existe para que qualquer agente consiga trabalhar no projeto sem precisar redescobrir suas fronteiras. Primeiro, preserve a ideia central: esta é uma prova de conceito independente. Depois, use as regras técnicas abaixo para manter o experimento coerente.
 
-Responda sempre em pt-br
+Responda sempre em **português do Brasil**.
 
-## Natureza do Projeto
+## Antes de alterar qualquer coisa
 
-Este é um **projeto independente de prova de conceito (POC)**. Não faz parte do ecossistema AC nem de qualquer outro repositório existente. Não deve ser tratado como parte do monorepo `achorde` ou `ac15`.
+O **addons-app-poc** não faz parte do ecossistema AC, do monorepo `achorde` nem do `ac15`. Ele pode ter nascido de discussões anteriores, mas hoje é um repositório independente. Não mova código entre esses projetos e não crie dependências com eles.
 
-## Fronteiras
+Inspecione o código e a documentação antes de propor mudanças estruturais. Preserve alterações existentes do usuário e ignore diferenças que não façam parte da tarefa.
 
-- `packages/core/`: o protocolo central — **domain/** (regras puras), **ports/** (interfaces), **adapters/** (implementações). **Código mais crítico do projeto.**
-- `packages/host-app/`: aplicativo que consome add-ons. Depende de `core` mas não o modifica.
-- `packages/addon-*/`: add-ons de exemplo. Dependem de `core` para se registrar (formato em-processo) ou de `@addons/addon-server` para servir HTTP (formato Stremio).
-- `packages/addon-server/`: framework Node (zero dependências) que monta o servidor HTTP de um add-on de texto a partir de `manifest` + `handlers`.
+## Como o projeto está dividido
 
-Nenhum pacote deve importar de outro pacote sem passar pelo `core`. Add-ons não importam do `host-app`. Add-ons de texto são JS puro e não arrastam o runtime TS do core.
+Pense no sistema como três áreas com responsabilidades bem separadas:
 
-## Decisões Arquiteturais Registradas
+| Área | Papel | Regra de dependência |
+|---|---|---|
+| `packages/core/` | Protocolo, regras, portas e adaptadores | É a base compartilhada e a parte mais crítica |
+| `packages/host-app/` | Aplicativo que consome os add-ons | Pode depender do `core`, mas não define o protocolo |
+| `packages/addon-*/` | Implementações e exemplos | Dependem do `core` ou, no formato HTTP, do `addon-server` |
 
-1. **URL como identidade**: a URL do manifesto é a identidade única do add-on.
-2. **Manifest + Setup**: add-on exporta `manifest` (declaração) e `setup` (inicialização) separadamente.
-3. **HostAPI mínimo**: o add-on recebe `services`, `onUnload` e `log` — nada mais.
-4. **Prioridade explícita**: serviços são resolvidos por prioridade, com fallback automático.
-5. **Erro no setup = add-on desativado**: exceção no setup desativa o add-on completamente.
-6. **Fallback automático**: se um serviço falha, o registry tenta o próximo da lista (`withFallback` sincrono, `withFallbackAsync` assíncrono).
-7. **ESM puro**: add-ons são módulos ES importados dinamicamente com `import()`.
-8. **Testes no core**: testes unitários em `@addons/core` — registry, validação, loader, cliente de texto.
-9. **Manifesto completo**: inclui `id`, `version`, `name`, `description`, `author`, `icon`, `license` + `services[]`/`entrypoint` (em-processo) **ou** `resources`/`types`/`catalogs` (Stremio/HTTP).
-10. **Fallback com withFallback**: `withFallback(registry, serviceId, fn)` tenta cada implementação; se a primeira falha, tenta a próxima.
-11. **Interfaces de domínio**: `Greeter`, `Counter`, `SearchProvider`, `SearchResult`, `HttpFetcher` em `domain/interfaces.ts` — add-ons implementam interfaces explicitamente.
-12. **Add-on pode ser servidor HTTP (Stremio)**: o manifesto pode declarar `resources`; o add-on vira um servidor que responde `/<resource>/<type>/<id>.json` (referência: Torrentio no Stremio).
-13. **Recurso text no formato subtitles**: `{ texts: [{ id, url, lang, name }] }`, onde `url` aponta para o conteúdo em texto puro.
-14. **Servidor de add-on em JS puro**: `@addons/addon-server` e add-ons de texto são JS ESM puro, com validação mínima própria (a canônica vive no core).
+Nenhum add-on deve importar do `host-app`. Add-ons também não devem criar dependências diretas entre si: a colaboração acontece por contratos e serviços do `core`.
 
-## Comandos
+O `core` segue uma arquitetura hexagonal leve:
 
-- `pnpm install` — instalar dependências
-- `pnpm test` — rodar todos os testes (core, addon-server, add-ons)
-- `pnpm dev` — subir host app + todos os add-ons de texto (host :5280, biblioteca 5291, citações 5292, poemas 5293, wikipedia 5294)
-- `pnpm kill-all` — encerrar todos os processos do dev (host-app e add-ons de texto)
-- `pnpm dev:addons` — subir apenas os servidores dos add-ons de texto (5291 biblioteca, 5292 citações, 5293 poemas, 5294 wikipedia)
-- `pnpm --filter @addons/host-app dev` — rodar host app isolado
-- `pnpm --filter @addons/addon-text-biblioteca serve` — subir um add-on específico
+- `domain/` contém tipos e regras puras.
+- `ports/` define o que o núcleo espera do mundo externo.
+- `adapters/` implementa essas portas com navegador, rede, console ou armazenamento.
+
+Add-ons de texto e `@addons/addon-server` usam JavaScript ESM puro. Eles não devem carregar o runtime TypeScript do `core` apenas para servir HTTP.
+
+## Decisões que devem permanecer explícitas
+
+As justificativas e consequências estão em [`docs/DECISIONS.md`](docs/DECISIONS.md). Ao alterar uma delas, atualize o código, a especificação e a decisão correspondente.
+
+1. A URL do manifesto é a identidade única do add-on.
+2. Um add-on em processo exporta `manifest` e `setup` separadamente.
+3. O `HostAPI` expõe apenas `services`, `registerService`, `onUnload` e `log`.
+4. Implementações de um mesmo serviço são ordenadas por prioridade explícita.
+5. Falha no `setup` deixa a instância do add-on em estado de erro.
+6. `withFallback` e `withFallbackAsync` tentam as implementações na ordem de prioridade.
+7. Add-ons em processo usam módulos ESM carregáveis com `import()`.
+8. As regras críticas do protocolo são testadas no `@addons/core`.
+9. Todo manifesto contém metadados completos e declara `services` ou `resources`.
+10. Serviços implementam interfaces de domínio explícitas quando houver um contrato público correspondente.
+11. Um add-on também pode ser um servidor HTTP no estilo do protocolo Stremio.
+12. O recurso `text` responde com `{ texts: [{ id, url, lang, name }] }` e entrega o conteúdo sob demanda.
+13. O servidor HTTP de add-ons permanece sem dependências externas de runtime.
+14. Serviços podem ser compostos pelo registro, inclusive quando a infraestrutura é fornecida pelo host.
+
+## Como trabalhar com a documentação
+
+Toda explicação deve seguir a mesma ordem:
+
+1. **Por que:** qual problema existe e por que vale resolvê-lo.
+2. **O que:** qual é a ideia em linguagem simples.
+3. **Como:** quais contratos, fluxos, estados e arquivos implementam a ideia.
+
+Escreva para que uma pessoa inteligente de 16 anos consiga acompanhar. Explique termos técnicos na primeira ocorrência, prefira frases curtas e use tabelas ou listas quando houver três ou mais itens.
+
+Qualquer alteração no `core` exige revisão de `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/MANIFEST-SPEC.md` e `docs/GLOSSARY.md` conforme o impacto.
+
+## Comandos do projeto
+
+| Comando | Uso |
+|---|---|
+| `pnpm install` | Instalar dependências |
+| `pnpm test` | Executar todos os testes |
+| `pnpm dev` | Iniciar host e quatro add-ons HTTP |
+| `pnpm kill-all` | Encerrar os processos do modo de desenvolvimento |
+| `pnpm dev:addons` | Iniciar apenas os servidores HTTP |
+| `pnpm --filter @addons/host-app dev` | Iniciar apenas o host |
+| `pnpm --filter @addons/addon-text-biblioteca serve` | Iniciar somente o add-on Biblioteca |
+
+Comece pela verificação mais estreita relacionada à mudança. Antes de concluir uma alteração de protocolo, execute também `pnpm test`.
 
 ## Convenções
 
-- TypeScript strict mode
-- Nomes de pacotes no formato `@addons/<nome>`
-- Commits em português descritivo
-- Testes Vitest ao lado do código (`arquivo.test.ts`)
-- Documentação em arquivos Markdown em `docs/`
+- Use TypeScript em modo estrito nos pacotes TypeScript.
+- Nomeie pacotes como `@addons/<nome>`.
+- Coloque testes Vitest ao lado do código, no formato `arquivo.test.ts` ou `arquivo.test.js`.
+- Mantenha comentários escassos e úteis para explicar decisões não óbvias.
+- Evite novas dependências, abstrações genéricas e mudanças fora do escopo.
+- Use commits descritivos em português quando houver autorização para criar commits.
+- Não publique pacotes no npm sem autorização explícita.
 
-## Estados
+## Estados do projeto
 
-Use **Planejado**, **Em Andamento**, **Entregue**, **Parcial**, **Desativado** e **Substituído** para marcar o status de cada fase.
+Use somente estes estados nos documentos de planejamento:
 
-## O que Não Fazer
+- **Planejado:** ainda não começou.
+- **Em Andamento:** existe trabalho ativo, mas o resultado não está completo.
+- **Entregue:** funciona e foi validado no escopo declarado.
+- **Parcial:** parte relevante funciona, mas faltam requisitos conhecidos.
+- **Desativado:** deixou de operar por decisão explícita.
+- **Substituído:** foi trocado por outra solução registrada.
 
-- Não misturar código com o monorepo AC
-- Não publicar no npm sem autorização explícita
-- Não adicionar dependências desnecessárias
-- Não pular testes
-- Não modificar o `core` sem atualizar `docs/`
+## Mapa rápido
 
----
-
-## Índice de Arquivos para Agentes
-
-Este índice ajuda o agente a localizar rapidamente qualquer arquivo do projeto e entender seu propósito.
-
-### Raiz
-
-| Arquivo | Para que serve |
-|---------|----------------|
-| `README.md` | Visão geral do projeto, propósito, e índice completo |
-| `AGENTS.md` | Este arquivo — regras para agentes de IA |
-
-### Documentação Técnica (`docs/`)
-
-| Arquivo | Conteúdo | Quando consultar |
-|---------|----------|------------------|
-| `docs/ARCHITECTURE.md` | Camadas, fluxos, modelos de dados, ADRs | Antes de qualquer mudança estrutural |
-| `docs/GLOSSARY.md` | Definições de todos os termos | Quando encontrar um termo desconhecido |
-| `docs/MANIFEST-SPEC.md` | Especificação do manifesto JSON | Ao criar ou modificar um add-on |
-| `docs/PHASES.md` | Fases do projeto com sub-passos | Para saber o que vem depois |
-| `docs/PLANNING.md` | Histórico completo da conversa de planejamento | Para entender decisões passadas |
-| `docs/PRD.md` | Requisitos funcionais e não funcionais | Para verificar se uma feature é escopo |
-
-### Documentação para Iniciantes (`docs/docs-17yrs/`)
-
-| Arquivo | Conteúdo | Diferença da versão técnica |
-|---------|----------|-----------------------------|
-| `docs/docs-17yrs/README.md` | Visão geral do projeto | Linguagem mais simples, analogias |
-| `docs/docs-17yrs/AGENTS.md` | Regras para IA | Sem juridiquês, direto ao ponto |
-| `docs/docs-17yrs/RESUMO-PLANO.md` | 13 decisões detalhadas | Cada decisão vira um capítulo com problema → opções → escolha → porquê |
-| `docs/docs-17yrs/ARCHITECTURE.md` | Arquitetura do sistema | Diagrama ASCII, analogias (goleiro, leilão, gaveta) |
-| `docs/docs-17yrs/GLOSSARY.md` | Dicionário | Frases mais curtas, um termo por linha |
-| `docs/docs-17yrs/MANIFEST-SPEC.md` | Especificação do manifesto | Campo por campo com exemplos, sem formalismo |
-| `docs/docs-17yrs/PHASES.md` | Fases do projeto | Ordem crescente de complexidade, menos detalhes de implementação |
-| `docs/docs-17yrs/PLANNING.md` | Histórico do planejamento | 11 capítulos narrativos, história contada em ordem |
-| `docs/docs-17yrs/PRD.md` | Requisitos | Checklist simples, sem tabelas de prioridade |
-
-### Código (`packages/`)
-
-| Pacote | Caminho | Responsabilidade |
-|--------|---------|------------------|
-| `@addons/core` | `packages/core/` | Tipos, ServiceRegistry, AddonLoader, Validation, TextAddonClient |
-| `@addons/host-app` | `packages/host-app/` | App React que consome add-ons (abas greeter/counter/fallback/textos/inspector) |
-| `@addons/addon-hello` | `packages/addon-hello/` | Add-on de exemplo (serviço greeter) |
-| `@addons/addon-hello-pt` | `packages/addon-hello-pt/` | Add-on de exemplo (greeter com prioridade 10) |
-| `@addons/addon-counter` | `packages/addon-counter/` | Add-on de exemplo (serviço counter) |
-| `@addons/addon-markdown` | `packages/addon-markdown/` | Add-on de exemplo (serviço textFormatter: Markdown/HTML) |
-| `@addons/addon-aggregator` | `packages/addon-aggregator/` | Add-on (serviço searchProvider: meta-search entre add-ons remotos) |
-| `@addons/addon-favorites` | `packages/addon-favorites/` | Add-on (serviço favorites com persistência via bookmarkStore) |
-| `@addons/addon-health` | `packages/addon-health/` | Add-on (serviço healthCheck: disponibilidade/latência dos add-ons remotos) |
-| `@addons/addon-server` | `packages/addon-server/` | Framework Node (zero deps) que serve manifest.json + endpoints de resource estilo Stremio com CORS |
-| `@addons/addon-text-biblioteca` | `packages/addon-text-biblioteca/` | Add-on de texto (porta 5291) — acervo embutido: catálogo + busca + texto |
-| `@addons/addon-text-citacoes` | `packages/addon-text-citacoes/` | Add-on de texto (porta 5292) — processamento externo: API DummyJSON Quotes |
-| `@addons/addon-text-poemas` | `packages/addon-text-poemas/` | Add-on de texto (porta 5293) — processamento externo real com busca: API PoetryDB |
-| `@addons/addon-text-wikipedia` | `packages/addon-text-wikipedia/` | Add-on de texto (porta 5294) — processamento externo real com busca: API Wikipédia |
+| Documento | Quando consultar |
+|---|---|
+| `README.md` | Para entender e executar a POC |
+| `docs/PLANNING.md` | Para conhecer a história e a evolução da proposta |
+| `docs/PRD.md` | Para conferir escopo e critérios de sucesso |
+| `docs/ARCHITECTURE.md` | Antes de qualquer mudança estrutural |
+| `docs/DECISIONS.md` | Antes de rever uma decisão já tomada |
+| `docs/MANIFEST-SPEC.md` | Ao criar ou alterar um add-on |
+| `docs/PHASES.md` | Para distinguir entregas de planos futuros |
+| `docs/GLOSSARY.md` | Ao encontrar um termo desconhecido |
+| `CHANGELOG.md` | Para entender as mudanças entre versões |

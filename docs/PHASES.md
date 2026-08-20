@@ -1,247 +1,183 @@
-# Fases do Projeto
+# Fases do projeto
 
-**Status: Planejado**
+Construir um sistema extensível de uma vez esconderia riscos demais. Por isso, a POC cresce em degraus: cada fase responde a uma pergunta e deixa uma demonstração verificável.
 
----
+Os estados usados aqui são **Planejado**, **Em Andamento**, **Entregue**, **Parcial**, **Desativado** e **Substituído**.
 
-Este documento detalha cada fase do projeto, do mais simples ao mais complexo. Cada fase é **funcional por si só** — ao final de cada uma, você tem um sistema que roda e demonstra o que foi construído até ali.
+## Mapa da jornada
 
----
+| Fase | Pergunta principal | Estado |
+|---|---|---|
+| 1. Alicerce | Um host consegue receber serviços de add-ons? | Entregue |
+| 2. Substituição | Uma alternativa consegue assumir após uma falha? | Entregue |
+| 3. Servidores | Um add-on pode viver fora do processo do host? | Parcial |
+| 4. Composição | Add-ons conseguem formar capacidades maiores sem importações diretas? | Entregue |
+| 5. Gestão e compatibilidade | O usuário consegue instalar e controlar add-ons remotos? | Planejado |
+| 6. Isolamento | Código não confiável pode ser limitado com segurança? | Planejado |
 
-## Fase 1 — Núcleo do Protocolo + App Base
+“Parcial” na fase 3 significa que o formato HTTP está entregue, enquanto descoberta arbitrária, cache e negociação de versão ainda não estão.
 
-**Status: Entregue** · **Objetivo: Um aplicativo que carrega add-ons**
+## Fase 1 — O alicerce
 
-### 1.1 Core — Domain (Manifest, Instance, HostAPI)
+**Estado: Entregue**
 
-**Arquivos:** `packages/core/src/domain/manifest.ts`, `instance.ts`, `host-api.ts`
+### Por que veio primeiro
 
-Criar os tipos Value Object e Entity do domínio:
+Antes de pensar em rede ou sandbox, era preciso provar a conversa mais básica: um add-on oferece uma capacidade, o host a encontra e a usa.
 
-- `AddonManifest` — value object com todos os campos do manifesto
-- `ServiceRegistration` — value object com id, version, name, description
-- `ServiceEntry<T>` — entrada no registry (instância, addonId, prioridade)
-- `AddonInstance` — entity com identidade (manifestUrl), status, erro, serviços
-- `HostAPI` — port que o host implementa: services, onUnload, log
-- `AddonModule` — interface do que um add-on exporta (manifest + setup)
+### O que foi entregue
 
-### 1.2 Core — Domain (Validation)
+- manifesto e instância de add-on;
+- `HostAPI` com registro, consulta, descarregamento declarado e logs;
+- `ServiceRegistry` com múltiplas implementações e prioridade;
+- validação estrutural do manifesto;
+- portas para carregamento e logs;
+- adaptadores com `fetch`, `import()` e console;
+- add-ons de saudação e contador;
+- host React para explorar os serviços;
+- testes do registro, da validação e do loader.
 
-**Arquivo:** `packages/core/src/domain/validation.ts`
+### Como verificar
 
-Função pura (sem I/O, sem efeito colateral):
+Execute `pnpm test`, inicie `pnpm dev` e use as áreas **Saudação**, **Contador** e **Inspetor**.
 
-- `validateManifest(data: unknown): { valid: boolean; errors: string[] }`
-- Validar campos obrigatórios
-- Validar formato de versão semântica
-- Validar URL do entrypoint
-- Validar estrutura dos serviços
+### Limite que permaneceu
 
-### 1.3 Core — Domain (Registry)
+O host de demonstração importa os add-ons locais durante a build. O loader remoto existe no `core`, mas ainda não é o caminho usado pela interface.
 
-**Arquivo:** `packages/core/src/domain/registry.ts`
+## Fase 2 — Prioridade e fallback
 
-Domain service — lógica de negócio pura:
+**Estado: Entregue**
 
-- `class ServiceRegistry`
-- `register<T>(serviceId, instance, addonId, priority?)` — registra um serviço
-- `unregister(serviceId, addonId)` — remove um registro
-- `get<T>(serviceId)` — retorna a implementação de maior prioridade
-- `getAll<T>(serviceId)` — retorna todas ordenadas por prioridade
-- `has(serviceId)` — verifica se há pelo menos uma implementação
-- `clear()` — remove todos os registros
-- `clearAddon(addonId)` — remove todos os registros de um add-on
+### Por que veio depois
 
-### 1.4 Core — Ports
+Um serviço único funciona em uma demonstração feliz. Um ecossistema real precisa sobreviver quando a implementação preferida falha.
 
-**Arquivos:** `packages/core/src/ports/addon-loader.ts`, `logger.ts`
+### O que foi entregue
 
-Interfaces que o domínio espera do mundo externo:
+- interfaces `Greeter` e `Counter`;
+- `withFallback` para chamadas síncronas;
+- `withFallbackAsync` para chamadas assíncronas;
+- `AggregateFallbackError` para reunir falhas;
+- `addon-hello-pt` com prioridade `10`;
+- falha simulada ao receber o nome `error`;
+- `addon-hello` como alternativa de prioridade `0`;
+- testes de ordem, sucesso alternativo e falha total.
 
-- `AddonLoaderPort` — interface com `load(manifestUrl): Promise<AddonInstance>`
-- `LoggerPort` — interface com `log(level, message): void`
+### Como verificar
 
-### 1.5 Core — Adapters
+Abra a área **Fallback**, use um nome comum e depois use `error`. O segundo caso deve cair para a saudação padrão.
 
-**Arquivos:** `packages/core/src/adapters/http-loader.ts`, `console-logger.ts`
+## Fase 3 — Add-ons como servidores
 
-Implementações concretas das portas:
+**Estado: Parcial**
 
-- `FetchAddonLoader` — faz fetch do manifesto + import() do bundle + validação + setup
-- `ConsoleLogger` — implementa LoggerPort usando console.log
+### Por que mudar o formato
 
-### 1.6 Core — Index
+Nem toda extensão precisa executar dentro do host. Conteúdo remoto e processamento externo se beneficiam de implantação independente e de um contrato HTTP simples.
 
-**Arquivo:** `packages/core/src/index.ts`
+### Parte entregue: protocolo de texto
 
-Re-exportar tudo que é público: domain, ports, adapters.
+- manifesto com `resources`, `types`, `idPrefixes` e `catalogs`;
+- `@addons/addon-server` em JavaScript ESM puro;
+- rotas para manifesto, catálogo, busca, opções de texto e conteúdo;
+- `HttpTextAddonClient` no `core`;
+- formato `{ texts: [{ id, url, lang, name }] }`;
+- CORS para consumo local pelo navegador;
+- Biblioteca de Textos na porta `5291`;
+- Citações na porta `5292`;
+- Poemas na porta `5293`;
+- Wikipédia na porta `5294`;
+- área **Textos** no host;
+- testes do servidor, cliente e handlers.
 
-### 1.7 Testes do Core
+### Parte pendente: descoberta e compatibilidade
 
-**Arquivos:** `packages/core/src/**/*.test.ts`
+- instalar um add-on pela URL digitada pelo usuário;
+- manter um catálogo persistente de URLs conhecidas;
+- armazenar manifestos em cache com política de atualização;
+- declarar e negociar a versão mínima do host;
+- validar respostas HTTP além do manifesto.
 
-- **Domain/Registry:** register, unregister, get, getAll, prioridade, fallback, limpeza
-- **Domain/Validation:** manifesto válido, inválido, campos faltando, versão inválida
-- **Adapters/Loader:** mock de fetch, mock de import(), erro não quebra
-- **Domínio testado com mocks das portas** — sem fetch real, sem I/O real
+### Como verificar a parte entregue
 
-### 1.8 Add-on Hello
+Execute `pnpm dev`, abra **Textos** e percorra catálogo, busca e leitura. Interromper um dos quatro servidores não deve impedir os outros de responder.
 
-**Arquivo:** `packages/addon-hello/src/index.ts`
+## Fase 4 — Composição de serviços
 
-- Exportar `manifest` com serviço `"greeter"`
-- Exportar `setup` que registra um serviço `greeter`
-- O serviço `greeter` tem um método `greet(name: string): string`
+**Estado: Entregue**
 
-### 1.9 Add-on Counter
+### Por que esta fase importa
 
-**Arquivo:** `packages/addon-counter/src/index.ts`
+Add-ons isolados provam extensibilidade básica. A arquitetura fica mais interessante quando uma capacidade usa outra sem criar importações diretas.
 
-- Exportar `manifest` com serviço `"counter"`
-- Exportar `setup` que registra um serviço `counter`
-- O serviço `counter` tem métodos `increment()`, `decrement()`, `getValue(): number`
+### O que foi entregue
 
-### 1.10 Host App
+| Add-on | Serviço | Composição demonstrada |
+|---|---|---|
+| `addon-markdown` | `textFormatter` | Usa funções puras de formatação do `core` |
+| `addon-aggregator` | `searchProvider` | Consulta vários add-ons HTTP em paralelo |
+| `addon-favorites` | `favorites` | Consome `bookmarkStore` fornecido pelo host |
+| `addon-health` | `healthCheck` | Consulta manifestos e mede disponibilidade |
 
-**Arquivos:** `packages/host-app/src/`
+O host registra `bookmarkStore` com origem `host`. Se esse serviço não existir, favoritos degrada para `MemoryBookmarkStore`.
 
-- App React que instancia ServiceRegistry, FetchAddonLoader, ConsoleLogger
-- Injeta os adaptadores no loader
-- Carrega add-ons de uma lista pré-configurada
-- `AddonList.tsx` — mostra add-ons instalados com status
-- `AddonViewer.tsx` — detalhes de um add-on e botão para invocar serviços
-- UI simples, funcional, sem estilo elaborado
+### Como verificar
 
-### 1.11 Teste Manual
+Abra **Extras** e exercite formatação, busca agregada, favoritos e verificação de saúde.
 
-- Abrir host-app no navegador
-- Ver add-ons carregados
-- Invocar greeter e ver resultado
-- Invocar counter e ver valor mudar
+## Fase 5 — Gestão e compatibilidade
 
----
+**Estado: Planejado**
 
-## Fase 2 — Interfaces de Domínio + Cadeia de Fallback
+### Problema a resolver
 
-**Status: Entregue** · **Objetivo: Serviços tipados com fallback automático**
+Hoje, o conjunto de add-ons é conhecido pelo código da demonstração. Para se aproximar de um ecossistema real, a escolha precisa pertencer ao usuário e sobreviver ao recarregamento.
 
-### 2.1 Interfaces Tipadas ✅
+### Entregas previstas
 
-- `Greeter` — `greet(name: string): string`
-- `Counter` — `increment()`, `decrement()`, `getValue()`, `reset()`
-- Definidas em `packages/core/src/domain/interfaces.ts` e exportadas pelo `@addons/core`
+- instalação e remoção por URL de manifesto;
+- persistência das escolhas;
+- edição de prioridade;
+- cache e atualização de manifestos;
+- negociação de versão entre host e add-on;
+- mensagens claras para incompatibilidade;
+- ciclo completo de unload;
+- limpeza transacional de registros quando o setup falhar.
 
-### 2.2 Fallback Chain ✅
+### Condição de conclusão
 
-- `withFallback<T,R>(registry, serviceId, fn)` — tenta cada implementação em ordem
-- Se a primeira falhar, tenta a próxima
-- Se todas falharem, lança `AggregateFallbackError`
-- 5 testes unitários de fallback
+A fase termina quando um usuário consegue adicionar uma URL válida, reiniciar o host e encontrar o add-on preservado; uma URL inválida ou incompatível deve produzir erro compreensível sem alterar os add-ons já ativos.
 
-### 2.3 Add-on Concorrente ✅
+## Fase 6 — Isolamento e confiança
 
-- `addon-hello-pt` registra `greeter` com prioridade 10 (maior que o hello padrão)
-- Se o nome passado for `"error"`, o hello-pt lança exceção
-- O hello padrão (prioridade 0) funciona como fallback
+**Estado: Planejado**
 
-### 2.4 Testes de Fallback ✅
+### Problema a resolver
 
-- Prioridade: o de maior prioridade é usado
-- Fallback: se o primeiro falha, cai para o segundo
-- Erro total: se todos falham, lança AggregateFallbackError
+Fallback trata falhas de serviço, mas não limita o que código em processo pode acessar. Um módulo malicioso ou bloqueante ainda compartilha o contexto do host.
 
----
+### Investigação prevista
 
-## Fase 3 — Descoberta Remota e Catálogo
+- comparar Web Worker e `iframe` com origem separada;
+- definir mensagens serializáveis entre host e add-on;
+- limitar tempo, memória e tamanho de resposta quando possível;
+- desenhar permissões por capacidade;
+- estudar integridade, assinatura e origem confiável;
+- restringir CORS e políticas de conteúdo para implantação real;
+- criar limites de falhas e degradação de prioridade.
 
-**Status: Parcial** · **Objetivo: Add-ons carregados de qualquer lugar**
+### Condição de conclusão
 
-### 3.0 Add-ons de Texto estilo Stremio (HTTP) ✅
+Uma extensão de teste deve falhar, travar ou tentar um acesso não autorizado sem comprometer o restante do host. O mecanismo escolhido precisa ter testes e ameaças documentadas; um `try/catch` isolado não basta.
 
-**Referência: protocolo Stremio / add-on Torrentio**, adaptado para compartilhamento de textos (busca, conteúdo).
+## Ordem recomendada para o próximo trabalho
 
-- Manifesto no formato Stremio: `resources` (catalog/search/text), `types`, `idPrefixes`, `catalogs`
-- Cada add-on é um **servidor HTTP independente** servindo `manifest.json` + endpoints `/<resource>/<type>/<id>.json`
-- `@addons/addon-server` — framework Node (zero deps) que monta o servidor a partir de handlers
-- `HttpTextAddonClient` no core — cliente que consome add-ons remotos (port + adapter)
-- Recurso `text` no **formato subtitles** do Stremio: `{ texts: [{ id, url, lang, name }] }`, onde `url` aponta para o conteúdo servido em texto puro
-- Add-ons criados:
-  - `addon-text-biblioteca` (porta 5291) — acervo embutido com catálogos, busca e texto
-  - `addon-text-citacoes` (porta 5292) — processamento externo: API pública DummyJSON Quotes
-  - `addon-text-poemas` (porta 5293) — processamento externo real com busca: API PoetryDB (CORS aberto, sem auth)
-- Host-app: aba **Textos** que lista add-ons remotos, navega catálogos, busca e lê conteúdo
-- Testes: validação do manifesto Stremio, cliente HTTP, servidor, handlers de cada add-on (77 testes no total)
+1. Corrigir a limpeza de registros após falha de `setup`.
+2. Implementar e testar o ciclo de unload.
+3. Conectar o `FetchAddonLoader` à instalação por URL.
+4. Persistir a lista e as prioridades escolhidas.
+5. Adicionar negociação de versão e cache.
+6. Só então escolher o modelo de sandbox.
 
-### 3.1 Manifesto Remoto
-
-- Loader faz fetch do manifesto de URL remota ✅ (FetchAddonLoader + HttpTextAddonClient)
-- Validação antes de carregar ✅
-- Cache do manifesto para evitar refetch — pendente
-
-### 3.2 Catálogo de Add-ons
-
-- Lista de manifests conhecidos (configuração ou JSON estático)
-- UI para navegar e instalar
-- Persistência em localStorage
-
-### 3.3 Version Negotiation
-
-- Manifesto declara `hostVersion` (versão do host requerida)
-- Loader compara com a versão do host
-- Se incompatível, add-on não carrega com mensagem clara
-
-### 3.4 Add-ons em-processo que compõem serviços ✅
-
-**Objetivo: mostrar que add-ons também consomem outros serviços/recursos.**
-
-- `addon-markdown` — registra o serviço `textFormatter` (título+conteúdo → Markdown/HTML),
-  construído sobre helpers puros do núcleo (`toMarkdown`, `htmlFromMarkdown` em `domain/formatting.ts`)
-- `addon-aggregator` — registra o serviço `searchProvider` (meta-search): consulta todos os
-  add-ons de texto remotos em paralelo (`Promise.allSettled`) e mescla resultados com tolerância a falhas
-- `addon-favorites` — registra o serviço `favorites`: consome `bookmarkStore` (serviço de
-  infraestrutura registrado pelo host, ex.: `LocalStorageBookmarkStore`) com degradação a memória
-- `addon-text-wikipedia` — add-on de texto (porta 5294): busca e resumos de artigos na Wikipédia
-  (processamento externo real — opensearch + REST v1 page/summary)
-- `addon-health` — registra o serviço `healthCheck`: verifica disponibilidade e latência de cada
-  add-on remoto buscando o manifesto (`getManifest` + cronômetro), reportando `ok`/erro sem lançar exceção
-
-**Padrão novo no host-app:** o host registra serviços de infraestrutura com `addonId: 'host'`
-(ex.: `bookmarkStore`), e os add-ons os consomem via `host.services.get(...)` — composição
-de serviços sem acoplamento.
-
----
-
-## Fase 4 — Isolamento e Resiliência
-
-**Status: Planejado** · **Objetivo: Nenhum add-on quebra o host**
-
-### 4.1 Error Boundary
-
-- Cada chamada de serviço é isolada em try/catch
-- Degradação: se um add-on falhar N vezes, perde prioridade
-- Notificação ao usuário sobre falhas
-
-### 4.2 Preferências do Usuário
-
-- Habilitar/desabilitar add-ons individualmente
-- Reordenar prioridade via drag-and-drop
-- Persistência das preferências
-
-### 4.3 Sandbox (Investigação)
-
-- Investigar Web Worker ou Iframe para isolamento real
-- Comunicação via postMessage
-- Trade-off: isolamento vs. complexidade
-
----
-
-## Linha do Tempo Estimada
-
-| Fase | Duração Estimada | Depende de |
-|------|-------------------|------------|
-| Fase 1 | — | Nada |
-| Fase 2 | — | Fase 1 completa |
-| Fase 3 | — | Fase 2 completa |
-| Fase 4 | — | Fase 3 completa |
-
-Cada fase começa assim que a anterior estiver estável e testada.
+Essa ordem fecha primeiro inconsistências do ciclo de vida, depois adiciona conveniência e, por último, enfrenta o isolamento — o tema mais caro e sensível.

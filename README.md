@@ -1,105 +1,127 @@
 # addons-app-poc
 
-**Uma prova de conceito de um sistema de add-ons universal, inspirada no ecossistema do Stremio e construída sobre TypeScript.**
+Imagine um aplicativo que ganha novas capacidades sem precisar ser reconstruído toda vez. Um desenvolvedor publica uma extensão, informa seu endereço e o aplicativo passa a usá-la. Se essa extensão falhar, outra pode assumir o trabalho.
 
-Este projeto é uma demonstração prática de como construir um sistema de add-ons do zero — um protocolo onde qualquer desenvolvedor pode criar, publicar e distribuir extensões independentes para um aplicativo host, sem precisar de acesso ao repositório central.
+O **addons-app-poc** existe para experimentar essa ideia. Ele é uma prova de conceito, ou **POC**: um laboratório pequeno, executável e testável, criado para descobrir se uma arquitetura funciona antes de levá-la a um produto real.
 
----
+## O problema que queremos resolver
 
-## Por que isso existe?
+Plugins costumam depender do código principal ou de uma loja central. No primeiro caso, adicionar uma capacidade exige alterar e reconstruir o aplicativo. No segundo, quem cria uma extensão depende da aprovação e da infraestrutura de um intermediário.
 
-A arquitetura tradicional de plugins depende de um ponto central de controle — um repositório oficial, um marketplace autorizado, uma API privada. O Stremio provou que existe uma alternativa melhor: um ecossistema onde **cada add-on é independente**, **descoberto por URL**, e **substituível sem quebrar o sistema**.
+Este projeto explora um terceiro caminho: add-ons independentes, descritos por um manifesto e identificados pelo endereço desse manifesto. O aplicativo principal, chamado **host**, conhece os contratos do sistema, mas não precisa conhecer os detalhes de cada implementação.
 
-Este POC traduz essa lição para o universo do TypeScript e aplicações web modernas.
+Essa ideia foi inspirada no protocolo de add-ons do Stremio. A inspiração está nas fronteiras técnicas — manifesto, recursos HTTP e descoberta por URL — e não no tipo de conteúdo distribuído.
 
----
+## O que você pode ver funcionando
 
-## O Que Este Projeto Contém
+O projeto demonstra dois formatos de add-on que convivem no mesmo protocolo:
 
-| Pacote | Descrição |
-|--------|-----------|
-| `@addons/core` | O protocolo central: **domain/** (regras puras), **ports/** (interfaces), **adapters/** (implementações) |
-| `@addons/host-app` | Um aplicativo React mínimo que carrega e gerencia add-ons |
-| `@addons/addon-hello` | Add-on de exemplo que registra um serviço de saudação |
-| `@addons/addon-hello-pt` | Add-on de exemplo (saudação com prioridade 10) |
-| `@addons/addon-counter` | Add-on de exemplo que registra um serviço de contador |
-| `@addons/addon-markdown` | Add-on de exemplo que registra o serviço `textFormatter` (Markdown/HTML) |
-| `@addons/addon-aggregator` | Add-on que registra o serviço `searchProvider` (meta-search tolerante a falhas) |
-| `@addons/addon-favorites` | Add-on que registra o serviço `favorites` (persistência via `bookmarkStore`) |
-| `@addons/addon-health` | Add-on que registra o serviço `healthCheck` (disponibilidade/latência dos add-ons remotos) |
-| `@addons/addon-server` | Framework Node (zero dependências) que serve um add-on de texto por HTTP, estilo Stremio |
-| `@addons/addon-text-biblioteca` | Add-on de texto (porta 5291) — acervo embutido com catálogo, busca e leitura |
-| `@addons/addon-text-citacoes` | Add-on de texto (porta 5292) — citações com **processamento externo** (API DummyJSON) |
-| `@addons/addon-text-poemas` | Add-on de texto (porta 5293) — poemas com **processamento externo e busca** (API PoetryDB) |
-| `@addons/addon-text-wikipedia` | Add-on de texto (porta 5294) — resumos de artigos com **processamento externo real** (API Wikipédia) |
+1. **Add-on em processo:** é um módulo JavaScript carregado pelo host. Durante a inicialização, ele registra serviços como saudação, contador ou favoritos.
+2. **Add-on HTTP:** é um servidor independente. O host lê seu manifesto e consulta catálogos, buscas e textos por rotas HTTP.
 
----
+O host também demonstra **prioridade** e **fallback**. Quando dois add-ons oferecem o mesmo serviço, a implementação de maior prioridade é tentada primeiro. Se ela falhar, `withFallback` ou `withFallbackAsync` tenta a próxima.
 
-## Como Rodar
+## Visão rápida da arquitetura
+
+```text
+                        contratos e regras
+                    ┌──────────────────────┐
+                    │    @addons/core      │
+                    │ manifesto, registry, │
+                    │ validação e clientes │
+                    └──────────┬───────────┘
+                               │
+             ┌─────────────────┴─────────────────┐
+             │                                   │
+    ┌────────▼────────┐                 ┌────────▼────────┐
+    │    Host App     │                 │     Add-ons     │
+    │ React, gestão e │                 │ em processo ou  │
+    │ demonstrações   │                 │ servidores HTTP │
+    └─────────────────┘                 └─────────────────┘
+```
+
+O `core` é o centro do protocolo. O host e os add-ons dependem dele, mas add-ons não dependem do host. Os add-ons HTTP usam `@addons/addon-server`, um servidor Node.js sem dependências externas de runtime.
+
+## Como executar
+
+Você precisa de Node.js e `pnpm`. Na raiz do projeto, execute:
 
 ```bash
 pnpm install
-
-# Sobe tudo de uma vez: host app (http://localhost:5280)
-# + servidores dos add-ons de texto (5291 biblioteca, 5292 citações, 5293 poemas, 5294 wikipedia)
 pnpm dev
+```
 
-# Encerra todos os processos do dev (host app + add-ons de texto)
+O comando inicia o host em `http://localhost:5280` e os quatro servidores de texto:
+
+| Porta | Add-on | Origem do conteúdo |
+|---:|---|---|
+| `5291` | Biblioteca de Textos | Acervo embutido |
+| `5292` | Citações da Web | DummyJSON Quotes |
+| `5293` | Poemas | PoetryDB |
+| `5294` | Wikipédia | APIs da Wikipédia |
+
+No WSL2, abra `http://localhost:5280` manualmente no navegador do Windows. O servidor já escuta em `0.0.0.0` e o script evita tentar abrir um navegador dentro do Linux.
+
+Para encerrar os processos iniciados pelo modo de desenvolvimento:
+
+```bash
 pnpm kill-all
 ```
 
-> **No WSL2:** o `pnpm dev` detecta WSL, não tenta abrir o navegador (o browser fica no Windows) e o Vite escuta em `0.0.0.0`. Abra manualmente **http://localhost:5280/** no navegador do Windows.
+### Outros comandos úteis
 
-No host app, abra a aba **📄 Textos**: os quatro add-ons remotos aparecem automaticamente. Navegue catálogos, faça buscas (citações, poemas e a Wikipédia buscam em APIs públicas na web) e leia o conteúdo.
+| Comando | O que faz |
+|---|---|
+| `pnpm dev:host` | Inicia apenas o host |
+| `pnpm dev:addons` | Inicia apenas os add-ons HTTP |
+| `pnpm test` | Executa os testes de todos os pacotes |
+| `pnpm build:host` | Gera a build de produção do host |
 
-Na aba **🧪 Extras** você encontra os add-ons em processo que compõem serviços:
-- **📝 Formatador Markdown** — serviço `textFormatter` do addon-markdown;
-- **🔎 Busca Agregada** — serviço `searchProvider` do addon-aggregator, que busca em todos os add-ons remotos e tolera falhas;
-- **⭐ Favoritos** — serviço `favorites` do addon-favorites, persistido via `bookmarkStore` fornecido pelo host.
-- **❤️ Health Check** — serviço `healthCheck` do addon-health, que verifica disponibilidade e latência dos add-ons remotos.
+## Como explorar a demonstração
 
-```bash
-pnpm test   # todos os testes (core + addon-server + add-ons)
-```
+Comece pela interface do host:
 
----
+- **Saudação:** usa o serviço `greeter`.
+- **Contador:** usa o serviço `counter`.
+- **Fallback:** mostra a troca automática entre duas implementações de `greeter`.
+- **Textos:** consulta os quatro servidores HTTP, navega catálogos, busca e carrega conteúdo sob demanda.
+- **Inspetor:** mostra os serviços presentes no registro.
+- **Extras:** demonstra formatação, busca agregada, favoritos e verificação de disponibilidade.
 
-## Índice Completo do Projeto
+## Pacotes do projeto
 
-| Caminho | O que é |
-|---------|---------|
-| `README.md` | Este arquivo — visão geral do projeto |
-| `AGENTS.md` | Regras e convenções para agentes de IA que trabalham aqui |
-| `packages/core/` | **`@addons/core`** — domain/ (regras), ports/ (interfaces), adapters/ (implementações) |
-| `packages/host-app/` | **`@addons/host-app`** — aplicativo React mínimo que carrega add-ons |
-| `packages/addon-hello/` | **`@addons/addon-hello`** — add-on de exemplo (serviço de saudação) |
-| `packages/addon-hello-pt/` | **`@addons/addon-hello-pt`** — add-on de exemplo (saudação, prioridade 10) |
-| `packages/addon-counter/` | **`@addons/addon-counter`** — add-on de exemplo (serviço de contador) |
-| `packages/addon-markdown/` | **`@addons/addon-markdown`** — add-on de exemplo (serviço `textFormatter`) |
-| `packages/addon-aggregator/` | **`@addons/addon-aggregator`** — add-on (meta-search entre add-ons remotos) |
-| `packages/addon-favorites/` | **`@addons/addon-favorites`** — add-on (favoritos com persistência) |
-| `packages/addon-health/` | **`@addons/addon-health`** — add-on (health-check dos add-ons remotos) |
-| `packages/addon-server/` | **`@addons/addon-server`** — framework Node que serve manifest.json + endpoints de resource estilo Stremio |
-| `packages/addon-text-biblioteca/` | **`@addons/addon-text-biblioteca`** — add-on de texto (5291): catálogo + busca + leitura |
-| `packages/addon-text-citacoes/` | **`@addons/addon-text-citacoes`** — add-on de texto (5292): citações via API externa |
-| `packages/addon-text-poemas/` | **`@addons/addon-text-poemas`** — add-on de texto (5293): poemas via API externa com busca |
-| `packages/addon-text-wikipedia/` | **`@addons/addon-text-wikipedia`** — add-on de texto (5294): resumos da Wikipédia via API externa |
-| `docs/ARCHITECTURE.md` | Arquitetura do sistema — camadas, fluxos, modelos, ADRs |
-| `docs/GLOSSARY.md` | Dicionário de todos os termos técnicos do projeto |
-| `docs/MANIFEST-SPEC.md` | Especificação completa do formato do manifesto de add-on (em-processo + Stremio) |
-| `docs/PHASES.md` | Divisão do projeto em fases, do simples ao complexo |
-| `docs/PLANNING.md` | Histórico completo da conversa de planejamento |
-| `docs/PRD.md` | Documento de requisitos do produto |
-| `docs/docs-17yrs/README.md` | Visão geral do projeto em linguagem simples para iniciantes |
-| `docs/docs-17yrs/AGENTS.md` | Regras para IA explicadas sem juridiquês |
-| `docs/docs-17yrs/RESUMO-PLANO.md` | As 13 decisões do projeto explicadas uma a uma, passo a passo |
-| `docs/docs-17yrs/ARCHITECTURE.md` | Arquitetura explicada com analogias e diagrama ASCII |
-| `docs/docs-17yrs/GLOSSARY.md` | Dicionário em frases curtas, um termo por linha |
-| `docs/docs-17yrs/MANIFEST-SPEC.md` | O manifesto campo por campo, com exemplos |
-| `docs/docs-17yrs/PHASES.md` | Fases explicadas em ordem crescente de complexidade |
-| `docs/docs-17yrs/PLANNING.md` | A história completa em 11 capítulos narrativos |
-| `docs/docs-17yrs/PRD.md` | Requisitos em formato de checklist simples |
+| Pacote | Responsabilidade |
+|---|---|
+| `@addons/core` | Tipos, regras de domínio, registro de serviços, validação, fallback, portas e adaptadores |
+| `@addons/host-app` | Aplicativo React que reúne as demonstrações |
+| `@addons/addon-server` | Servidor HTTP para add-ons de texto |
+| `@addons/addon-hello` | Saudação padrão |
+| `@addons/addon-hello-pt` | Saudação prioritária, usada para demonstrar fallback |
+| `@addons/addon-counter` | Contador com estado em memória |
+| `@addons/addon-markdown` | Serviço `textFormatter` |
+| `@addons/addon-aggregator` | Serviço `searchProvider` para busca em vários servidores |
+| `@addons/addon-favorites` | Serviço `favorites`, persistido pelo `bookmarkStore` do host |
+| `@addons/addon-health` | Serviço `healthCheck` para os servidores remotos |
+| `@addons/addon-text-*` | Biblioteca, citações, poemas e Wikipédia por HTTP |
 
----
+## Onde continuar a leitura
 
-MIT
+Toda a documentação usa a mesma progressão: começa com a explicação mais simples e aprofunda apenas depois.
+
+1. [`docs/PLANNING.md`](docs/PLANNING.md) conta como o problema e a solução evoluíram.
+2. [`docs/PRD.md`](docs/PRD.md) define o que a POC precisa provar.
+3. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) explica os componentes, os fluxos e as limitações atuais.
+4. [`docs/DECISIONS.md`](docs/DECISIONS.md) registra as decisões e suas consequências.
+5. [`docs/MANIFEST-SPEC.md`](docs/MANIFEST-SPEC.md) especifica os dois formatos de manifesto.
+6. [`docs/PHASES.md`](docs/PHASES.md) mostra o que foi entregue e o que ainda está planejado.
+7. [`docs/GLOSSARY.md`](docs/GLOSSARY.md) define os termos usados no projeto.
+
+## Limites atuais
+
+Esta POC prova o protocolo, mas ainda não é uma plataforma pronta para produção. O host de demonstração importa os add-ons em processo durante a build, embora o `core` já contenha um loader por URL. Instalação arbitrária por URL, negociação de versões, cache, descarregamento completo e sandbox ainda não estão concluídos.
+
+Esses limites são intencionais e estão detalhados na documentação. Separar claramente o que já funciona do que ainda é direção futura mantém a POC honesta e útil.
+
+## Licença
+
+MIT.

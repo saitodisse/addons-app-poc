@@ -1,185 +1,180 @@
-# Product Requirements Document — addons-app-poc
+# Requisitos do produto
 
-**Status: Planejado** · **Versão: 1.0.0** · **Data: 2025**
+**Status: Parcial** · **Versão da POC: 0.2.0**
 
----
+Este documento define o que a prova de conceito precisa demonstrar. Ele não descreve um produto comercial pronto; descreve as perguntas técnicas que o experimento deve responder e as evidências esperadas para cada resposta.
 
-## 1. Resumo Executivo
+## Por que construir esta POC
 
-O addons-app-poc é uma prova de conceito de um sistema de add-ons universal para aplicações web TypeScript. O objetivo é validar um protocolo onde qualquer desenvolvedor pode criar extensões independentes, publicá-las em qualquer URL, e um aplicativo host pode descobri-las, carregá-las dinamicamente e usá-las com fallback automático.
+Aplicativos extensíveis costumam escolher entre dependências compiladas junto com o produto e marketplaces controlados por uma autoridade central. As duas opções são úteis, mas não atendem bem a uma extensão que precisa ser publicada e substituída de forma independente.
 
----
+A hipótese deste projeto é simples:
 
-## 2. Problema
+> Um host pode descobrir capacidades por manifesto, consumir implementações sem conhecer seus detalhes e continuar funcionando quando uma delas falhar.
 
-Aplicações modulares hoje dependem de uma de duas abordagens:
+A POC existe para testar essa hipótese com código executável, não apenas com diagramas.
 
-1. **Dependências em tempo de compilação** — tudo é importado e resolvido no build. Trocar uma implementação exige modificar o código e rebuildar.
+## O que está sendo validado
 
-2. **Marketplaces centralizados** — plugins só existem se aprovados e hospedados por um repositório central.
+O experimento precisa provar cinco ideias:
 
-Ambas as abordagens criam um gargalo: o desenvolvedor do core decide o que pode ser estendido, e o desenvolvedor de extensões depende de permissão para publicar.
+1. **Declaração:** um manifesto descreve a identidade, os metadados e as capacidades do add-on.
+2. **Desacoplamento:** o host consulta serviços por contrato, sem depender da implementação em cada ponto de uso.
+3. **Substituição:** mais de um add-on pode oferecer o mesmo serviço com prioridade previsível.
+4. **Degradação:** uma falha pode levar o sistema a uma alternativa sem derrubar o restante.
+5. **Independência operacional:** um add-on pode funcionar como servidor HTTP fora do processo do host.
 
-O Stremio provou que existe uma terceira via: **add-ons independentes descobertos por URL**, onde cada extensão é um módulo autônomo que se anuncia via manifesto, e o host as consome sem saber quem implementa.
+## Para quem a demonstração serve
 
----
+| Perfil | Pergunta que a POC ajuda a responder |
+|---|---|
+| Pessoa que mantém o protocolo | As fronteiras do `core` são pequenas, claras e testáveis? |
+| Pessoa que cria add-ons | É possível oferecer uma capacidade sem conhecer detalhes internos do host? |
+| Pessoa que mantém o host | É possível ativar, consultar e substituir capacidades de modo previsível? |
+| Pessoa que avalia arquitetura | Os formatos em processo e HTTP podem conviver sem se confundir? |
 
-## 3. Público-Alvo
+## Experiência demonstrada
 
-| Perfil | O que faz com o sistema |
-|--------|------------------------|
-| Desenvolvedor de add-ons | Cria extensões usando as interfaces públicas |
-| Mantenedor do host | Integra o protocolo no aplicativo |
-| Usuário final | Instala e gerencia add-ons via interface |
+Ao iniciar o projeto, o leitor deve conseguir abrir o host e percorrer uma história completa:
 
----
+1. usar um serviço de saudação;
+2. usar um contador com estado;
+3. provocar a falha do saudador prioritário e observar o fallback;
+4. navegar catálogos de servidores independentes;
+5. pesquisar conteúdo vindo de fontes externas;
+6. abrir o conteúdo apenas quando necessário;
+7. testar serviços compostos, como favoritos, formatação e saúde.
 
-## 4. Requisitos Funcionais
+## Requisitos funcionais
 
-### Fase 1 — Núcleo
+Os estados significam: **Entregue** quando o comportamento está implementado no escopo indicado; **Parcial** quando uma parte funciona, mas ainda há uma lacuna relevante; **Planejado** quando a POC ainda não implementa o requisito.
 
-| ID | Requisito | Prioridade |
-|----|-----------|------------|
-| F1.1 | O sistema deve definir um formato de manifesto para add-ons | Alta |
-| F1.2 | O manifesto deve conter id, versão, entrypoint, e lista de serviços | Alta |
-| F1.3 | O sistema deve permitir que um add-on registre serviços no registry | Alta |
-| F1.4 | O sistema deve permitir que o host consulte serviços por ID | Alta |
-| F1.5 | O sistema deve suportar múltiplas implementações para o mesmo serviço | Alta |
-| F1.6 | O sistema deve definir prioridade entre implementações | Alta |
-| F1.7 | O sistema deve carregar add-ons dinamicamente via `import()` | Alta |
-| F1.8 | O sistema deve validar o manifesto antes de carregar | Média |
-| F1.9 | O sistema deve tratar erros de setup sem quebrar o host | Alta |
-| F1.10 | O sistema deve fornecer um `HostAPI` mínimo para add-ons | Alta |
-| F1.11 | O host-app deve exibir add-ons instalados em uma lista | Média |
-| F1.12 | O host-app deve permitir invocar serviços dos add-ons | Média |
-| F1.13 | O sistema deve ter testes unitários para registry, validação e loader | Alta |
+### Núcleo do protocolo
 
-### Fase 2 — Fallback e Domínio
+| ID | Requisito | Estado | Evidência atual |
+|---|---|---|---|
+| F1.1 | Definir um manifesto comum | Entregue | `AddonManifest` e `validateManifest` |
+| F1.2 | Validar o manifesto antes do consumo | Entregue | Testes de validação no `core` |
+| F1.3 | Registrar serviços por identificador | Entregue | `ServiceRegistry.register` |
+| F1.4 | Consultar uma ou todas as implementações | Entregue | `get` e `getAll` |
+| F1.5 | Ordenar implementações por prioridade | Entregue | Ordenação decrescente no registro |
+| F1.6 | Limpar serviços por add-on | Entregue | `clearAddon` |
+| F1.7 | Expor um `HostAPI` pequeno | Entregue | `services`, `registerService`, `onUnload` e `log` |
+| F1.8 | Representar carregamento e erro | Entregue | `AddonInstance` e `AddonStatus` |
 
-| ID | Requisito | Prioridade |
-|----|-----------|------------|
-| F2.1 | O sistema deve implementar fallback automático entre implementações | Alta |
-| F2.2 | O sistema deve registrar e logar falhas de serviço | Média |
-| F2.3 | O sistema deve permitir interfaces de domínio tipadas (ex: `Greeter`) | Alta |
-| F2.4 | Add-ons devem poder substituir serviços de outros add-ons por prioridade | Alta |
+### Add-ons em processo
 
-### Fase 3 — Descoberta
+| ID | Requisito | Estado | Evidência atual |
+|---|---|---|---|
+| F2.1 | Exportar `manifest` e `setup` | Entregue | Add-ons locais de exemplo |
+| F2.2 | Carregar manifesto e bundle por URL | Entregue | `FetchAddonLoader` e testes com mocks |
+| F2.3 | Instalar uma URL arbitrária pela interface | Planejado | O host usa uma lista local pré-configurada |
+| F2.4 | Não deixar falha de setup derrubar o host | Entregue | Loader devolve instância em `error` |
+| F2.5 | Remover registros parciais após falha de setup | Parcial | `clearAddon` existe, mas o loader não o chama nesse erro |
+| F2.6 | Executar callbacks de descarregamento | Planejado | Callbacks são coletados, mas não há ciclo público de unload |
+| F2.7 | Demonstrar serviços de saudação e contador | Entregue | `addon-hello`, `addon-hello-pt` e `addon-counter` |
 
-| ID | Requisito | Prioridade |
-|----|-----------|------------|
-| F3.1 | O sistema deve carregar add-ons de URLs remotas | Alta |
-| F3.2 | O sistema deve validar versão do host contra versão requerida pelo add-on | Média |
-| F3.3 | O sistema deve manter um catálogo de add-ons conhecidos | Média |
-| F3.4 | O host-app deve permitir instalação de add-ons por URL | Alta |
+### Prioridade, fallback e composição
 
-### Fase 3.0 — Add-ons de Texto estilo Stremio (HTTP)
+| ID | Requisito | Estado | Evidência atual |
+|---|---|---|---|
+| F3.1 | Tentar implementações síncronas em ordem | Entregue | `withFallback` |
+| F3.2 | Tentar implementações assíncronas em ordem | Entregue | `withFallbackAsync` |
+| F3.3 | Reunir falhas quando nenhuma opção funciona | Entregue | `AggregateFallbackError` |
+| F3.4 | Definir interfaces TypeScript para serviços | Entregue | Interfaces e tipos exportados pelo `core` |
+| F3.5 | Permitir infraestrutura fornecida pelo host | Entregue | `bookmarkStore` com origem `host` |
+| F3.6 | Permitir composição sem importação direta | Entregue | Favoritos, agregador e health check |
 
-| ID | Requisito | Prioridade |
-|----|-----------|------------|
-| F3.0.1 | O manifesto deve suportar o formato Stremio: `resources` (catalog/search/text), `types`, `idPrefixes`, `catalogs` | Alta |
-| F3.0.2 | Cada add-on de texto deve ser um servidor HTTP independente que serve `manifest.json` + endpoints `/<resource>/<type>/<id>.json` | Alta |
-| F3.0.3 | O recurso `text` deve seguir o formato subtitles do Stremio: `{ texts: [{ id, url, lang, name }] }` com `url` apontando para o conteúdo | Alta |
-| F3.0.4 | O core deve fornecer um cliente HTTP (`HttpTextAddonClient`) para consumir add-ons remotos | Alta |
-| F3.0.5 | O host-app deve ter uma aba para navegar catálogos, buscar e ler conteúdo dos add-ons de texto | Alta |
-| F3.0.6 | Add-ons devem poder fazer processamento externo (buscar em APIs públicas), como o Torrentio busca em indexadores | Média |
-| F3.0.7 | O framework de servidor (`@addons/addon-server`) deve servir CORS para permitir acesso do host no navegador | Alta |
+### Add-ons HTTP de texto
 
-### Fase 4 — Resiliência
+| ID | Requisito | Estado | Evidência atual |
+|---|---|---|---|
+| F4.1 | Declarar `resources`, `types` e `catalogs` | Entregue | Quatro manifestos HTTP |
+| F4.2 | Servir manifesto e recursos por rotas estáveis | Entregue | `@addons/addon-server` |
+| F4.3 | Liberar acesso do host pelo navegador | Entregue | Cabeçalhos CORS e resposta a `OPTIONS` |
+| F4.4 | Consumir catálogo, busca e opções de texto | Entregue | `HttpTextAddonClient` |
+| F4.5 | Entregar conteúdo sob demanda por URL | Entregue | Payload `texts` e rota `content.txt` |
+| F4.6 | Demonstrar conteúdo embutido | Entregue | Biblioteca de Textos |
+| F4.7 | Demonstrar processamento externo | Entregue | Citações, PoetryDB e Wikipédia |
+| F4.8 | Tolerar uma origem indisponível na busca agregada | Entregue | `Promise.allSettled` no agregador |
+| F4.9 | Armazenar manifesto em cache | Planejado | O cliente busca novamente |
 
-| ID | Requisito | Prioridade |
-|----|-----------|------------|
-| F4.1 | O sistema deve isolar erros de cada add-on | Alta |
-| F4.2 | O sistema deve degradar add-ons que falham repetidamente | Média |
-| F4.3 | O usuário deve poder habilitar/desabilitar add-ons | Alta |
-| F4.4 | O usuário deve poder reordenar prioridade dos add-ons | Média |
+### Gestão, compatibilidade e isolamento
 
----
+| ID | Requisito | Estado | Evidência atual |
+|---|---|---|---|
+| F5.1 | Mostrar add-ons ativos e seus estados | Entregue | Área de gestão do host |
+| F5.2 | Ativar e remover exemplos locais | Entregue | `AddonManager` |
+| F5.3 | Persistir add-ons escolhidos | Planejado | Estado atual vive na sessão React |
+| F5.4 | Permitir reordenar prioridades | Planejado | Prioridades são definidas pelo código |
+| F5.5 | Negociar versão do host | Planejado | Não existe `hostVersion` aplicado |
+| F5.6 | Isolar código em Worker ou iframe | Planejado | Add-ons em processo compartilham o contexto do host |
+| F5.7 | Aplicar política de confiança e permissões | Planejado | Não há assinatura, autorização ou consentimento por capacidade |
 
-## 5. Requisitos Não Funcionais
+## Requisitos não funcionais
 
-| ID | Requisito | Descrição |
-|----|-----------|-----------|
-| NF1 | Testabilidade | O core deve ser testável isoladamente sem dependências externas |
-| NF2 | Isolamento | Nenhum add-on deve conseguir quebrar o host |
-| NF3 | Simplicidade | O protocolo deve caber em 3 tipos principais e 2 funções |
-| NF4 | Compatibilidade | Deve funcionar em navegadores modernos (ESM nativo) |
-| NF5 | Zero dependências externas no core | O pacote `@addons/core` não deve depender de React, Vite, ou qualquer framework |
+### Clareza do protocolo
 
----
+Uma pessoa deve conseguir compreender o caminho de um add-on lendo o manifesto, o `HostAPI` e o `ServiceRegistry`. A documentação começa simples e aprofunda progressivamente.
 
-## 6. Casos de Uso
+### Testabilidade
 
-### UC1: Desenvolvedor cria um add-on
+Regras centrais devem funcionar sem rede real. Funções de `fetch` e armazenamento precisam ser injetáveis ou substituíveis nos testes.
 
-1. Desenvolvedor cria um projeto TypeScript
-2. Importa os tipos de `@addons/core`
-3. Implementa a interface do serviço desejado
-4. Exporta `manifest` e `setup`
-5. Compila para ESM com Vite
-6. Publica o bundle em qualquer URL
+### Dependências controladas
 
-### UC2: Usuário instala um add-on
+O `@addons/core` não deve depender de React ou Vite. O `@addons/addon-server` deve permanecer sem dependências externas de runtime.
 
-1. Usuário obtém a URL do manifesto
-2. Cola no host-app
-3. Host valida o manifesto
-4. Host carrega o bundle via `import()`
-5. Host chama `setup` com o `HostAPI`
-6. Add-on registra seus serviços
-7. Add-on aparece na lista de instalados
+### Compatibilidade
 
-### UC3: Fallback automático
+Add-ons em processo usam ESM. O host de demonstração depende de navegadores modernos capazes de executar a aplicação React e usar `fetch` e `localStorage`.
 
-1. Dois add-ons registram o mesmo serviço
-2. O de maior prioridade falha ao ser invocado
-3. Registry captura o erro
-4. Registry tenta o próximo da lista
-5. Host recebe o resultado sem saber da falha
+### Honestidade operacional
 
-### UC4: Navegar textos de um add-on remoto (estilo Stremio)
+Falhas, segurança e isolamento devem ser descritos de acordo com o comportamento atual. Uma capacidade planejada não pode aparecer como entregue apenas porque o tipo ou a intenção já existem.
 
-1. Usuário abre a aba **Textos** no host-app
-2. Host busca o `manifest.json` de cada add-on de texto conhecido (URL = identidade)
-3. Host exibe os `resources` e `catalogs` declarados no manifesto
-4. Usuário navega um catálogo → host chama `GET /catalog/<type>/<catalogId>.json`
-5. Usuário busca → host chama `GET /search/<type>/<query>.json`
-6. Usuário abre um item → host chama `GET /text/<type>/<id>.json` (formato subtitles)
-7. Host faz `fetch(item.url)` e exibe o conteúdo em texto puro
+## Casos de uso
 
-### UC5: Add-on com processamento externo
+### Criar um add-on em processo
 
-1. Usuário busca poemas no add-on de poemas
-2. Add-on chama a API pública PoetryDB (como o Torrentio busca em indexadores)
-3. Add-on converte a resposta no formato `metas` do Stremio
-4. Ao ler um poema, o add-on busca o texto completo na API externa
-5. Host exibe o conteúdo sem saber que veio de uma API externa
+Uma pessoa escolhe ou define uma interface de serviço, cria um manifesto com `entrypoint` e `services`, exporta um `setup` e registra sua implementação pelo `HostAPI`. Depois, gera um bundle ESM e o hospeda junto do manifesto.
 
----
+Na demonstração atual, os exemplos são pacotes do workspace e entram na build do host. O carregamento remoto pode ser exercitado diretamente pelo `FetchAddonLoader`, mas ainda não pela interface.
 
-## 7. Critérios de Sucesso
+### Criar um add-on HTTP
 
-A POC será considerada bem-sucedida quando:
+Uma pessoa escreve um manifesto com `resources`, implementa handlers de catálogo, busca, texto e conteúdo, e entrega tudo ao `createAddonServer`. O host precisa apenas da URL base para iniciar a conversa.
 
-1. Um add-on de exemplo é carregado e seu serviço é invocado com sucesso
-2. Dois add-ons registram o mesmo serviço com prioridades diferentes
-3. O de maior prioridade é usado por padrão
-4. Se o de maior prioridade falhar, o fallback assume automaticamente
-5. Um add-on com erro no setup não impede o funcionamento do host
-6. Testes unitários do core passam com 100% de cobertura nos cenários principais
-7. Um add-on de texto servido por HTTP é descoberto pelo host via manifesto (formato Stremio)
-8. Catálogo, busca e leitura de conteúdo funcionam de ponta a ponta (estilo Stremio/Torrentio)
-9. Um add-on faz processamento externo real (busca em API pública) e devolve resultados formatados
-10. O host-app consome add-ons remotos via HTTP sem importar o código deles
+### Usar fallback
 
----
+Duas implementações registram o mesmo serviço. O consumidor chama `withFallback`, que tenta a maior prioridade. Se houver exceção, tenta a próxima. Se nenhuma responder, o consumidor recebe `AggregateFallbackError` e decide como apresentar a falha.
 
-## 8. Não Escopo
+### Ler um texto remoto
 
-- Interface gráfica complexa (o host-app é o mínimo demonstrável)
-- Suporte a Service Workers
-- WebAssembly
-- Sandbox em Web Worker ou Iframe (investigação futura)
-- Autenticação ou autorização
-- Loja de add-ons com backend
-- Publicação no npm
-- Busca com cache/ranking sofisticado nos add-ons de texto (a busca é demonstração do protocolo)
+O host busca o manifesto, consulta um catálogo ou uma busca, escolhe um item, pede as opções em `/text/...json` e só então baixa a URL de conteúdo. O servidor de origem pode consultar outra API antes de responder, sem mudar o contrato visto pelo host.
+
+## Critérios de sucesso da POC
+
+A hipótese principal é considerada demonstrada quando todas estas evidências permanecem verdadeiras:
+
+- dois add-ons oferecem `greeter` com prioridades diferentes;
+- o fallback usa a alternativa depois de uma falha simulada;
+- um erro de carregamento vira estado observável em vez de encerrar o host;
+- um serviço pode consumir infraestrutura do host pelo registro;
+- quatro servidores HTTP são descobertos por manifesto;
+- catálogo, busca, opções de texto e conteúdo funcionam de ponta a ponta;
+- pelo menos uma origem externa é transformada no contrato comum;
+- a busca agregada continua útil quando uma origem falha;
+- os testes dos pacotes passam sem depender dos servidores externos reais.
+
+## Fora do escopo atual
+
+- marketplace ou catálogo público com backend;
+- autenticação e autorização;
+- auditoria ou assinatura criptográfica de add-ons;
+- publicação dos pacotes no npm;
+- suporte a Service Worker ou WebAssembly;
+- sandbox pronto para produção;
+- garantia de disponibilidade das APIs públicas de exemplo;
+- ranking, cache e busca sofisticada;
+- interface visual final de produto.

@@ -1,140 +1,150 @@
-# Arquitetura de Add-ons: A Jornada e o Planejamento
+# A jornada de planejamento
 
-Bem-vindo! Este documento é um registro vivo de como repensamos toda a arquitetura do nosso projeto. Aqui, você vai acompanhar a evolução das nossas ideias: desde o problema que nos travava até as decisões técnicas que nos levaram a criar um sistema modular, resiliente e incrivelmente flexível.
+Este documento conta como a arquitetura ganhou forma. Ele é uma narrativa histórica, não uma lista de regras atuais. Para consultar contratos vigentes, use `ARCHITECTURE.md`, `DECISIONS.md` e `MANIFEST-SPEC.md`.
 
-Se você está chegando agora, não se preocupe com termos complexos. Vamos construir o entendimento camada por camada.
+## 1. O incômodo inicial
 
----
+A conversa começou com um problema comum em sistemas modulares: partes que deveriam ser substituíveis estavam ligadas por dependências diretas. Trocar uma implementação significava alterar importações, reconstruir aplicações e coordenar versões de muitas peças ao mesmo tempo.
 
-## 1. O Ponto de Partida: Por que mudar?
+O contexto que inspirou a conversa envolvia outros projetos, mas a conclusão foi criar esta POC como um laboratório independente. O `addons-app-poc` não faz parte do ecossistema AC nem depende dele.
 
-Tudo começou no ecossistema **AC**, um ambiente que abrigava cinco projetos diferentes (como portais de artistas, bibliotecas de música e sistemas de sincronização) dentro de um único repositório de código (um *monorepo*).
+## 2. A primeira ideia: pedir capacidades, não pacotes
 
-O grande problema era **como esses projetos se conectavam**.
+A inspiração inicial veio de contêineres de serviços e inversão de controle. O nome técnico é menos importante que a mudança de pergunta.
 
-A arquitetura antiga usava dependências diretas. Isso significa que, se o Projeto A precisasse do Projeto B, o código do A mencionava o B explicitamente. Era como ter um carro onde as rodas estão soldadas no eixo: para trocar um pneu, você precisava desmontar o carro inteiro e reconstruí-lo do zero (o que chamamos de *rebuildar*). Precisávamos de uma forma de trocar os "pneus" com o carro em movimento.
+Em vez de escrever “importe exatamente o pacote X”, o consumidor diz “preciso de algo que cumpra o contrato Y”. Um registro apresenta a implementação disponível.
 
-## 2. A Semente da Ideia: A Inspiração no Cordis
-
-A virada de chave começou com uma pergunta simples: *"E se os pacotes pudessem ser trocados sem mexer no código principal?"*
-
-Olhamos para um framework chamado **Cordis**. Ele usa um conceito inteligente conhecido como **Inversão de Controle (IoC)**. O nome pode parecer assustador, mas a ideia é simples: em vez do seu código dizer *"Eu quero usar a ferramenta exata X"*, ele diz *"Eu preciso de uma ferramenta que faça este trabalho, me dê a melhor que você tiver registrada"*.
-
-Isso resolve a parte técnica, mas logo percebemos que o buraco era mais embaixo. Não queríamos apenas organizar o código; queríamos mudar a forma como o sistema sobrevivia no mundo real.
-
-## 3. O Paradigma Stremio: Construindo algo Indestrutível
-
-Foi então que trouxemos o aplicativo **Stremio** para a mesa. No início, parecia apenas uma metáfora, mas logo vimos que era o **padrão arquitetural perfeito**.
-
-O Stremio é famoso por ser um sistema à prova de balas. O segredo dele? Ele é fatiado em quatro camadas totalmente independentes. Se uma camada cai, as outras continuam de pé:
-
-| Camada | O que faz? | O Exemplo no Stremio |
-| --- | --- | --- |
-| **1. Player (Interface)** | O aplicativo oficial que o usuário vê. | App nas lojas oficiais, 100% legal e de código aberto. |
-| **2. Add-ons (Extensões)** | Scripts independentes que encontram o conteúdo. | Mantidos pela comunidade, rodam separadamente. |
-| **3. Cache** | Memória rápida para entregar o conteúdo na hora. | Serviços comerciais externos, facilmente substituíveis. |
-| **4. Armazenamento** | Onde o conteúdo realmente vive (descentralizado). | Rede global (BitTorrent/DHT), sem um servidor central. |
-
-> **A grande sacada:** O que torna um sistema "indestrutível" não é usar uma tecnologia mágica, mas sim desenhar fronteiras claras entre suas partes.
-
-## 4. O Sistema de Add-ons do AC
-
-Ao mapear a genialidade do Stremio para as nossas necessidades no AC, percebemos que não precisávamos de um gerenciador de dependências mais complexo. **Precisávamos de um verdadeiro sistema de Add-ons.**
-
-Veja como o AC se espelha no Stremio:
-
-* **Player:** Nossos aplicativos e portais web.
-* **Identificadores universais:** Nossa biblioteca de contratos de música (`@achorde/musical-domain`).
-* **Add-ons:** Ferramentas que renderizam diagramas, editores de partituras e catálogos.
-* **Cache:** Bancos de dados locais no navegador do usuário (como o IndexedDB).
-* **Armazenamento Descentralizado:** Nosso motor de sincronização entre os dispositivos do usuário.
-
-Optar por add-ons nos trouxe três superpoderes:
-
-1. **Descoberta:** O sistema encontra as ferramentas via internet, e não lendo arquivos de código.
-2. **Isolamento:** Se um add-on quebrar, o aplicativo principal continua funcionando normalmente.
-3. **Poder de Escolha:** É o usuário quem decide qual add-on ativar, não o programador.
-
----
-
-## 5. Como Funciona na Prática? O Motor do Sistema
-
-Agora que entendemos o "Por que" e o "O que", vamos descer uma camada e ver o "Como".
-
-### As Interfaces (Os Contratos)
-
-Criamos cinco famílias de add-ons (ex: *Renderizadores de Diagramas*, *Editores*, *Mecanismos de Busca*). Cada família possui uma interface rigorosa escrita em TypeScript. É como uma tomada: se o seu add-on tem o formato certo para encaixar naquela tomada, ele vai funcionar.
-
-### O Manifesto (O Documento de Identidade)
-
-Todo add-on precisa de um "RG" em formato JSON, chamado Manifesto. Ele conta ao sistema tudo sobre a extensão:
-
-* **Quem sou eu:** Nome, autor, versão, descrição.
-* **Como eu funciono:** Onde está o meu código e quais serviços eu presto.
-* **Do que eu preciso:** Com quais versões do aplicativo eu sou compatível.
-
-### A Magia do Fallback (O Plano B, C e D)
-
-O que acontece se um serviço falhar no meio do uso? O sistema usa uma rede de segurança chamada **Cadeia de Fallback**.
-Se o seu aplicativo precisa renderizar um diagrama de guitarra, ele tenta o *Add-on 1*. Falhou? Ele tenta o *Add-on 2* automaticamente, sem que o usuário perceba. No fim da linha, sempre há uma opção básica e nativa garantindo que a tela não fique em branco.
-
----
-
-## 6. A História do Joaquim: O Sistema Visto de Fora
-
-Para visualizar como isso é poderoso, imagine o Joaquim. Ele é um desenvolvedor independente e teve uma ideia brilhante: um visualizador de acordes em 3D.
-
-Com a nossa nova arquitetura, o fluxo do Joaquim é o seguinte:
-
-1. Ele cria seu código usando nossos "contratos" (interfaces).
-2. Ele hospeda o código dele e o seu Manifesto (JSON) na nuvem, de graça.
-3. Ele posta o link em um fórum.
-
-Um usuário vê o post, copia o link e cola no seu aplicativo AC. O aplicativo lê o Manifesto, carrega a ferramenta do Joaquim e... *voilà!* O usuário agora vê acordes em 3D. O Joaquim não precisou pedir permissão para a nossa equipe e nós não precisamos atualizar o nosso aplicativo.
-
----
-
-## 7. O "Grilling": 13 Perguntas Difíceis, 13 Decisões Claras
-
-Antes de escrever a primeira linha de código, decidimos criar uma Prova de Conceito (o projeto `addons-app-poc`). Para garantir que a ideia era sólida, nós a submetemos a um "grilling" (um interrogatório intenso). Aqui estão as decisões mais importantes que tomamos:
-
-* **Identidade:** Como sabemos quem é quem? A própria URL (link) do manifesto é o CPF único do add-on.
-* **Falhas na Inicialização:** Se um add-on der erro ao ligar, ele é ignorado e o aplicativo principal segue a vida.
-* **Carregamento:** Usamos o padrão web nativo (ESM) para importar os arquivos JavaScript diretamente pelo navegador.
-* **Estrutura Inicial:** Separamos rigorosamente o motor do sistema (`core`), o aplicativo principal (`host-app`) e os add-ons de teste (`addon-hello`, `addon-counter`).
-
-E a estrutura final de pastas refletiu essa clareza:
+Isso trouxe a primeira peça do desenho: o `ServiceRegistry`.
 
 ```text
-addons-app-poc/
-├── packages/
-│   ├── core/              (O motor: registros, validadores, carregamento)
-│   ├── host-app/          (O aplicativo que o usuário vê)
-│   ├── addon-hello/       (Add-on de teste 1)
-│   └── addon-counter/     (Add-on de teste 2)
-└── docs/                  (Toda a nossa documentação viva)
-
+consumidor ── pede "greeter" ──► registro
+                                      ▲
+                                      │ registra "greeter"
+                                    add-on
 ```
 
----
+O registro resolveria o acoplamento dentro do processo. Ainda faltava entender como publicar, descobrir e substituir extensões de forma independente.
 
-## 8. A Evolução: O que Aconteceu Depois do Plano
+## 3. O manifesto entra na história
 
-Um bom planejamento permite que o projeto evolua de forma orgânica. Depois da Fase 1, alcançamos marcos impressionantes:
+Um add-on precisava se apresentar antes de executar. Nasceu então o manifesto: um objeto legível que declara nome, versão, autoria, licença e capacidades.
 
-### Fase 2: O Sistema Visual e as Redes de Segurança
+A decisão mais importante foi usar a **URL do manifesto como identidade**. O campo `id` poderia continuar amigável, mas a localização completa seria o valor estável usado pelo host.
 
-Criamos a função `withFallback`, tornando a transição entre add-ons que falham super elegante. Também desenvolvemos o painel visual no `host-app`, onde o usuário pode instalar e gerenciar os add-ons livremente como se fosse uma "App Store" particular.
+Essa escolha abriu uma possibilidade: o add-on poderia morar fora do repositório e ser encontrado por endereço.
 
-### Fase 3: A Virada para Servidores Remotos (O Modelo Torrentio)
+## 4. A lição do Stremio
 
-A evolução mais espetacular. O usuário pediu: *"Vamos nos inspirar no Torrentio do Stremio"*.
-No Stremio, muitos add-ons não são apenas pedaços de código no navegador; eles são **servidores inteiros** na nuvem que respondem a pedidos do aplicativo.
+O protocolo do Stremio mostrou uma fronteira útil. O aplicativo principal não precisa importar todo add-on; pode conversar com servidores independentes por um conjunto previsível de recursos.
 
-Adaptamos isso para o nosso ecossistema focando em **textos e dados**.
+A POC adotou essa organização como referência técnica e a adaptou para textos:
 
-* **O Novo Manifesto:** O arquivo JSON agora pode declarar "recursos" em servidores remotos (ex: catálogos de busca, bibliotecas de texto).
-* **Servidores Independentes:** Criamos uma ferramenta (`@addons/addon-server`) que permite que qualquer desenvolvedor suba um servidor de add-on em minutos, comunicando-se perfeitamente com o nosso aplicativo via internet (HTTP).
-* **Resultados Mágicos:** Implementamos add-ons reais que buscam dados em APIs públicas (como bibliotecas de poemas ou citações). O aplicativo pede a lista de poemas para o add-on remoto, o add-on vai até a base de dados, processa e devolve tudo formatado para a tela do usuário.
+| Referência de mídia | Adaptação nesta POC |
+|---|---|
+| manifesto remoto | manifesto remoto |
+| catálogo de itens | catálogo de textos, citações, poemas ou páginas |
+| busca | busca na fonte do add-on |
+| opções de legenda | opções de texto com uma URL de conteúdo |
+| conteúdo carregado depois | texto puro carregado sob demanda |
 
-Hoje, nossa prova de conceito conta com dezenas de testes passando perfeitamente. O que começou como uma tentativa de limpar um código espaguete, se tornou uma plataforma descentralizada, extensível e pronta para o futuro.
+O objetivo não era copiar um produto inteiro. Era aprender com a separação entre host, contrato e servidor externo.
+
+## 5. A primeira POC: tudo dentro do processo
+
+Começar por servidores teria misturado rede, protocolo e interface cedo demais. O primeiro degrau foi menor:
+
+1. definir `AddonManifest`;
+2. validar o objeto;
+3. criar `ServiceRegistry`;
+4. definir `HostAPI`;
+5. carregar um módulo com `manifest` e `setup`;
+6. provar o fluxo com saudação e contador;
+7. mostrar o resultado em um host React.
+
+Essa ordem transformou cada abstração em algo observável. O contador provou estado. A saudação provou um contrato simples. O host provou que serviços podiam chegar à interface.
+
+## 6. O grilling: perguntas que endureceram o desenho
+
+O planejamento foi submetido a perguntas difíceis. As respostas viraram decisões duráveis:
+
+- Como distinguir dois add-ons com o mesmo nome? Pela URL do manifesto.
+- Como inspecionar antes de executar? Separando `manifest` e `setup`.
+- Quanto do host deve ser exposto? Apenas um `HostAPI` pequeno.
+- Onde produtores e consumidores se encontram? No `ServiceRegistry`.
+- Quem vence quando há concorrência? A maior prioridade explícita.
+- O que acontece se a ativação falhar? A instância entra em erro.
+- O que acontece se o serviço preferido falhar? O fallback tenta o próximo.
+- Qual formato de módulo usar? ESM nativo.
+- O que merece testes primeiro? As regras críticas do protocolo.
+
+As respostas completas, incluindo consequências e lacunas atuais, estão em `DECISIONS.md`.
+
+## 7. O plano B vira parte do protocolo
+
+Depois que duas implementações puderam coexistir, apareceu uma diferença importante: ordenar não é o mesmo que executar.
+
+O registro ficou responsável apenas pela lista ordenada. As funções `withFallback` e `withFallbackAsync` receberam a responsabilidade de chamar cada implementação e lidar com exceções.
+
+O `addon-hello-pt` tornou a ideia visível. Ele tem prioridade maior, mas falha de propósito para o nome `error`. Nesse momento, o saudador padrão assume.
+
+Essa demonstração mostrou que substituição não precisa ser uma decisão de build. Pode ser uma decisão de runtime, tomada no instante da chamada.
+
+## 8. A virada para servidores independentes
+
+Com o fluxo em processo funcionando, o projeto voltou à pergunta maior: um add-on pode morar em qualquer lugar?
+
+Surgiu o segundo formato. Em vez de `entrypoint` e `services`, o manifesto poderia declarar `resources`, `types` e `catalogs`. O host não executaria o servidor; faria requisições HTTP.
+
+O `@addons/addon-server` foi criado para reduzir o trabalho repetitivo. Um add-on fornece quatro funções, e o framework monta manifesto, catálogo, busca, opções de texto e conteúdo.
+
+Três fontes provaram aspectos diferentes:
+
+- a Biblioteca mostrou conteúdo local ao servidor;
+- Citações mostrou transformação de uma API simples;
+- Poemas mostrou busca e leitura a partir de uma API externa.
+
+Depois, a Wikipédia acrescentou uma quarta fonte e reforçou que o mesmo contrato podia esconder APIs de origem diferentes.
+
+## 9. Entrega sob demanda
+
+Enviar textos completos durante uma busca seria desperdício. A solução foi adaptar o formato de opções de legenda: o add-on devolve metadados e uma URL, e o host busca o conteúdo quando o usuário abre o item.
+
+```text
+busca ──► metadados ──► escolha ──► opções de texto ──► conteúdo
+```
+
+Essa sequência mantém respostas iniciais pequenas e permite mais de uma versão ou idioma no futuro.
+
+## 10. Add-ons começam a colaborar
+
+Depois de provar add-ons isolados, a POC passou a demonstrar composição:
+
+- o agregador consulta vários servidores e mescla resultados;
+- favoritos usa um armazenamento oferecido pelo host;
+- health check consulta os mesmos servidores para medir disponibilidade;
+- o formatador reaproveita regras puras do `core`.
+
+O ponto central é que nenhuma dessas extensões importa outra extensão. Elas conhecem contratos ou URLs, e o registro continua sendo a fronteira dentro do processo.
+
+## 11. O que aprendemos com a implementação
+
+O código revelou diferenças entre uma arquitetura desenhada e uma arquitetura realmente demonstrada.
+
+O `FetchAddonLoader` consegue buscar manifesto e importar bundle por URL, mas o host visual ainda usa imports locais. O loader recebe callbacks de unload, mas não oferece o ciclo que os executa. Uma falha de setup vira estado `error`, mas registros criados antes da exceção ainda precisam ser removidos explicitamente.
+
+Registrar essas diferenças é parte do resultado da POC. Um experimento é valioso justamente quando mostra quais peças da ideia são simples e quais exigem desenho adicional.
+
+## 12. A direção daqui para frente
+
+O próximo capítulo não é adicionar mais exemplos. É completar o ciclo de vida:
+
+1. tornar a ativação transacional;
+2. executar a limpeza no unload;
+3. conectar instalação por URL ao host;
+4. persistir escolhas e prioridades;
+5. negociar versões e cache;
+6. investigar isolamento real.
+
+Quando essas etapas existirem, a POC poderá responder uma pergunta mais exigente: não apenas “o protocolo funciona?”, mas “ele continua compreensível e seguro quando add-ons deixam de ser confiáveis?”.
+
+O roteiro verificável está em `PHASES.md`, e os requisitos correspondentes estão em `PRD.md`.

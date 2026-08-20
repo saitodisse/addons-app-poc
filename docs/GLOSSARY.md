@@ -1,42 +1,44 @@
 # Glossário
 
-**Status: Planejado**
+Este glossário traduz os nomes técnicos usados no projeto. Leia a definição curta primeiro; a segunda frase aprofunda quando necessário.
 
----
-
-| Termo | Definição |
-|-------|-----------|
-| **Add-on** | Módulo JavaScript independente que implementa um ou mais serviços e se registra num host via manifesto |
-| **AddonInstance** | Representação de um add-on carregado no host, com status, manifesto, e lista de serviços |
-| **AddonLoader** | Classe responsável por baixar manifesto, importar bundle, e chamar setup do add-on |
-| **Bundle** | Arquivo JavaScript compilado (ESM) que contém o código do add-on |
-| **Catálogo** | Lista anunciada no manifesto (`catalogs[]`) que o host pode navegar via recurso `catalog` |
-| **CORS** | Cross-Origin Resource Sharing — mecanismo que permite o host (porta 5280) chamar os servidores dos add-ons (5291–5293) no navegador |
-| **Entrypoint** | URL do bundle JavaScript que o host carrega via `import()` (formato em-processo) |
-| **ESM** | ECMAScript Module — formato nativo de módulos do JavaScript moderno |
-| **Fallback** | Mecanismo onde, se um serviço falha, o sistema tenta automaticamente a próxima implementação disponível |
-| **Formato Stremio** | Segundo formato de add-on: um servidor HTTP que declara `resources` e responde em `/<resource>/<type>/<id>.json`. Referência: Torrentio no Stremio |
-| **Handlers** | Funções que um add-on de texto implementa (`catalog`, `search`, `text`, `content`) e que o `@addons/addon-server` expõe como endpoints HTTP |
-| **Host** | Aplicação que carrega e gerencia add-ons, provê o HostAPI, e consome os serviços registrados |
-| **HostAPI** | Interface que o host expõe para o add-on no momento do setup. Contém registry, onUnload, e log |
-| **Identidade** | No contexto deste projeto, a URL do manifesto é a identidade única do add-on |
-| **Loader** | Veja AddonLoader |
-| **Manifesto** | Arquivo JSON que declara a identidade, metadados, entrypoint, e serviços de um add-on |
-| **Metas** | Formato de resposta dos recursos `catalog` e `search` do Stremio: `{ metas: [{ id, type, name, ... }] }` |
-| **Prioridade** | Número que determina a ordem de resolução de serviços. Maior prioridade = mais preferido |
-| **Processamento externo** | Quando um add-on busca dados de APIs públicas na web (ex.: PoetryDB, DummyJSON) — análogo ao Torrentio buscando em indexadores de torrent |
-| **Registry** | Veja ServiceRegistry |
-| **Resource** | Recurso declarado no manifesto Stremio: `catalog`, `search`, `text`, `meta`, `subtitles`, `stream` |
-| **ServiceEntry** | Registro individual de um serviço no registry, contendo instância, addonId, e prioridade |
-| **ServiceRegistration** | Declaração de um serviço no manifesto: id, version, name, description |
-| **ServiceRegistry** | Mapa central que armazena implementações de serviços indexadas por serviceId |
-| **Serviço** | Unidade funcional que um add-on oferece. Identificado por um serviceId único |
-| **Setup** | Função que o host chama para ativar o add-on, passando o HostAPI. É onde o add-on registra seus serviços |
-| **Texts** | Formato de resposta do recurso `text` (espelha `subtitles` do Stremio): `{ texts: [{ id, url, lang, name }] }` — a `url` aponta para o conteúdo em texto puro |
-| **Meta-search / Agregador** | Serviço `searchProvider` do addon-aggregator: consulta vários add-ons de texto remotos em paralelo e mescla os resultados, tolerando falhas individuais |
-| **textFormatter** | Serviço do addon-markdown que converte título+conteúdo em Markdown e HTML |
-| **bookmarkStore** | Serviço de infraestrutura registrado pelo host (ex.: `LocalStorageBookmarkStore`) que o addon-favorites consome para persistir marcadores |
-| **Composição de serviços** | Quando um add-on consome serviços de outros add-ons ou do host via `host.services.get(...)` — ex.: aggregator buscando em add-ons remotos, favorites usando `bookmarkStore` |
-| **healthCheck** | Serviço do addon-health que verifica disponibilidade e latência dos add-ons de texto remotos (busca o manifesto e mede o tempo de resposta) |
-| **URL** | No contexto deste projeto, URL do manifesto = identidade do add-on |
-| **Validação** | Processo de verificar se um manifesto é estruturalmente e semanticamente válido |
+| Termo | Definição progressiva |
+|---|---|
+| **Adaptador** | Código que conecta uma regra abstrata a uma tecnologia concreta. `HttpTextAddonClient`, por exemplo, implementa uma porta usando `fetch`. |
+| **Add-on** | Extensão independente que oferece uma capacidade ao host. Pode ser um módulo executado no host ou um servidor consultado por HTTP. |
+| **AddonInstance** | Registro do resultado de um carregamento. Contém manifesto, URL de identidade, estado, erro opcional e serviços anunciados como carregados. |
+| **AddonLoader** | Componente que transforma a URL de um manifesto em uma `AddonInstance`. `FetchAddonLoader` busca, valida, importa e inicializa add-ons em processo. |
+| **API** | Contrato usado por dois componentes para conversar. Neste projeto, pode ser uma interface TypeScript ou um conjunto de rotas HTTP. |
+| **Bundle** | Arquivo JavaScript pronto para execução. O loader importa o bundle ESM indicado por `entrypoint`. |
+| **Catálogo** | Coleção navegável anunciada por um add-on HTTP. A rota de catálogo devolve itens no campo `metas`. |
+| **Composição de serviços** | Construção de um serviço a partir de outros serviços do registro. Favoritos, por exemplo, consome `bookmarkStore` sem importar o host. |
+| **CORS** | Regra do navegador para requisições entre origens diferentes. Os servidores locais liberam CORS para que o host na porta `5280` consulte as portas `5291` a `5294`. |
+| **Domínio** | Parte que contém as regras centrais do problema. O diretório `domain/` evita dependências de React, rede e armazenamento concreto. |
+| **Endpoint** | Combinação de método e rota de uma API HTTP. `GET /manifest.json` é um endpoint. |
+| **Entrypoint** | URL do bundle ESM de um add-on em processo. É usada pelo `FetchAddonLoader` com `import()`. |
+| **ESM** | Formato moderno de módulos JavaScript, abreviação de ECMAScript Modules. Usa `import` e `export`. |
+| **Fallback** | Tentativa automática de uma alternativa após uma falha. `withFallback` percorre serviços pela ordem de prioridade. |
+| **Formato HTTP** | Add-on executado como servidor independente. Declara `resources` e responde a rotas previsíveis. |
+| **Formato em processo** | Add-on executado no mesmo processo JavaScript do host. Declara `services`, aponta um `entrypoint` e exporta `setup`. |
+| **Handler** | Função que responde a uma operação do servidor. O `addon-server` recebe handlers de catálogo, busca, texto e conteúdo. |
+| **Host** | Aplicativo anfitrião que ativa add-ons e usa seus serviços. A demonstração atual é o pacote `@addons/host-app`. |
+| **HostAPI** | Pequena API entregue ao add-on durante o `setup`. Expõe registro, consulta de serviços, descarregamento futuro e logs. |
+| **Identidade** | Valor usado para dizer se duas referências apontam para o mesmo add-on. Neste protocolo, é a URL completa do manifesto. |
+| **Lazy loading** | Carregamento feito apenas quando necessário. O host baixa o texto completo somente depois que o usuário abre um resultado. |
+| **Manifesto** | Documento que apresenta um add-on antes de seu uso. Declara metadados e capacidades em formato compatível com JSON. |
+| **Metas** | Lista de metadados devolvida por catálogo e busca. Cada item contém pelo menos `id`, `type` e `name`. |
+| **Porta** | Interface que descreve uma necessidade do núcleo. Não confundir com porta TCP, como `5291`. |
+| **Prioridade** | Número que ordena implementações do mesmo serviço. Quanto maior o número, mais cedo ela será consultada. |
+| **Processamento externo** | Trabalho que um add-on delega a outra API. Os add-ons de poemas e Wikipédia transformam respostas públicas no contrato desta POC. |
+| **POC** | Prova de conceito. É um experimento para validar uma ideia, não uma promessa de prontidão para produção. |
+| **Recurso** | Capacidade declarada por um add-on HTTP, como `catalog`, `search` ou `text`. Cada recurso corresponde a uma família de rotas. |
+| **Registry** | Forma curta de `ServiceRegistry`. É o ponto de encontro entre quem oferece e quem usa serviços. |
+| **Sandbox** | Ambiente isolado que limita o que um código pode acessar. Ainda não existe para os add-ons em processo desta POC. |
+| **SemVer** | Convenção de versão no formato principal, secundária e correção, como `2.4.1`. O validador atual aceita apenas a forma numérica simples `X.Y.Z`. |
+| **ServiceEntry** | Entrada interna do registro. Guarda identificador do serviço, implementação, origem e prioridade. |
+| **ServiceRegistration** | Declaração de um serviço no manifesto. Contém `id`, `version`, `name` e `description`. |
+| **ServiceRegistry** | Estrutura que guarda implementações por identificador. Oferece registro, consulta, ordenação e limpeza, mas não executa fallback sozinho. |
+| **Serviço** | Capacidade oferecida por um add-on ou pelo host. `greeter`, `favorites` e `bookmarkStore` são exemplos. |
+| **Setup** | Função que ativa um add-on em processo. Recebe `HostAPI` e normalmente registra uma ou mais implementações. |
+| **Texts** | Lista de opções de conteúdo devolvida pelo recurso `text`. Cada item informa `id`, `url`, `lang` e `name`. |
+| **Validação** | Verificação estrutural feita antes do consumo. Ela reduz entradas inválidas, mas não prova segurança, disponibilidade ou veracidade. |

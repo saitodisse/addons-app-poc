@@ -1,86 +1,61 @@
-# Especificação do Manifesto de Add-on
+# Especificação do manifesto de add-on
 
-**Versão: 1.0.0** · **Status: Planejado**
+**Status: Entregue** · **Versão do documento: 1.0**
 
----
+O manifesto é a apresentação do add-on. Antes de executar código ou consultar recursos, o host lê esse pequeno objeto JSON para descobrir quem publicou a extensão, qual versão está disponível e quais capacidades ela oferece.
 
-## 1. Propósito
+Este documento começa com exemplos práticos e termina nas regras exatas aplicadas por `validateManifest`.
 
-O manifesto é o documento que um add-on publica para se anunciar. Ele contém tudo que o host precisa saber para carregar e integrar o add-on: identidade, metadados, entrypoint, e lista de serviços oferecidos.
+## Por que o manifesto existe
 
-O manifesto é um arquivo JSON. Ele pode estar hospedado em qualquer URL acessível por HTTP GET.
+Sem um manifesto, o host precisaria baixar código e investigá-lo para descobrir o que existe ali. Isso seria lento, inseguro e difícil de explicar ao usuário.
 
-> **Dois formatos são suportados:**
-> - **Em-processo** (`services` + `entrypoint`): o add-on é um bundle ESM importado com `import()`, que registra serviços no registry (Fases 1–2).
-> - **Stremio/HTTP** (`resources` + `types`): o add-on é um **servidor HTTP** (como o Torrentio no Stremio) que declara `resources` (catalog/search/text) e responde em endpoints `/<resource>/<type>/<id>.json` (Fase 3).
+Com o manifesto, a conversa começa de forma declarativa: o add-on descreve suas capacidades, e o host decide se consegue consumi-las. A URL desse documento é a identidade do add-on.
 
----
+## Os dois formatos
 
-## 2. Exemplo Completo
+O protocolo reconhece duas formas de oferecer capacidades:
+
+| Formato | Quando usar | Campos característicos |
+|---|---|---|
+| Em processo | O código deve executar dentro do host | `entrypoint` e `services` |
+| HTTP | O add-on funciona como servidor independente | `resources`, `types` e `catalogs` |
+
+O validador atual aceita um manifesto híbrido que declare `services` e `resources`. Porém, os consumidores tratam cada formato por fluxos diferentes. Prefira um formato por manifesto até existir um caso de uso e uma regra de interoperabilidade explícitos.
+
+## Exemplo em processo
 
 ```json
 {
   "id": "hello",
   "version": "1.0.0",
   "name": "Hello Add-on",
-  "description": "Um add-on simples que saúda o usuário",
-  "author": "Joaquim Silva",
-  "icon": "https://example.com/addons/hello/icon.svg",
+  "description": "Oferece um serviço de saudação",
+  "author": "Equipe AC",
+  "icon": "https://example.com/hello/icon.png",
   "license": "MIT",
-  "entrypoint": "https://example.com/addons/hello/bundle.js",
+  "entrypoint": "https://example.com/hello/bundle.js",
   "services": [
     {
       "id": "greeter",
       "version": "1.0.0",
-      "name": "Serviço de Saudação",
-      "description": "Retorna uma saudação personalizada para o usuário"
+      "name": "Greeter",
+      "description": "Cria uma saudação para um nome"
     }
   ]
 }
 ```
 
----
+O host valida o objeto, importa `entrypoint` como módulo ESM e espera que o bundle exporte `manifest` e `setup`.
 
-## 3. Campos
-
-### 3.1 Campos Obrigatórios
-
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `id` | string | Identificador amigável do add-on. Deve ser curto, em kebab-case. Ex: `"hello"`, `"counter"` |
-| `version` | string | Versão semântica do add-on. Ex: `"1.0.0"`, `"2.3.1"` |
-| `name` | string | Nome legível para exibição na interface do usuário. Ex: `"Hello Add-on"` |
-| `description` | string | Descrição curta do que o add-on faz. Ex: `"Um add-on simples que saúda o usuário"` |
-| `author` | string | Nome do autor ou organização. Ex: `"Joaquim Silva"` |
-| `license` | string | Identificador SPDX da licença. Ex: `"MIT"`, `"Apache-2.0"`, `"GPL-3.0"` |
-| `entrypoint` | string | URL absoluta do bundle JavaScript ESM do add-on. Deve ser acessível via HTTP GET |
-| `services` | ServiceRegistration[] | Lista de serviços que o add-on implementa. Deve ter pelo menos um item |
-
-### 3.2 Campos Opcionais
-
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `icon` | string | URL absoluta de um ícone para o add-on. Deve ser uma imagem SVG ou PNG |
-
-### 3.3 Campos do Formato Stremio (Add-on HTTP)
-
-Neste formato, o add-on **é** um servidor HTTP (inspirado no protocolo Stremio, referência Torrentio). A URL do servidor é a identidade; o manifesto é servido em `/manifest.json`.
-
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `resources` | AddonResource[] | Recursos que o add-on atende. Cada um tem `name` (catalog/search/text/meta/subtitles/stream), `types[]` e opcional `idPrefixes[]` |
-| `types` | string[] | Tipos de conteúdo atendidos (ex.: `["text"]`, `["quote"]`, `["poem"]`) |
-| `idPrefixes` | string[] | Prefixos de id aceitos (como `tt` do IMDb no Torrentio) |
-| `catalogs` | AddonCatalog[] | Catálogos anunciados: `{ type, id, name }` |
-
-**Exemplo (formato Stremio):**
+## Exemplo HTTP
 
 ```json
 {
   "id": "text-biblioteca",
   "version": "1.0.0",
   "name": "Biblioteca de Textos",
-  "description": "Catálogo e busca de textos",
+  "description": "Catálogo de textos curtos",
   "author": "Equipe AC",
   "license": "MIT",
   "resources": [
@@ -91,106 +66,301 @@ Neste formato, o add-on **é** um servidor HTTP (inspirado no protocolo Stremio,
   "types": ["text"],
   "idPrefixes": [],
   "catalogs": [
-    { "type": "text", "id": "classicos", "name": "Textos Clássicos" }
+    { "type": "text", "id": "destaques", "name": "Textos em Destaque" }
   ]
 }
 ```
 
-**Endpoints servidos pelo add-on (estilo Stremio):**
+O host obtém esse objeto em `GET /manifest.json`. Depois, usa os recursos declarados para montar as demais rotas.
 
-| Endpoint | Resposta |
-|----------|----------|
-| `GET /manifest.json` | O próprio manifesto |
-| `GET /catalog/<type>/<catalogId>.json` | `{ "metas": [TextMeta] }` |
-| `GET /search/<type>/<query>.json` | `{ "metas": [TextMeta] }` |
-| `GET /text/<type>/<id>.json` | `{ "texts": [TextItem] }` — formato subtitles: cada item tem `url` apontando para o conteúdo |
-| `GET /text/<type>/<id>/content.txt` | Conteúdo em texto puro (como um arquivo SRT) |
+## Campos comuns
 
-### 3.4 Campos Reservados para Versões Futuras
+### Obrigatórios
 
-| Campo | Tipo | Previsto para |
-|-------|------|---------------|
-| `hostVersion` | string | Fase 3 — versão do host com a qual o add-on é compatível. Ex: `">=1.0.0"` |
-| `dependencies` | Record<string, string> | Fase 3 — dependências externas com versões. Ex: `{ "@achorde/musical-domain": ">=0.6.0" }` |
+| Campo | Tipo | Significado | Regra atual |
+|---|---|---|---|
+| `id` | `string` | Nome técnico legível | Deve usar kebab-case e começar com letra minúscula |
+| `version` | `string` | Versão do add-on | Deve seguir `X.Y.Z`, com números inteiros |
+| `name` | `string` | Nome para exibição | Não pode ser vazio |
+| `description` | `string` | Resumo da capacidade | Não pode ser vazio |
+| `author` | `string` | Responsável declarado | Não pode ser vazio |
+| `license` | `string` | Licença declarada | Não pode ser vazio |
 
----
+O padrão aceito para `id` é:
 
-## 4. ServiceRegistration
+```regex
+^[a-z][a-z0-9-]*$
+```
 
-Cada item da lista `services` descreve um serviço que o add-on implementa.
+Exemplos válidos incluem `hello`, `text-biblioteca` e `addon-2`. `Meu Addon`, `2-addon` e `addon_especial` são inválidos.
 
-### 4.1 Campos Obrigatórios
+A validação de versão é deliberadamente pequena:
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `id` | string | Identificador do serviço. Deve ser único dentro do add-on. Ex: `"greeter"`, `"counter"` |
-| `version` | string | Versão semântica da interface do serviço |
-| `name` | string | Nome legível do serviço |
-| `description` | string | Descrição do que o serviço faz |
+```regex
+^\d+\.\d+\.\d+$
+```
 
----
+Ela aceita `1.0.0` e `12.4.9`, mas não implementa toda a especificação SemVer. Sufixos como `1.0.0-beta.1` ainda são rejeitados.
 
-## 5. Regras de Validação
+### Opcional
 
-### 5.1 Regras de Estrutura
+| Campo | Tipo | Significado |
+|---|---|---|
+| `icon` | `string` | URL de uma imagem para interface |
 
-1. O manifesto deve ser um objeto JSON válido
-2. `id`, `version`, `name`, `description`, `author`, `license` são sempre obrigatórios
-3. O manifesto deve declarar **ou** `services` (em-processo) **ou** `resources` (Stremio/HTTP)
-4. No formato em-processo, `entrypoint` deve ser uma URL absoluta (`http://`/`https://`) e `services` deve ter ao menos um item
-5. No formato Stremio, cada `resource` deve ter `name` em {catalog, search, text, meta, subtitles, stream} e `types` não vazio
-6. `catalogs[]` deve referenciar tipos declarados em `types` ou nos `resources`
-7. `id` deve ser uma string não vazia, em kebab-case (letras minúsculas, hífens)
-8. `version` deve seguir o formato semântico `X.Y.Z` onde X, Y, Z são inteiros não negativos
-9. `license` deve ser um identificador SPDX válido
+O validador atual não verifica se `icon` é uma URL válida. Consumidores não devem assumir que o valor é seguro apenas porque o manifesto passou na validação.
 
-### 5.2 Regras de Negócio
+## Formato em processo
 
-1. O `id` do manifesto é o nome amigável. A identidade real do add-on é a URL onde o manifesto está hospedado
-2. Dois manifests com a mesma URL são considerados o mesmo add-on, mesmo que o conteúdo interno tenha mudado
-3. A versão do manifesto deve ser incrementada quando o entrypoint muda
-4. Serviços com o mesmo `id` em add-ons diferentes competem por prioridade
+### `entrypoint`
 
----
+`entrypoint` aponta para o bundle ESM:
 
-## 6. Content-Type
+```json
+"entrypoint": "https://example.com/addons/hello/bundle.js"
+```
 
-O manifesto deve ser servido com `Content-Type: application/json` ou `Content-Type: application/manifest+json`.
+Quando o manifesto declara `services` e não declara `resources`, o campo é obrigatório e deve começar com `http://` ou `https://`.
 
----
+O `FetchAddonLoader` também exige `entrypoint` antes de importar qualquer manifesto pelo fluxo em processo, inclusive um manifesto híbrido.
 
-## 7. Exemplo Mínimo
+### `services`
+
+`services` é uma lista não vazia de capacidades declaradas:
+
+```typescript
+interface ServiceRegistration {
+  id: string;
+  version: string;
+  name: string;
+  description: string;
+}
+```
+
+| Campo | Função |
+|---|---|
+| `id` | Chave usada no `ServiceRegistry` |
+| `version` | Versão do contrato do serviço |
+| `name` | Nome legível |
+| `description` | Explicação breve do comportamento |
+
+Hoje, o validador verifica apenas se os quatro valores existem. Ele ainda não aplica kebab-case ao ID do serviço nem SemVer à versão do serviço.
+
+## Formato HTTP
+
+### `resources`
+
+Cada item declara uma família de rota que o servidor atende:
+
+```typescript
+type AddonResourceName =
+  | 'catalog'
+  | 'search'
+  | 'text'
+  | 'meta'
+  | 'subtitles'
+  | 'stream';
+
+interface AddonResource {
+  name: AddonResourceName;
+  types: string[];
+  idPrefixes?: string[];
+}
+```
+
+`types` deve ser uma lista não vazia. `idPrefixes` pode limitar identificadores aceitos, como o prefixo `tt` usado por IDs do IMDb. Os add-ons desta POC usam listas vazias, portanto não restringem IDs por prefixo.
+
+O servidor genérico desta POC implementa handlers para `catalog`, `search`, `text` e `content`. Embora a validação reconheça também `meta`, `subtitles` e `stream`, declarar esses recursos não cria automaticamente rotas correspondentes no `@addons/addon-server` atual.
+
+### `types`
+
+`types` reúne os tipos de conteúdo anunciados pelo add-on:
+
+```json
+"types": ["text"]
+```
+
+Os exemplos atuais usam `text`, `quote`, `poem` e `page`. O validador usa esse campo ao conferir catálogos, mas ainda não exige sua presença quando os tipos já aparecem dentro de `resources`.
+
+### `idPrefixes`
+
+É uma lista opcional de prefixos globais aceitos pelo add-on:
+
+```json
+"idPrefixes": ["book-"]
+```
+
+O tipo está definido no contrato, mas o cliente e o servidor atuais não aplicam filtragem automática com base nesse campo.
+
+### `catalogs`
+
+Um catálogo é uma coleção navegável:
+
+```typescript
+interface AddonCatalog {
+  type: string;
+  id: string;
+  name: string;
+}
+```
+
+O `type` precisa aparecer em `types` ou em algum `resources[].types`. `id` e `name` precisam existir.
+
+## Rotas e respostas
+
+### Manifesto
+
+```http
+GET /manifest.json
+Content-Type: application/json
+```
+
+Resposta: o próprio manifesto.
+
+### Catálogo
+
+```http
+GET /catalog/<type>/<catalogId>.json
+```
+
+```json
+{
+  "metas": [
+    {
+      "id": "texto-1",
+      "type": "text",
+      "name": "Um texto",
+      "description": "Resumo opcional",
+      "author": "Autor opcional"
+    }
+  ]
+}
+```
+
+### Busca
+
+```http
+GET /search/<type>/<query>.json
+```
+
+A resposta também usa `{ "metas": [...] }`.
+
+### Opções de texto
+
+```http
+GET /text/<type>/<id>.json
+```
+
+```json
+{
+  "texts": [
+    {
+      "id": "texto-1-principal",
+      "url": "http://localhost:5291/text/text/texto-1/content.txt",
+      "lang": "pt-BR",
+      "name": "Versão principal"
+    }
+  ]
+}
+```
+
+Uma URL relativa iniciada por `/` é convertida pelo servidor em URL absoluta.
+
+### Conteúdo
+
+```http
+GET /text/<type>/<id>/content.txt
+Content-Type: text/plain; charset=utf-8
+```
+
+Essa rota entrega o conteúdo sem embrulhá-lo em JSON.
+
+## Regras de validação
+
+`validateManifest(data)` devolve:
+
+```typescript
+interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+```
+
+### Ordem aplicada hoje
+
+1. O valor precisa ser um objeto.
+2. Os seis campos comuns obrigatórios precisam existir e não podem ser vazios.
+3. Se algum deles faltar, a função retorna imediatamente esses erros.
+4. `id` e `version` são verificados pelos padrões descritos acima.
+5. Pelo menos uma lista não vazia de `services` ou `resources` precisa existir.
+6. O formato em processo exige `entrypoint` quando há `services` sem `resources`.
+7. Serviços, recursos e catálogos são verificados quando presentes.
+
+### O que a validação ainda não garante
+
+Passar em `validateManifest` não prova que:
+
+- as URLs estão acessíveis ou são confiáveis;
+- o bundle exporta `manifest` e `setup` válidos;
+- o manifesto do bundle corresponde ao JSON baixado;
+- a implementação cumpre a interface declarada pelo serviço;
+- o servidor realmente implementa todos os recursos declarados;
+- respostas HTTP seguem os modelos esperados;
+- versão, licença ou autor são verdadeiros;
+- o conteúdo é seguro para renderização.
+
+Essas verificações pertencem ao carregamento, ao cliente, a políticas de confiança ou a evoluções futuras do protocolo.
+
+## Exemplos mínimos
+
+### Em processo
 
 ```json
 {
   "id": "minimo",
   "version": "1.0.0",
   "name": "Add-on Mínimo",
-  "description": "O mínimo que um add-on precisa ter",
+  "description": "Demonstra o menor manifesto em processo",
   "author": "Autor",
   "license": "MIT",
-  "entrypoint": "https://example.com/addons/minimo/bundle.js",
+  "entrypoint": "https://example.com/minimo.js",
   "services": [
     {
-      "id": "exemplo",
+      "id": "example",
       "version": "1.0.0",
-      "name": "Serviço de Exemplo",
-      "description": "Um serviço mínimo"
+      "name": "Exemplo",
+      "description": "Serviço mínimo"
     }
   ]
 }
 ```
 
----
+### HTTP
 
-## 8. Validação no Código
+```json
+{
+  "id": "text-minimo",
+  "version": "1.0.0",
+  "name": "Texto Mínimo",
+  "description": "Demonstra o menor manifesto HTTP",
+  "author": "Autor",
+  "license": "MIT",
+  "resources": [
+    { "name": "text", "types": ["text"] }
+  ]
+}
+```
 
-A função `validateManifest(manifest: unknown): ValidationResult` em `@addons/core` implementa todas as regras acima. Retorna um objeto com `{ valid: boolean, errors: string[] }`.
+## Como evoluir o contrato
 
----
+Uma mudança compatível pode adicionar um campo opcional que consumidores antigos ignorem. Uma mudança incompatível altera o significado de um campo, torna algo antes opcional obrigatório ou remove um valor aceito.
 
-## 9. Considerações de Versionamento
+Ao evoluir esta especificação:
 
-- O add-on declara a versão do manifesto. O host pode usar isso para saber se o formato é compatível.
-- Cada serviço declara sua própria versão. Isso permite que interfaces evoluam independentemente.
-- Na Fase 3, o host negociará versões: se o add-on requer uma versão do host que o host não tem, o add-on não carrega.
+1. atualize os tipos em `packages/core/src/domain/manifest.ts`;
+2. atualize `validateManifest` e seus testes;
+3. avalie a validação mínima de `@addons/addon-server`;
+4. atualize clientes, exemplos e este documento;
+5. registre a consequência em `DECISIONS.md` e `CHANGELOG.md`.
+
+Negociação entre a versão exigida pelo add-on e a versão do host ainda está planejada.
