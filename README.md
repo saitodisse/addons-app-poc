@@ -21,6 +21,8 @@ O projeto demonstra dois formatos de add-on que convivem no mesmo protocolo:
 
 O host também demonstra **prioridade** e **fallback**. Quando dois add-ons oferecem o mesmo serviço, a implementação de maior prioridade é tentada primeiro. Se ela falhar, `withFallback` ou `withFallbackAsync` tenta a próxima.
 
+Em **Configurações**, uma pessoa pode informar a URL de um manifesto, revisar o contrato de interação e só então instalar o add-on. A escolha, as extensões desativadas e a aceitação do contrato sobrevivem ao recarregamento da página. Cada extensão ativa ganha uma rota própria na barra lateral.
+
 ## Visão rápida da arquitetura
 
 ```text
@@ -81,6 +83,7 @@ pnpm kill-all
 
 Comece pela interface do host:
 
+- **Configurações:** instala uma URL, mostra o contrato antes da ativação, permite desativar ou remover e preserva a escolha após F5.
 - **Saudação:** usa o serviço `greeter`.
 - **Contador:** usa o serviço `counter`.
 - **Fallback:** mostra a troca automática entre duas implementações de `greeter`.
@@ -102,6 +105,9 @@ Comece pela interface do host:
 | `@addons/addon-aggregator` | Serviço `searchProvider` para busca em vários servidores |
 | `@addons/addon-favorites` | Serviço `favorites`, persistido pelo `bookmarkStore` do host |
 | `@addons/addon-health` | Serviço `healthCheck` para os servidores remotos |
+| `@addons/addon-storage-local` | Serviço `addonStateStore` persistido no `localStorage` |
+| `@addons/addon-storage-session` | Serviço `addonStateStore` limitado à aba atual |
+| `@addons/addon-debug` | Serviço `debugLog` e aba para eventos estruturados |
 | `@addons/addon-text-*` | Biblioteca, citações, poemas e Wikipédia por HTTP |
 
 ## Onde continuar a leitura
@@ -118,7 +124,7 @@ Toda a documentação usa a mesma progressão: começa com a explicação mais s
 
 ## Limites atuais
 
-Esta POC prova o protocolo, mas ainda não é uma plataforma pronta para produção. O host de demonstração importa os add-ons em processo durante a build, embora o `core` já contenha um loader por URL. Instalação arbitrária por URL, negociação de versões, cache, descarregamento completo e sandbox ainda não estão concluídos.
+Esta POC prova o protocolo, mas ainda não é uma plataforma pronta para produção. As sugestões locais entram na build do host, porém a tela de Configurações também instala manifestos compatíveis por URL e usa o loader para módulos ESM em processo. Ainda faltam negociação de versões, cache e atualização de manifestos, descarregamento completo, ativação transacional e sandbox.
 
 Esses limites são intencionais e estão detalhados na documentação. Separar claramente o que já funciona do que ainda é direção futura mantém a POC honesta e útil.
 

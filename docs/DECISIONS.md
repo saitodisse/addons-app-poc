@@ -131,7 +131,7 @@ Bundles em processo devem ser módulos ESM carregáveis com `import()`.
 
 ### Consequências técnicas
 
-O `entrypoint` precisa ser uma URL HTTP ou HTTPS no manifesto validado pelo loader. O host de demonstração ainda importa os exemplos locais durante a build; o carregamento remoto está implementado no `FetchAddonLoader`, mas não conectado à interface de instalação.
+O `entrypoint` precisa ser uma URL HTTP ou HTTPS no manifesto validado pelo loader. As sugestões locais ainda entram na build para facilitar a demonstração, mas a interface de instalação também aceita uma URL arbitrária: depois da revisão do contrato, ela usa `FetchAddonLoader` para buscar o manifesto e importar o bundle ESM.
 
 ## 9. O manifesto deve ser completo antes da execução
 

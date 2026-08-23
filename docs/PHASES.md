@@ -15,7 +15,7 @@ Os estados usados aqui são **Planejado**, **Em Andamento**, **Entregue**, **Par
 | 5. Gestão e compatibilidade | O usuário consegue instalar e controlar add-ons remotos? | Parcial |
 | 6. Isolamento | Código não confiável pode ser limitado com segurança? | Planejado |
 
-“Parcial” na fase 3 significa que o formato HTTP está entregue, enquanto descoberta arbitrária, cache e negociação de versão ainda não estão.
+“Parcial” na fase 3 significa que o formato HTTP está entregue, enquanto cache, atualização, negociação de versão e uma experiência genérica para cada recurso HTTP recém-instalado ainda não estão.
 
 ## Fase 1 — O alicerce
 
@@ -43,7 +43,7 @@ Execute `pnpm test`, inicie `pnpm dev` e use as áreas **Saudação**, **Contado
 
 ### Limite que permaneceu
 
-O host de demonstração importa os add-ons locais durante a build. O loader remoto existe no `core`, mas ainda não é o caminho usado pela interface.
+O host importa as sugestões locais durante a build. A interface também instala manifestos por URL e usa o loader remoto para módulos ESM em processo, mas ainda não oferece cache, atualização nem descarregamento completo.
 
 ## Fase 2 — Prioridade e fallback
 
@@ -91,13 +91,12 @@ Nem toda extensão precisa executar dentro do host. Conteúdo remoto e processam
 - área **Textos** no host;
 - testes do servidor, cliente e handlers.
 
-### Parte pendente: descoberta e compatibilidade
+### Parte pendente: compatibilidade e experiência genérica
 
-- instalar um add-on pela URL digitada pelo usuário;
-- manter um catálogo persistente de URLs conhecidas;
 - armazenar manifestos em cache com política de atualização;
 - declarar e negociar a versão mínima do host;
 - validar respostas HTTP além do manifesto.
+- transformar os recursos de um servidor HTTP recém-instalado em uma aba especializada, sem código prévio no host.
 
 ### Como verificar a parte entregue
 
@@ -132,7 +131,7 @@ Abra **Extras** e exercite formatação, busca agregada, favoritos e verificaç�
 
 ### Problema a resolver
 
-Hoje, o conjunto de add-ons é conhecido pelo código da demonstração. Para se aproximar de um ecossistema real, a escolha precisa pertencer ao usuário e sobreviver ao recarregamento.
+Um ecossistema por URL precisa deixar a escolha com a pessoa usuária sem transformar uma instalação em autorização invisível. O host deve lembrar a escolha, mostrar o que o add-on declara e pedir nova revisão se essa declaração mudar.
 
 ### Parte entregue
 
@@ -181,9 +180,8 @@ Uma extensão de teste deve falhar, travar ou tentar um acesso não autorizado s
 
 1. Corrigir a limpeza de registros após falha de `setup`.
 2. Implementar e testar o ciclo de unload.
-3. Conectar o `FetchAddonLoader` à instalação por URL.
-4. Persistir a lista e as prioridades escolhidas.
-5. Adicionar negociação de versão e cache.
-6. Só então escolher o modelo de sandbox.
+3. Adicionar edição de prioridades e uma experiência genérica para recursos HTTP instalados.
+4. Adicionar negociação de versão, cache e atualização de manifestos.
+5. Só então escolher o modelo de sandbox.
 
 Essa ordem fecha primeiro inconsistências do ciclo de vida, depois adiciona conveniência e, por último, enfrenta o isolamento — o tema mais caro e sensível.

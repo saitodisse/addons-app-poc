@@ -128,9 +128,9 @@ O ponto central é que nenhuma dessas extensões importa outra extensão. Elas c
 
 ## 11. O que aprendemos com a implementação
 
-O código revelou diferenças entre uma arquitetura desenhada e uma arquitetura realmente demonstrada.
+O código revelou diferenças entre uma arquitetura desenhada e uma arquitetura realmente demonstrada. A tela de Configurações passou a buscar manifestos por URL, exibir o contrato de interação antes da instalação e restaurar as escolhas após F5. Para módulos em processo, ela chama o `FetchAddonLoader`; para manifestos HTTP, preserva a declaração e sua aba genérica.
 
-O `FetchAddonLoader` consegue buscar manifesto e importar bundle por URL, mas o host visual ainda usa imports locais. O loader recebe callbacks de unload, mas não oferece o ciclo que os executa. Uma falha de setup vira estado `error`, mas registros criados antes da exceção ainda precisam ser removidos explicitamente.
+Essa evolução também deixou claro o que a revisão de contrato faz e o que ela não faz. A impressão digital aceita detecta uma alteração na mesma URL e bloqueia a reativação até nova leitura, mas não prova autoria nem impede código em processo de usar APIs do navegador. O loader recebe callbacks de unload, mas não oferece o ciclo que os executa. Uma falha de setup vira estado `error`, mas registros criados antes da exceção ainda precisam ser removidos explicitamente.
 
 Registrar essas diferenças é parte do resultado da POC. Um experimento é valioso justamente quando mostra quais peças da ideia são simples e quais exigem desenho adicional.
 
@@ -140,10 +140,9 @@ O próximo capítulo não é adicionar mais exemplos. É completar o ciclo de vi
 
 1. tornar a ativação transacional;
 2. executar a limpeza no unload;
-3. conectar instalação por URL ao host;
-4. persistir escolhas e prioridades;
-5. negociar versões e cache;
-6. investigar isolamento real.
+3. permitir editar prioridades e apresentar recursos HTTP instalados de modo genérico;
+4. negociar versões, armazenar manifestos em cache e definir atualização;
+5. investigar isolamento real.
 
 Quando essas etapas existirem, a POC poderá responder uma pergunta mais exigente: não apenas “o protocolo funciona?”, mas “ele continua compreensível e seguro quando add-ons deixam de ser confiáveis?”.
 

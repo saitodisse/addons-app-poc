@@ -4,6 +4,14 @@ Este arquivo conta, em ordem inversa, como o projeto evoluiu. A leitura rápida 
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.4.1] - 2026-08-23
+
+### Documentação
+
+- A documentação passou a descrever o caminho já entregue de instalação por URL, revisão de contrato e persistência das escolhas após recarregar a página.
+- Os limites restantes foram corrigidos para destacar a ausência de cache, atualização, descarregamento transacional, negociação de versões e isolamento de código.
+- Os requisitos e as fases agora registram as rotas próprias, a nova revisão de contratos modificados e a mediação de interações declaradas pelo host.
+
 ## [0.4.0] - 2026-08-23
 
 ### Adicionado

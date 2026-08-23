@@ -233,15 +233,15 @@ O `HostAPI` é a pequena caixa de ferramentas entregue ao add-on durante o `setu
 
 ```typescript
 interface HostAPI {
-  services: ServiceRegistry;
+  services: AddonServiceAccess;
   registerService<T>(serviceId: string, instance: T, priority?: number): void;
   onUnload(callback: () => void): void;
   log(level: 'info' | 'warn' | 'error', message: string, details?: unknown): void;
 }
 ```
 
-- `services` permite consultar capacidades já registradas.
-- `registerService` registra uma capacidade atribuindo a origem ao add-on atual.
+- `services` permite consultar somente capacidades declaradas no contrato de interação do add-on.
+- `registerService` registra uma capacidade declarada como fornecida e atribui a origem ao add-on atual.
 - `onUnload` recebe rotinas de limpeza para um futuro ciclo completo de descarregamento.
 - `log` registra mensagens com o contexto do add-on e, quando `debugLog` está ativo, publica também o detalhe estruturado para a aba Debug.
 
@@ -293,9 +293,9 @@ A URL do manifesto é usada como `addonId` nos registros. Isso impede que um nom
 
 ### Comportamento atual do host de demonstração
 
-O `core` oferece o fluxo remoto acima, mas o `host-app` atual não o usa para os exemplos em processo. Ele importa os pacotes locais durante a build e chama cada `setup` diretamente. As URLs exibidas funcionam como identidades locais, não como origem real de um download dinâmico.
+As sugestões locais são importadas durante a build e carregadas diretamente para facilitar a demonstração. A tela **Configurações**, porém, também aceita uma URL HTTP ou HTTPS fornecida pela pessoa. Ela busca e valida o manifesto, mostra o contrato de interação para revisão e, para um manifesto em processo, chama `FetchAddonLoader` para importar o `entrypoint`.
 
-Isso é suficiente para demonstrar registro, prioridade e composição. Não prova ainda a instalação arbitrária de módulos remotos pela interface.
+Um manifesto HTTP sem `entrypoint` pode ser instalado e inspecionado como contrato. A área **Textos** continua sendo a demonstração integrada dos quatro servidores conhecidos; transformar qualquer recurso HTTP recém-instalado em uma experiência especializada ainda exigirá um cliente e uma aba genéricos.
 
 ## Fluxo de um add-on HTTP
 
@@ -422,7 +422,7 @@ Uma POC não deve prometer isolamento que ainda não possui. Hoje:
 - não há limite de tempo, tamanho ou taxa para respostas HTTP;
 - `FetchAddonLoader` marca erro de `setup`, mas ainda não remove registros parciais criados antes da exceção;
 - callbacks passados a `onUnload` são coletados pelo loader, mas o ciclo público de descarregamento ainda não os executa;
-- o host de demonstração ainda não instala módulos em processo por uma URL fornecida pelo usuário.
+- a instalação por URL não verifica assinatura, autoria, integridade nem compatibilidade de versões; a revisão do contrato é transparência, não isolamento.
 
 Esses pontos são trabalho futuro, não detalhes escondidos. O roteiro está em [`PHASES.md`](PHASES.md).
 

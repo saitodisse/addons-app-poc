@@ -1,6 +1,6 @@
 # Requisitos do produto
 
-**Status: Parcial** · **Versão da POC: 0.2.0**
+**Status: Parcial** · **Versão da POC: 0.4.1**
 
 Este documento define o que a prova de conceito precisa demonstrar. Ele não descreve um produto comercial pronto; descreve as perguntas técnicas que o experimento deve responder e as evidências esperadas para cada resposta.
 
@@ -16,13 +16,14 @@ A POC existe para testar essa hipótese com código executável, não apenas com
 
 ## O que está sendo validado
 
-O experimento precisa provar cinco ideias:
+O experimento precisa provar seis ideias:
 
 1. **Declaração:** um manifesto descreve a identidade, os metadados e as capacidades do add-on.
 2. **Desacoplamento:** o host consulta serviços por contrato, sem depender da implementação em cada ponto de uso.
 3. **Substituição:** mais de um add-on pode oferecer o mesmo serviço com prioridade previsível.
 4. **Degradação:** uma falha pode levar o sistema a uma alternativa sem derrubar o restante.
 5. **Independência operacional:** um add-on pode funcionar como servidor HTTP fora do processo do host.
+6. **Revisão consciente:** antes de ativar uma URL, a pessoa consegue ler as interações declaradas; uma mudança posterior exige nova aceitação.
 
 ## Para quem a demonstração serve
 
@@ -44,6 +45,7 @@ Ao iniciar o projeto, o leitor deve conseguir abrir o host e percorrer uma hist�
 5. pesquisar conteúdo vindo de fontes externas;
 6. abrir o conteúdo apenas quando necessário;
 7. testar serviços compostos, como favoritos, formatação e saúde.
+8. instalar uma extensão por URL, revisar seu contrato e reencontrá-la após recarregar a página.
 
 ## Requisitos funcionais
 
@@ -68,7 +70,7 @@ Os estados significam: **Entregue** quando o comportamento está implementado no
 |---|---|---|---|
 | F2.1 | Exportar `manifest` e `setup` | Entregue | Add-ons locais de exemplo |
 | F2.2 | Carregar manifesto e bundle por URL | Entregue | `FetchAddonLoader` e testes com mocks |
-| F2.3 | Instalar uma URL arbitrária pela interface | Planejado | O host usa uma lista local pré-configurada |
+| F2.3 | Instalar uma URL arbitrária pela interface | Entregue | Configurações valida o manifesto, pede revisão e usa `FetchAddonLoader` quando há `entrypoint` |
 | F2.4 | Não deixar falha de setup derrubar o host | Entregue | Loader devolve instância em `error` |
 | F2.5 | Remover registros parciais após falha de setup | Parcial | `clearAddon` existe, mas o loader não o chama nesse erro |
 | F2.6 | Executar callbacks de descarregamento | Planejado | Callbacks são coletados, mas não há ciclo público de unload |
@@ -105,11 +107,14 @@ Os estados significam: **Entregue** quando o comportamento está implementado no
 |---|---|---|---|
 | F5.1 | Mostrar add-ons ativos e seus estados | Entregue | Área de gestão do host |
 | F5.2 | Ativar e remover exemplos locais | Entregue | `AddonManager` |
-| F5.3 | Persistir add-ons escolhidos | Planejado | Estado atual vive na sessão React |
+| F5.3 | Persistir add-ons escolhidos | Entregue | `addons:host-installations:v1` preserva URLs, extensões desativadas e contratos aceitos |
 | F5.4 | Permitir reordenar prioridades | Planejado | Prioridades são definidas pelo código |
 | F5.5 | Negociar versão do host | Planejado | Não existe `hostVersion` aplicado |
 | F5.6 | Isolar código em Worker ou iframe | Planejado | Add-ons em processo compartilham o contexto do host |
 | F5.7 | Aplicar política de confiança e permissões | Planejado | Não há assinatura, autorização ou consentimento por capacidade |
+| F5.8 | Dar rota própria a cada extensão ativa | Entregue | Hash codifica a URL do manifesto em `#/addons/<url>` |
+| F5.9 | Pedir nova revisão quando o contrato mudar | Entregue | Impressão digital do contrato bloqueia a reativação até nova aceitação |
+| F5.10 | Mediar interações internas declaradas | Entregue | Host restringe serviços, campos de ações e chaves de estado ao contrato |
 
 ## Requisitos não funcionais
 
@@ -139,7 +144,7 @@ Falhas, segurança e isolamento devem ser descritos de acordo com o comportament
 
 Uma pessoa escolhe ou define uma interface de serviço, cria um manifesto com `entrypoint` e `services`, exporta um `setup` e registra sua implementação pelo `HostAPI`. Depois, gera um bundle ESM e o hospeda junto do manifesto.
 
-Na demonstração atual, os exemplos são pacotes do workspace e entram na build do host. O carregamento remoto pode ser exercitado diretamente pelo `FetchAddonLoader`, mas ainda não pela interface.
+As sugestões da demonstração são pacotes do workspace que entram na build do host. Além delas, a tela **Configurações** aceita uma URL HTTP ou HTTPS, valida o manifesto, mostra o contrato e chama `FetchAddonLoader` para importar o bundle ESM após a aceitação.
 
 ### Criar um add-on HTTP
 
@@ -165,6 +170,9 @@ A hipótese principal é considerada demonstrada quando todas estas evidências 
 - catálogo, busca, opções de texto e conteúdo funcionam de ponta a ponta;
 - pelo menos uma origem externa é transformada no contrato comum;
 - a busca agregada continua útil quando uma origem falha;
+- uma URL compatível pode ser revisada, instalada e restaurada depois de recarregar;
+- uma mudança de contrato na mesma URL mantém a extensão desativada até nova aceitação;
+- serviços, campos de ação e estado não declarados são recusados antes de uso pelo host;
 - os testes dos pacotes passam sem depender dos servidores externos reais.
 
 ## Fora do escopo atual
@@ -177,4 +185,5 @@ A hipótese principal é considerada demonstrada quando todas estas evidências 
 - sandbox pronto para produção;
 - garantia de disponibilidade das APIs públicas de exemplo;
 - ranking, cache e busca sofisticada;
+- verificação criptográfica de origem, permissões de rede e sandbox de código em processo;
 - interface visual final de produto.
