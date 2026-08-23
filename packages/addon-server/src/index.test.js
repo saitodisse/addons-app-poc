@@ -8,6 +8,7 @@ const manifest = {
   description: 'Servidor de teste',
   author: 'Equipe AC',
   license: 'MIT',
+  tab: { title: 'Teste', body: 'Uma aba de teste.' },
   resources: [
     { name: 'catalog', types: ['text'] },
     { name: 'search', types: ['text'] },
@@ -15,6 +16,14 @@ const manifest = {
   ],
   types: ['text'],
   catalogs: [{ type: 'text', id: 'classicos', name: 'Clássicos' }],
+  interactions: {
+    version: '1.0.0',
+    services: [],
+    tab: { fields: [], actions: [] },
+    state: [],
+    http: [],
+    logs: [],
+  },
 };
 
 const handlers = {

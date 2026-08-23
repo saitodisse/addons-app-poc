@@ -1,3 +1,8 @@
+import type { AddonTabMetadata } from './tab';
+import type { AddonInteractionContract } from './interactions';
+
+export type { AddonTabMetadata } from './tab';
+
 export interface ServiceRegistration {
   id: string;
   version: string;
@@ -36,6 +41,10 @@ export interface AddonManifest {
   author: string;
   icon?: string;
   license: string;
+  /** Aba que o host pode exibir enquanto o add-on estiver ativo. */
+  tab: AddonTabMetadata;
+  /** Contrato obrigatório e verificável de todas as interações declaradas. */
+  interactions: AddonInteractionContract;
   /** Formato em processo: bundle ESM + setup. */
   entrypoint?: string;
   services?: ServiceRegistration[];

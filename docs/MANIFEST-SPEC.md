@@ -1,6 +1,6 @@
 # Especificação do manifesto de add-on
 
-**Status: Entregue** · **Versão do documento: 1.0**
+**Status: Entregue** · **Versão do documento: 1.2**
 
 O manifesto é a apresentação do add-on. Antes de executar código ou consultar recursos, o host lê esse pequeno objeto JSON para descobrir quem publicou a extensão, qual versão está disponível e quais capacidades ela oferece.
 
@@ -34,6 +34,7 @@ O validador atual aceita um manifesto híbrido que declare `services` e `resourc
   "author": "Equipe AC",
   "icon": "https://example.com/hello/icon.png",
   "license": "MIT",
+  "tab": { "title": "Hello", "body": "Cria uma saudação." },
   "entrypoint": "https://example.com/hello/bundle.js",
   "services": [
     {
@@ -58,6 +59,7 @@ O host valida o objeto, importa `entrypoint` como módulo ESM e espera que o bun
   "description": "Catálogo de textos curtos",
   "author": "Equipe AC",
   "license": "MIT",
+  "tab": { "title": "Biblioteca", "body": "Oferece textos curtos." },
   "resources": [
     { "name": "catalog", "types": ["text"], "idPrefixes": [] },
     { "name": "search", "types": ["text"], "idPrefixes": [] },
@@ -85,6 +87,8 @@ O host obtém esse objeto em `GET /manifest.json`. Depois, usa os recursos decla
 | `description` | `string` | Resumo da capacidade | Não pode ser vazio |
 | `author` | `string` | Responsável declarado | Não pode ser vazio |
 | `license` | `string` | Licença declarada | Não pode ser vazio |
+| `tab` | `object` | Aba disponível enquanto o add-on estiver ativo | Deve conter `title` e `body` não vazios |
+| `interactions` | `object` | Contrato completo de interação | Deve usar a versão `1.0.0` e declarar todas as listas abaixo |
 
 O padrão aceito para `id` é:
 
@@ -109,6 +113,95 @@ Ela aceita `1.0.0` e `12.4.9`, mas não implementa toda a especificação SemVer
 | `icon` | `string` | URL de uma imagem para interface |
 
 O validador atual não verifica se `icon` é uma URL válida. Consumidores não devem assumir que o valor é seguro apenas porque o manifesto passou na validação.
+
+### `tab`
+
+Todo add-on anuncia a aba que o host deve exibir quando a instância estiver ativa:
+
+```json
+"tab": {
+  "title": "👋 Hello",
+  "body": "Digite um nome para receber uma saudação."
+}
+```
+
+Em módulos em processo, o bundle também exporta `createTab(host)`. Essa função pode declarar campos e ações e recebe a ação escolhida em `run(actionId, values)`. O resultado contém uma mensagem e itens opcionais para o host exibir. Um item pode trazer `details` com um valor JSON serializável; o host o apresenta apenas quando a pessoa pede para ver aquele item. O host não pode inventar ações nem acessar detalhes internos da extensão.
+
+Uma aba que quiser reabrir com os campos e a resposta anteriores pode declarar `persistence`:
+
+```typescript
+{
+  persistence: {
+    load: () => host.services.get<AddonStateStore>('addonStateStore')?.get('hello:tab'),
+    save: (state) => host.services.get<AddonStateStore>('addonStateStore')?.set('hello:tab', state),
+  },
+}
+```
+
+Esse serviço é opcional. Sem uma extensão de armazenamento ativa, `load` não encontra valor e `save` não grava nada. Para uma aba observável, como Debug, o módulo pode ainda declarar `getSnapshot` e `subscribe(listener)`; o host atualiza a resposta sem conhecer o formato interno do serviço.
+
+## `interactions`: o contrato de interação
+
+### Por que
+
+`services` e `resources` dizem que uma capacidade existe, mas não mostram quais dados entram, saem ou ficam guardados. Isso escondia, por exemplo, a chave de um estado salvo e os endereços externos que uma busca consulta.
+
+### O que
+
+Todo manifesto agora traz `interactions`. É uma lista estruturada e legível de serviços, campos e ações da aba, estados, HTTP e eventos de log. Um dado é marcado como `public`, `personal` ou `secret`; a declaração descreve o formato, nunca o valor real de uma pessoa.
+
+### Como
+
+O bloco tem sempre estas partes, mesmo quando uma delas é uma lista vazia:
+
+| Parte | Mostra |
+|---|---|
+| `services` | Serviços fornecidos ou consumidos e seus métodos |
+| `tab.fields` e `tab.actions` | Campos recebidos, ações permitidas e respostas esperadas |
+| `state` | Chave ou padrão, operações, formato, retenção e remoção do estado |
+| `http` | Requisições recebidas e enviadas, com método, rota-modelo, origem e finalidade |
+| `logs` | Eventos que o add-on informa ao Debug Add-on |
+
+Exemplo reduzido de uma ação que recebe um nome e de uma chave de estado:
+
+```json
+"interactions": {
+  "version": "1.0.0",
+  "services": [{ "id": "greeter", "role": "provides", "description": "Cria saudações." }],
+  "tab": {
+    "fields": [{
+      "id": "name",
+      "label": "Seu nome",
+      "description": "Nome usado na saudação.",
+      "required": true,
+      "schema": { "type": "string", "description": "Nome informado.", "classification": "personal" }
+    }],
+    "actions": [{
+      "id": "greet",
+      "label": "Saudar",
+      "description": "Cria uma saudação.",
+      "receives": ["name"],
+      "returns": { "description": "Resposta da aba.", "schema": { "type": "object", "description": "Saudação.", "classification": "personal" } }
+    }]
+  },
+  "state": [{
+    "id": "tab",
+    "key": "hello:tab",
+    "operations": ["read", "write"],
+    "retention": "Enquanto o provedor conservar o estado.",
+    "deletionTrigger": "Limpeza do provedor.",
+    "value": { "description": "Estado da aba.", "schema": { "type": "object", "description": "Campos e resposta.", "classification": "personal" } }
+  }],
+  "http": [],
+  "logs": []
+}
+```
+
+O subconjunto de JSON Schema aceita `string`, `number`, `integer`, `boolean`, `null`, `object` e `array`, além de `properties`, `required`, `items`, `enum` e os formatos `uri` e `date-time`. Cada schema precisa trazer uma descrição e classificação.
+
+O host recusa manifestos sem contrato. Antes de ativar um módulo em processo, ele verifica se os serviços fornecidos, campos e ações executáveis correspondem ao manifesto; ao executar uma ação, só encaminha os campos declarados. Serviços e operações de estado por chave também são mediadas: um add-on não pode consultar um serviço ou ler/gravar uma chave que não declarou.
+
+Chamadas HTTP de saída ainda são declaradas e exibidas, mas não são interceptadas pelo host. Isso é transparência, não sandbox. Uma futura mediação de rede precisa ser tratada como evolução de segurança separada.
 
 ## Formato em processo
 
@@ -289,12 +382,14 @@ interface ValidationResult {
 ### Ordem aplicada hoje
 
 1. O valor precisa ser um objeto.
-2. Os seis campos comuns obrigatórios precisam existir e não podem ser vazios.
+2. Os sete campos comuns obrigatórios precisam existir e não podem ser vazios.
 3. Se algum deles faltar, a função retorna imediatamente esses erros.
 4. `id` e `version` são verificados pelos padrões descritos acima.
 5. Pelo menos uma lista não vazia de `services` ou `resources` precisa existir.
 6. O formato em processo exige `entrypoint` quando há `services` sem `resources`.
 7. Serviços, recursos e catálogos são verificados quando presentes.
+8. `interactions` precisa usar a versão `1.0.0` e declarar serviços, aba, estado, HTTP e logs.
+9. Serviços com papel `provides` devem corresponder exatamente a `services`; recursos HTTP devem ter uma rota recebida correspondente.
 
 ### O que a validação ainda não garante
 
@@ -323,6 +418,7 @@ Essas verificações pertencem ao carregamento, ao cliente, a políticas de conf
   "description": "Demonstra o menor manifesto em processo",
   "author": "Autor",
   "license": "MIT",
+  "tab": { "title": "Exemplo", "body": "Executa uma capacidade mínima." },
   "entrypoint": "https://example.com/minimo.js",
   "services": [
     {
@@ -345,6 +441,7 @@ Essas verificações pertencem ao carregamento, ao cliente, a políticas de conf
   "description": "Demonstra o menor manifesto HTTP",
   "author": "Autor",
   "license": "MIT",
+  "tab": { "title": "Texto Mínimo", "body": "Oferece um recurso remoto." },
   "resources": [
     { "name": "text", "types": ["text"] }
   ]

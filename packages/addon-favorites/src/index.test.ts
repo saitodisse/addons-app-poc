@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createFavoritesService, manifest } from './index';
+import { createFavoritesService, createOptionalStateFavoritesService, manifest } from './index';
 import { MemoryBookmarkStore } from '@addons/core';
 
 describe('createFavoritesService', () => {
@@ -25,6 +25,20 @@ describe('createFavoritesService', () => {
     expect(await fav.remove(saved.id)).toBe(true);
     expect(await fav.remove(saved.id)).toBe(false);
     expect(await fav.list()).toHaveLength(0);
+  });
+
+  it('só grava a lista quando o serviço de estado opcional existe', async () => {
+    const saved = new Map<string, unknown>();
+    const services = {
+      get: <T,>(id: string) => id === 'addonStateStore' ? {
+        get: async <V,>(key: string) => saved.get(key) as V | undefined,
+        set: async <V,>(key: string, value: V) => { saved.set(key, value); },
+        remove: async () => {}, listKeys: async () => [], clear: async () => {},
+      } as T : undefined,
+    };
+    const fav = createOptionalStateFavoritesService({ services } as never);
+    await fav.add('Persistido');
+    expect(saved.get('favorites:list')).toHaveLength(1);
   });
 });
 

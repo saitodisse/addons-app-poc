@@ -10,6 +10,7 @@ const stremioManifest = {
   description: 'Catálogo e busca de textos',
   author: 'Equipe AC',
   license: 'MIT',
+  tab: { title: 'Biblioteca', body: 'Textos para leitura.' },
   resources: [
     { name: 'catalog', types: ['text'], idPrefixes: [] },
     { name: 'search', types: ['text'], idPrefixes: [] },
@@ -18,6 +19,18 @@ const stremioManifest = {
   types: ['text'],
   idPrefixes: [],
   catalogs: [{ type: 'text', id: 'classicos', name: 'Textos Clássicos' }],
+  interactions: {
+    version: '1.0.0',
+    services: [],
+    tab: { fields: [], actions: [] },
+    state: [],
+    http: [
+      { id: 'catalog', direction: 'incoming', method: 'GET', path: '/catalog/{type}/{catalogId}.json', purpose: 'Lista textos.', resource: 'catalog', returns: { description: 'Textos.', schema: { type: 'object', description: 'Metadados.', classification: 'public' } } },
+      { id: 'search', direction: 'incoming', method: 'GET', path: '/search/{type}/{query}.json', purpose: 'Busca textos.', resource: 'search', returns: { description: 'Textos.', schema: { type: 'object', description: 'Metadados.', classification: 'public' } } },
+      { id: 'text', direction: 'incoming', method: 'GET', path: '/text/{type}/{id}.json', purpose: 'Lista versões.', resource: 'text', returns: { description: 'Texto.', schema: { type: 'object', description: 'Versões.', classification: 'public' } } },
+    ],
+    logs: [],
+  },
 };
 
 function jsonResponse(data: unknown) {

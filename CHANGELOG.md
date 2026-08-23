@@ -4,6 +4,21 @@ Este arquivo conta, em ordem inversa, como o projeto evoluiu. A leitura rápida 
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.4.0] - 2026-08-23
+
+### Adicionado
+
+- Cada manifesto passou a declarar um contrato de interação completo: serviços, campos, ações, entradas, saídas, estado, HTTP e logs.
+- As instalações agora mostram, em uma expansão abaixo do add-on, uma explicação legível e o JSON integral do manifesto em estilo terminal.
+- O host inclui add-ons de estado local, sessão e depuração para demonstrar onde cada dado é guardado e qual provedor efetivo o atende.
+- O visualizador `json-highlighter` foi integrado ao host sem destacar caminhos ou abrir modal.
+
+### Alterado
+
+- O host valida o contrato antes de ativar um add-on, restringe os serviços e as entradas de ações ao que foi declarado e exige nova aceitação quando o contrato remoto mudar na mesma URL.
+- Os quatro servidores HTTP passaram a declarar recursos recebidos, dados devolvidos e chamadas externas de forma transparente.
+- A especificação, arquitetura, decisões, glossário e contexto de domínio foram atualizados para registrar o protocolo `interactions` 1.0.0 e seus limites observáveis.
+
 ## [0.3.0] - 2026-08-20
 
 ### Documentação

@@ -1,12 +1,11 @@
 import type { AddonInstance } from '@addons/core';
+import { Link, RUTAS } from '../router';
 
 interface HeaderProps {
   addons: AddonInstance[];
-  loading: boolean;
-  onReload: () => void;
 }
 
-export function Header({ addons, loading, onReload }: HeaderProps) {
+export function Header({ addons }: HeaderProps) {
   const readyCount = addons.filter(a => a.status === 'ready').length;
   const errorCount = addons.filter(a => a.status === 'error').length;
 
@@ -39,23 +38,36 @@ export function Header({ addons, loading, onReload }: HeaderProps) {
             {errorCount > 0 && <span style={{ color: '#ef4444' }}>● {errorCount} erro</span>}
           </div>
 
-          <button
-            onClick={onReload}
-            disabled={loading}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: 8,
-              background: 'rgba(255,255,255,0.05)',
-              color: '#e2e8f0',
-              cursor: 'pointer',
-              fontSize: 13,
-              transition: 'all 0.2s',
-              opacity: loading ? 0.5 : 1,
-            }}
-          >
-            {loading ? '🔄 Recarregando...' : '🔄 Recarregar'}
-          </button>
+          <nav aria-label="Navegação principal" style={{ display: 'flex', gap: 8 }}>
+            <Link
+              to={RUTAS.inicio}
+              style={{
+                padding: '8px 16px',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: 8,
+                background: 'rgba(255,255,255,0.05)',
+                color: '#e2e8f0',
+                fontSize: 13,
+                textDecoration: 'none',
+              }}
+            >
+              Demonstração
+            </Link>
+            <Link
+              to={RUTAS.settings}
+              style={{
+                padding: '8px 16px',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: 8,
+                background: 'rgba(255,255,255,0.05)',
+                color: '#e2e8f0',
+                fontSize: 13,
+                textDecoration: 'none',
+              }}
+            >
+              ⚙️ Configurações
+            </Link>
+          </nav>
         </div>
       </div>
     </header>

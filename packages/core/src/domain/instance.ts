@@ -1,4 +1,5 @@
 import type { AddonManifest } from './manifest';
+import type { AddonTab } from './tab';
 
 export type AddonStatus = 'loading' | 'ready' | 'error';
 
@@ -8,4 +9,5 @@ export interface AddonInstance {
   status: AddonStatus;
   error?: Error;
   services: string[];
+  tab?: AddonTab;
 }

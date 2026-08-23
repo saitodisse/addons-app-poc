@@ -4,34 +4,46 @@ import type { AddonInstance } from '../domain/instance';
 import type { HostAPI, AddonModule } from '../domain/host-api';
 import type { AddonLoaderPort } from '../ports/addon-loader';
 import type { LoggerPort } from '../ports/logger';
-import { validateManifest } from '../domain/validation';
+import { validateManifest, validateTabContract } from '../domain/validation';
+import type { DebugLog } from '../domain/debug';
+import { assertProvidedService, createContractServiceAccess, getInteractionContractFingerprint } from '../domain/interactions';
 
 class HostAPIImpl implements HostAPI {
-  public services: ServiceRegistry;
+  public services;
   private _onUnloadCallbacks: (() => void)[] = [];
   private _registeredServices: string[] = [];
 
   constructor(
-    registry: ServiceRegistry,
+    private registry: ServiceRegistry,
     private _addonId: string,
     private _logger: LoggerPort,
+    private _manifest: AddonManifest,
   ) {
-    this.services = registry;
+    this.services = createContractServiceAccess(registry, this._manifest.interactions);
   }
 
   registerService<T>(serviceId: string, instance: T, priority?: number): void {
+    // O registro recebe apenas capacidades anunciadas no manifesto.
+    assertProvidedService(this._manifest.interactions, serviceId);
     if (!this._registeredServices.includes(serviceId)) {
       this._registeredServices.push(serviceId);
     }
-    this.services.register(serviceId, instance, this._addonId, priority);
+    this.registry.register(serviceId, instance, this._addonId, priority);
   }
 
   onUnload(callback: () => void): void {
     this._onUnloadCallbacks.push(callback);
   }
 
-  log(level: 'info' | 'warn' | 'error', message: string): void {
+  log(level: 'info' | 'warn' | 'error', message: string, details?: unknown): void {
     this._logger.log(level, `[${this._addonId}] ${message}`);
+    this.registry.get<DebugLog>('debugLog')?.record({
+      addonId: this._addonId,
+      level,
+      message,
+      details,
+      timestamp: Date.now(),
+    });
   }
 
   getUnloadCallbacks(): (() => void)[] {
@@ -91,8 +103,8 @@ export class FetchAddonLoader implements AddonLoaderPort {
       };
     }
 
-    if (!module.manifest || typeof module.setup !== 'function') {
-      const err = new Error('Add-on deve exportar manifest e setup');
+    if (!module.manifest || typeof module.setup !== 'function' || typeof module.createTab !== 'function') {
+      const err = new Error('Add-on deve exportar manifest, setup e createTab');
       this.logger.log('error', err.message);
       return {
         manifest,
@@ -104,14 +116,24 @@ export class FetchAddonLoader implements AddonLoaderPort {
     }
 
     try {
-      const hostAPI = new HostAPIImpl(this.registry, manifestUrl, this.logger);
+      if (getInteractionContractFingerprint(module.manifest.interactions) !== getInteractionContractFingerprint(manifest.interactions)) {
+        throw new Error('O contrato de interação do bundle diverge do manifesto instalado');
+      }
+      const hostAPI = new HostAPIImpl(this.registry, manifestUrl, this.logger, manifest);
       await module.setup(hostAPI);
+      const tab = module.createTab(hostAPI);
+      const tabValidation = validateTabContract(manifest as unknown as Record<string, unknown>, tab);
+      if (!tabValidation.valid) {
+        this.registry.clearAddon(manifestUrl);
+        throw new Error(`A aba diverge do contrato: ${tabValidation.errors.join(', ')}`);
+      }
       this.logger.log('info', `Add-on ${manifest.id} carregado com sucesso`);
       return {
         manifest,
         manifestUrl,
         status: 'ready',
         services: hostAPI.getRegisteredServiceIds(),
+        tab,
       };
     } catch (error) {
       this.logger.log('error', `Falha no setup do add-on: ${(error as Error).message}`);

@@ -1,5 +1,5 @@
-import type { HostAPI, TextAddonClientPort } from '@addons/core';
-import { HttpTextAddonClient } from '@addons/core';
+import type { AddonTab, HostAPI, TextAddonClientPort } from '@addons/core';
+import { createTabStatePersistence, HttpTextAddonClient } from '@addons/core';
 
 /**
  * Add-ons de texto conhecidos (URL = identidade, como no Stremio).
@@ -61,14 +61,51 @@ export const manifest = {
   description: 'Verifica disponibilidade e latência dos add-ons de texto remotos',
   author: 'Equipe AC',
   license: 'MIT',
+  tab: {
+    title: '💚 Saúde',
+    body: 'Verifique disponibilidade e latência dos add-ons de texto remotos.',
+  },
   entrypoint: '/packages/addon-health/dist/bundle.js',
   services: [
     { id: 'healthCheck', version: '1.0.0', name: 'Health Check', description: 'Status de disponibilidade dos add-ons remotos' },
   ],
+  interactions: {
+    version: '1.0.0',
+    services: [{ id: 'healthCheck', role: 'provides', description: 'Mede disponibilidade e latência dos provedores de texto.', methods: [{ id: 'checkAll', description: 'Consulta todos os manifestos configurados.', returns: { description: 'Estado de cada provedor.', schema: { type: 'array', description: 'Disponibilidade e latência.', classification: 'public' } } }] }, { id: 'addonStateStore', role: 'consumes', description: 'Guarda a última resposta da aba quando há armazenamento.', required: false, methods: [{ id: 'get', description: 'Lê a aba salva.' }, { id: 'set', description: 'Grava a aba.' }] }],
+    tab: { fields: [], actions: [{ id: 'check', label: 'Verificar agora', description: 'Verifica os quatro provedores de texto.', returns: { description: 'Resultado da verificação.', schema: { type: 'array', description: 'Disponibilidade dos provedores.', classification: 'public' } } }] },
+    state: [{ id: 'tab', description: 'Última resposta da verificação.', key: 'health:tab', operations: ['read', 'write'], value: { description: 'Estado visual da aba.', schema: { type: 'object', description: 'Resposta da verificação.', classification: 'public' } }, retention: 'Enquanto o provedor de armazenamento escolhido pelo host conservar o estado.', deletionTrigger: 'Limpeza do provedor ou dados do navegador.', fallback: 'memory' }],
+    http: ['http://localhost:5291', 'http://localhost:5292', 'http://localhost:5293', 'http://localhost:5294'].map((origin, index) => ({ id: `manifest-${index + 1}`, direction: 'outgoing', method: 'GET', origin, path: '/manifest.json', purpose: 'Confere se o provedor responde e mede a latência.', returns: { description: 'Manifesto do provedor remoto.', schema: { type: 'object', description: 'Manifesto remoto.', classification: 'public' } } })),
+    logs: [{ id: 'lifecycle', level: 'info', message: 'Add-on health configurado com sucesso', description: 'Confirma a ativação do add-on.' }],
+  },
 };
 
 export function setup(host: HostAPI): void {
   const checker = new HealthChecker(new HttpTextAddonClient(), HEALTH_BASE_URLS);
   host.registerService('healthCheck', checker);
   host.log('info', 'Add-on health configurado com sucesso');
+}
+
+export function createTab(host: HostAPI): AddonTab {
+  const healthCheck = host.services.get<HealthCheckService>('healthCheck');
+  return {
+    ...manifest.tab,
+    actions: [{ id: 'check', label: 'Verificar agora' }],
+    persistence: createTabStatePersistence(host, 'health:tab'),
+    async run(actionId) {
+      if (actionId !== 'check') return { status: 'error', body: 'Ação desconhecida.' };
+      if (!healthCheck) return { status: 'error', body: 'Serviço de saúde indisponível.' };
+      const entries = await healthCheck.checkAll();
+      const online = entries.filter((entry) => entry.ok).length;
+      host.log('info', 'Verificação de saúde concluída', { online, total: entries.length });
+      return {
+        status: online === entries.length ? 'success' : 'info',
+        title: `${online}/${entries.length} online`,
+        body: 'Resultado da última verificação.',
+        items: entries.map((entry) => ({
+          label: entry.baseUrl,
+          value: entry.ok ? `Online · ${entry.latencyMs} ms` : `Indisponível · ${entry.error ?? 'erro desconhecido'}`,
+        })),
+      };
+    },
+  };
 }

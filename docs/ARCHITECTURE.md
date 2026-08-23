@@ -41,14 +41,14 @@ Há quatro peças principais:
 |---|---|---|
 | `core` | O livro de regras | Define domínio, portas, adaptadores e API pública |
 | host | O aplicativo anfitrião | Inicializa add-ons e usa os serviços disponíveis |
-| add-on em processo | Uma ferramenta colocada dentro do host | Exporta `manifest` e `setup`, depois registra serviços |
+| add-on em processo | Uma ferramenta colocada dentro do host | Exporta `manifest`, `setup` e `createTab`, depois registra serviços e descreve sua aba |
 | add-on HTTP | Um serviço que mora fora do host | Publica `manifest.json` e responde a recursos por HTTP |
 
 ## Dois formatos de add-on
 
 ### Add-on em processo
 
-Use este formato quando a capacidade precisa executar dentro do mesmo processo JavaScript do host. É o caso do contador, do formatador e dos favoritos.
+Use este formato quando a capacidade precisa executar dentro do mesmo processo JavaScript do host. É o caso do contador, do formatador, dos favoritos, da persistência e da depuração.
 
 O módulo exporta duas partes:
 
@@ -60,6 +60,7 @@ export const manifest = {
   description: 'Saúda o usuário',
   author: 'Equipe AC',
   license: 'MIT',
+  tab: { title: 'Hello', body: 'Uma saudação.' },
   entrypoint: 'https://example.com/hello.js',
   services: [
     {
@@ -76,9 +77,50 @@ export function setup(host: HostAPI): void {
     greet: (name: string) => `Olá, ${name}!`,
   });
 }
+
+export function createTab(host: HostAPI): AddonTab {
+  return { title: 'Hello', body: 'Uma saudação.', actions: [], run: () => ({ status: 'info', body: '' }) };
+}
 ```
 
 O manifesto diz **o que** o add-on oferece. O `setup` executa **como** ele será ativado. Separar as duas partes permite validar a declaração antes de iniciar o comportamento.
+
+### Abas criadas por add-ons
+
+Cada add-on ativo também define uma aba. O manifesto declara `tab.title` e `tab.body`, que podem ser apresentados antes de executar uma ação. Módulos em processo exportam `createTab(host)`: ela devolve campos, botões e uma função `run`. A aba também pode declarar `persistence`, com `load` e `save`, e uma atualização observável com `getSnapshot` e `subscribe`. O host só desenha esses elementos, restaura o estado pedido e exibe a resposta; a regra de cada ação permanece no add-on.
+
+Quando uma resposta traz itens, cada item pode incluir `details`, um valor JSON serializável. O host mostra esse valor somente quando a pessoa clica no nome do item. Assim, por exemplo, `storage-local` entrega o estado completo sem o host conhecer a chave, o prefixo ou a estrutura interna daquele estado.
+
+```text
+add-on ativo ──► AddonTab (título, corpo, campos, ações, run)
+                            │
+                            ▼
+                    host genérico renderiza e mostra a resposta
+```
+
+Ao desativar ou remover a extensão, sua instância e sua aba saem da lista ativa. O host não mantém abas fixas de serviços conhecidos.
+
+### Contrato de interação e revisão
+
+Além de `services` e `resources`, todo manifesto tem `interactions`. Ele reúne, em um único bloco JSON, o que o add-on oferece, recebe, devolve, guarda, consulta por HTTP e registra como evento. A interface de Configurações mostra esse bloco em linguagem simples e também no JSON completo ao expandir um add-on instalado.
+
+```text
+manifesto ──► contrato de interação ──► revisão da pessoa ──► ativação
+                     │                         │
+                     ├── campos e ações        └── impressão digital aceita
+                     ├── serviços e estado
+                     └── HTTP e logs
+```
+
+O host valida o contrato antes da instalação. Para módulos em processo, ele também compara campos e ações reais da aba com a declaração, encaminha somente os campos autorizados e limita serviços e chaves de estado aos itens declarados. A origem e as rotas de HTTP externo aparecem no contrato, mas continuam apenas declarativas: o código em processo ainda poderia chamar `fetch` diretamente, pois esta POC não tem sandbox nem um adaptador de rede obrigatório.
+
+O host preserva a impressão digital do contrato aceito junto da instalação. Se o manifesto na mesma URL mudar, a instância fica desativada e pede revisão antes de voltar a oferecer serviços. A impressão digital detecta mudanças acidentais ou visíveis; ela não é uma assinatura criptográfica e não prova autoria.
+
+### Instalações persistidas pelo host
+
+O host guarda sua configuração de instalação em `localStorage`, na chave `addons:host-installations:v1`. Ela contém apenas as URLs dos manifestos instalados e quais delas estavam desativadas. No primeiro acesso essa chave não existe, portanto a POC continua começando sem extensões.
+
+Em um recarregamento, o host lê essa lista e instala novamente cada URL. Provedores de armazenamento são restaurados primeiro, Debug vem em seguida e os demais add-ons mantêm a ordem em que foram instalados. Essa configuração é a exceção de inicialização do host: ela não é o `addonStateStore` e não entrega persistência implícita ao estado interno dos add-ons.
 
 ### Add-on HTTP
 
@@ -117,7 +159,7 @@ O diretório `domain/` contém o que deve continuar verdadeiro em qualquer ambie
 - fallback síncrono e assíncrono;
 - validação de manifestos;
 - interfaces de serviços como `Greeter`, `Counter` e `SearchProvider`;
-- modelos de texto, formatação, marcadores e favoritos.
+- modelos de texto, formatação, marcadores, favoritos, estado opcional e eventos de debug.
 
 Esses arquivos não fazem `fetch`, não acessam `localStorage` e não renderizam React.
 
@@ -142,6 +184,7 @@ Um **adaptador** transforma uma tecnologia concreta no formato da porta:
 | `ConsoleLogger` e `SilentLogger` | Saída de logs |
 | `LocalStorageBookmarkStore` | Persistência no navegador |
 | `MemoryBookmarkStore` | Persistência temporária em memória |
+| `BrowserStateStore` | Estado serializável no `localStorage` ou `sessionStorage` |
 
 ## O ServiceRegistry
 
@@ -193,16 +236,30 @@ interface HostAPI {
   services: ServiceRegistry;
   registerService<T>(serviceId: string, instance: T, priority?: number): void;
   onUnload(callback: () => void): void;
-  log(level: 'info' | 'warn' | 'error', message: string): void;
+  log(level: 'info' | 'warn' | 'error', message: string, details?: unknown): void;
 }
 ```
 
 - `services` permite consultar capacidades já registradas.
 - `registerService` registra uma capacidade atribuindo a origem ao add-on atual.
 - `onUnload` recebe rotinas de limpeza para um futuro ciclo completo de descarregamento.
-- `log` registra mensagens com o contexto do add-on.
+- `log` registra mensagens com o contexto do add-on e, quando `debugLog` está ativo, publica também o detalhe estruturado para a aba Debug.
 
-O acesso direto a `services` permite composição. O add-on de favoritos, por exemplo, procura `bookmarkStore`, serviço de infraestrutura registrado pelo host. Se não encontrar, usa armazenamento em memória.
+O acesso direto a `services` permite composição. Os add-ons de contador, busca e favoritos consultam `addonStateStore` em cada operação: sem esse serviço, seguem apenas em memória; com ele, restauram e gravam seu próprio estado.
+
+### Persistência e debug como add-ons
+
+O host não fornece armazenamento nem uma tela de log por conta própria. Essas são capacidades instaláveis:
+
+```text
+add-on consumidor ──consulta──► addonStateStore ──► localStorage/sessionStorage
+         │
+         └── host.log(...) ──► debugLog ──► aba Debug
+```
+
+`Local Storage Add-on` registra `addonStateStore` com prioridade `10`; `Session Storage Add-on` registra o mesmo serviço com prioridade `0`. Assim, quando ambos estão ativos, o estado durável local é escolhido. Ao desativá-lo, o armazenamento de sessão passa a ser usado sem o host conhecer a extensão consumidora. Desativar os dois impede novas gravações e restaurações. A lista de extensões instaladas continua sendo uma configuração mínima do host, para que ele consiga restaurar as próprias extensões após F5.
+
+O `Debug Add-on` registra `debugLog`. O fluxo de `HostAPI.log` continua escrevendo no console, mas também encaminha evento, nível, horário e detalhes para esse serviço quando ele existe. Os add-ons em processo usam esse caminho em setup, ações e erros; servidores HTTP continuam independentes e não recebem `HostAPI`.
 
 ## Fluxo de um add-on em processo
 
@@ -279,6 +336,7 @@ interface AddonManifest {
   author: string;
   icon?: string;
   license: string;
+  tab: { title: string; body: string };
   entrypoint?: string;
   services?: ServiceRegistration[];
   resources?: AddonResource[];
@@ -301,6 +359,7 @@ interface AddonInstance {
   status: AddonStatus;
   error?: Error;
   services: string[];
+  tab?: AddonTab;
 }
 ```
 
@@ -346,7 +405,7 @@ Não são permitidos atalhos de `addon-*` para `host-app`. A colaboração entre
 | Manifesto remoto não responde | Loader ou cliente lança/registra erro contextualizado |
 | Manifesto é inválido | Add-on é rejeitado antes do `setup` ou do consumo de recursos |
 | Bundle não importa | `FetchAddonLoader` devolve instância em `error` |
-| Módulo não exporta `manifest` e `setup` | Loader devolve instância em `error` |
+| Módulo não exporta `manifest`, `setup` e `createTab` | Loader devolve instância em `error` |
 | Serviço falha durante fallback | Próxima implementação é tentada |
 | Todos os serviços falham | `AggregateFallbackError` é lançado |
 | Um servidor falha na busca agregada | O agregador ignora essa origem e mantém as demais |

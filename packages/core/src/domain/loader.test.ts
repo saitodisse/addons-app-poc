@@ -3,6 +3,15 @@ import { ServiceRegistry } from './registry';
 import { SilentLogger } from '../adapters/silent-logger';
 import type { AddonModule } from './host-api';
 
+const mockInteractions = {
+  version: '1.0.0' as const,
+  services: [{ id: 'greeter', role: 'provides' as const, description: 'Cria saudações.' }],
+  tab: { fields: [], actions: [] },
+  state: [],
+  http: [],
+  logs: [],
+};
+
 const mockManifest = {
   id: 'hello',
   version: '1.0.0',
@@ -10,8 +19,10 @@ const mockManifest = {
   description: 'Test add-on',
   author: 'Test',
   license: 'MIT',
+  tab: { title: 'Hello', body: 'Uma saudação.' },
   entrypoint: 'https://example.com/bundle.js',
   services: [{ id: 'greeter', version: '1.0.0', name: 'Greeter', description: 'Saudação' }],
+  interactions: mockInteractions,
 };
 
 const mockAddonModule = {
@@ -19,6 +30,7 @@ const mockAddonModule = {
   setup: vi.fn((host: { registerService: (id: string, instance: unknown) => void }) => {
     host.registerService('greeter', { greet: (name: string) => `Olá, ${name}!` });
   }),
+  createTab: vi.fn(() => ({ title: 'Hello', body: 'Uma saudação.' })),
 };
 
 describe('FetchAddonLoader', () => {
@@ -46,6 +58,7 @@ describe('FetchAddonLoader', () => {
     expect(instance.manifestUrl).toBe(manifestUrl);
     expect(instance.manifest.id).toBe('hello');
     expect(instance.services).toContain('greeter');
+    expect(instance.tab?.title).toBe('Hello');
     expect(mockImport).toHaveBeenCalledWith('https://example.com/bundle.js');
 
     // Verify the service was registered in the registry
@@ -89,6 +102,23 @@ describe('FetchAddonLoader', () => {
     expect(instance.status).toBe('error');
     expect(instance.error).toBeDefined();
 
+    vi.unstubAllGlobals();
+  });
+
+  it('load returns error when the module does not create a tab', async () => {
+    const manifestUrl = 'https://example.com/manifest.json';
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockManifest),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const moduleWithoutTab = { manifest: mockManifest, setup: vi.fn() } as unknown as AddonModule;
+    const { loader } = await createLoader(vi.fn().mockResolvedValue(moduleWithoutTab));
+    const instance = await loader.load(manifestUrl);
+
+    expect(instance.status).toBe('error');
+    expect(instance.error?.message).toContain('createTab');
     vi.unstubAllGlobals();
   });
 

@@ -8,14 +8,18 @@
     "build": "tsc && vite build"
   },
   "dependencies": {
-    "@addons/core": "workspace:*",
-    "@addons/addon-hello": "workspace:*",
-    "@addons/addon-hello-pt": "workspace:*",
-    "@addons/addon-counter": "workspace:*",
-    "@addons/addon-markdown": "workspace:*",
     "@addons/addon-aggregator": "workspace:*",
+    "@addons/addon-counter": "workspace:*",
+    "@addons/addon-debug": "workspace:*",
     "@addons/addon-favorites": "workspace:*",
     "@addons/addon-health": "workspace:*",
+    "@addons/addon-hello": "workspace:*",
+    "@addons/addon-hello-pt": "workspace:*",
+    "@addons/addon-markdown": "workspace:*",
+    "@addons/addon-storage-local": "workspace:*",
+    "@addons/addon-storage-session": "workspace:*",
+    "@addons/core": "workspace:*",
+    "json-highlighter": "1.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

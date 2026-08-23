@@ -12,7 +12,7 @@ Os estados usados aqui são **Planejado**, **Em Andamento**, **Entregue**, **Par
 | 2. Substituição | Uma alternativa consegue assumir após uma falha? | Entregue |
 | 3. Servidores | Um add-on pode viver fora do processo do host? | Parcial |
 | 4. Composição | Add-ons conseguem formar capacidades maiores sem importações diretas? | Entregue |
-| 5. Gestão e compatibilidade | O usuário consegue instalar e controlar add-ons remotos? | Planejado |
+| 5. Gestão e compatibilidade | O usuário consegue instalar e controlar add-ons remotos? | Parcial |
 | 6. Isolamento | Código não confiável pode ser limitado com segurança? | Planejado |
 
 “Parcial” na fase 3 significa que o formato HTTP está entregue, enquanto descoberta arbitrária, cache e negociação de versão ainda não estão.
@@ -128,16 +128,22 @@ Abra **Extras** e exercite formatação, busca agregada, favoritos e verificaç�
 
 ## Fase 5 — Gestão e compatibilidade
 
-**Estado: Planejado**
+**Estado: Parcial**
 
 ### Problema a resolver
 
 Hoje, o conjunto de add-ons é conhecido pelo código da demonstração. Para se aproximar de um ecossistema real, a escolha precisa pertencer ao usuário e sobreviver ao recarregamento.
 
-### Entregas previstas
+### Parte entregue
 
-- instalação e remoção por URL de manifesto;
-- persistência das escolhas;
+- instalação por URL com revisão do manifesto e do contrato de interação;
+- expansão de cada add-on instalado com explicação e JSON completo do manifesto;
+- persistência das URLs, extensões desativadas e impressão digital do contrato aceito;
+- reativação bloqueada quando o contrato muda na mesma URL;
+- validação de serviços, campos, ações e acesso mediado a estado.
+
+### Parte pendente
+
 - edição de prioridade;
 - cache e atualização de manifestos;
 - negociação de versão entre host e add-on;
