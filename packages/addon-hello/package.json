@@ -4,10 +4,13 @@
   "type": "module",
   "private": true,
   "dependencies": {
-    "@addons/core": "workspace:*"
+    "@addons-poc/protocol": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0"
+  },
+  "scripts": {
+    "serve": "node ../../scripts/serve-inprocess-addon.mjs addon-hello 5301"
   },
   "exports": {
     ".": "./src/index.ts"

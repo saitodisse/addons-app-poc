@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { JsonHighlighter } from 'json-highlighter';
-import { validateTabActionInput } from '@addons/core';
-import type { AddonInstance, AddonTabResult, JsonValue } from '@addons/core';
+import { validateTabActionInput, validateTabResult } from '@addons-poc/protocol';
+import type { AddonInstance, AddonTabResult, JsonValue } from '@addons-poc/protocol';
 
 interface AddonTabViewProps {
   addon: AddonInstance;
@@ -19,7 +19,7 @@ const responseColors = {
 };
 
 export function AddonTabView({ addon }: AddonTabViewProps) {
-  const tab = addon.tab;
+  const tab = addon.ui;
   const [values, setValues] = useState<Record<string, string>>({});
   const [response, setResponse] = useState<AddonTabResult | null>(null);
   const [runningAction, setRunningAction] = useState<string | null>(null);
@@ -71,7 +71,7 @@ export function AddonTabView({ addon }: AddonTabViewProps) {
       return;
     }
 
-    const input = validateTabActionInput(addon.manifest.interactions, actionId, values);
+    const input = validateTabActionInput(addon.manifest.contract, actionId, values);
     if (!input.valid) {
       setResponse({ status: 'error', body: input.errors.join('\n') });
       return;
@@ -80,7 +80,13 @@ export function AddonTabView({ addon }: AddonTabViewProps) {
     setRunningAction(actionId);
     try {
       setSelectedDetail(null);
-      setResponse(await tab.run(actionId, input.values));
+      const result = await tab.run(actionId, input.values);
+      const output = validateTabResult(result);
+      if (!output.valid) {
+        setResponse({ status: 'error', body: `Resposta rejeitada pelo contrato: ${output.errors.join('\n')}` });
+      } else {
+        setResponse(result);
+      }
     } catch (error) {
       setResponse({ status: 'error', body: (error as Error).message || 'A ação não pôde ser concluída.' });
     } finally {

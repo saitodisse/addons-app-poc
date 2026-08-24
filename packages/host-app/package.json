@@ -5,20 +5,12 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build"
+    "build": "pnpm check:boundary && tsc && vite build",
+    "check:boundary": "node ../../scripts/check-host-boundary.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@addons/addon-aggregator": "workspace:*",
-    "@addons/addon-counter": "workspace:*",
-    "@addons/addon-debug": "workspace:*",
-    "@addons/addon-favorites": "workspace:*",
-    "@addons/addon-health": "workspace:*",
-    "@addons/addon-hello": "workspace:*",
-    "@addons/addon-hello-pt": "workspace:*",
-    "@addons/addon-markdown": "workspace:*",
-    "@addons/addon-storage-local": "workspace:*",
-    "@addons/addon-storage-session": "workspace:*",
-    "@addons/core": "workspace:*",
+    "@addons-poc/protocol": "workspace:*",
     "json-highlighter": "1.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -28,6 +20,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.0.0",
     "typescript": "^5.7.0",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "vitest": "^3.0.0"
   }
 }

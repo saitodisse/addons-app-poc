@@ -11,7 +11,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@addons/addon-server": "workspace:*"
+    "@addons/addon-server": "workspace:*",
+    "@addons-poc/protocol": "workspace:*"
   },
   "devDependencies": {
     "vitest": "^3.0.0"

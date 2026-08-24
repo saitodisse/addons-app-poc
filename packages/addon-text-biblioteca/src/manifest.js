@@ -1,14 +1,15 @@
+import { defineAddonManifest } from '@addons-poc/protocol';
 /**
  * Manifesto do add-on Biblioteca de Textos, formato estilo Stremio.
  */
-export const manifest = {
+export const manifest = defineAddonManifest({
   id: 'text-biblioteca',
   version: '1.0.0',
   name: 'Biblioteca de Textos',
   description: 'Catálogo de textos curtos para leitura e compartilhamento',
   author: 'Equipe AC',
   license: 'MIT',
-  tab: { title: '📚 Biblioteca', body: 'Catálogo remoto de textos curtos.' },
+  ui: { title: '📚 Biblioteca', body: 'Catálogo remoto de textos curtos.' },
   resources: [
     { name: 'catalog', types: ['text'], idPrefixes: [] },
     { name: 'search', types: ['text'], idPrefixes: [] },
@@ -21,10 +22,12 @@ export const manifest = {
     { type: 'text', id: 'natureza', name: 'Sobre a Natureza' },
     { type: 'text', id: 'memoria', name: 'Sobre a Memória' },
   ],
-  interactions: {
+  contract: {
     version: '1.0.0',
+    protocol: { version: '1.0.0', range: '^1.0.0' },
+    capabilities: { required: [], optional: ['registry.services', 'ui.tab', 'logs', 'state-store'] },
     services: [],
-    tab: { fields: [], actions: [] },
+    ui: { fields: [], actions: [] },
     state: [],
     http: [
       { id: 'catalog', direction: 'incoming', method: 'GET', path: '/catalog/{type}/{catalogId}.json', purpose: 'Entrega os textos de um catálogo local.', resource: 'catalog', receives: { description: 'Tipo e catálogo solicitados.', schema: { type: 'object', description: 'Parâmetros da rota.', classification: 'public' } }, returns: { description: 'Metadados dos textos.', schema: { type: 'object', description: 'Objeto com metas.', classification: 'public' } } },
@@ -34,4 +37,4 @@ export const manifest = {
     ],
     logs: [],
   },
-};
+});

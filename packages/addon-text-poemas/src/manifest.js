@@ -1,15 +1,16 @@
+import { defineAddonManifest } from '@addons-poc/protocol';
 /**
  * Manifesto do add-on Poemas (PoetryDB), formato estilo Stremio.
  * Processamento externo real: busca de poemas na API pública PoetryDB.
  */
-export const manifest = {
+export const manifest = defineAddonManifest({
   id: 'text-poemas',
   version: '1.0.0',
   name: 'Poemas (PoetryDB)',
   description: 'Poemas de domínio público buscados na API PoetryDB (processamento externo)',
   author: 'Equipe AC',
   license: 'MIT',
-  tab: { title: '📜 Poemas', body: 'Poemas consultados por HTTP.' },
+  ui: { title: '📜 Poemas', body: 'Poemas consultados por HTTP.' },
   resources: [
     { name: 'catalog', types: ['poem'], idPrefixes: [] },
     { name: 'search', types: ['poem'], idPrefixes: [] },
@@ -21,10 +22,12 @@ export const manifest = {
     { type: 'poem', id: 'aleatorios', name: 'Poemas Aleatórios' },
     { type: 'poem', id: 'shakespeare', name: 'Shakespeare' },
   ],
-  interactions: {
+  contract: {
     version: '1.0.0',
+    protocol: { version: '1.0.0', range: '^1.0.0' },
+    capabilities: { required: [], optional: ['registry.services', 'ui.tab', 'logs', 'state-store'] },
     services: [],
-    tab: { fields: [], actions: [] },
+    ui: { fields: [], actions: [] },
     state: [],
     http: [
       { id: 'catalog', direction: 'incoming', method: 'GET', path: '/catalog/{type}/{catalogId}.json', purpose: 'Entrega poemas por catálogo.', resource: 'catalog', returns: { description: 'Metadados dos poemas.', schema: { type: 'object', description: 'Objeto com metas.', classification: 'public' } } },
@@ -37,4 +40,4 @@ export const manifest = {
     ],
     logs: [],
   },
-};
+});

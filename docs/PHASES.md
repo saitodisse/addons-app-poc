@@ -4,6 +4,8 @@ Construir um sistema extensível de uma vez esconderia riscos demais. Por isso, 
 
 Os estados usados aqui são **Planejado**, **Em Andamento**, **Entregue**, **Parcial**, **Desativado** e **Substituído**.
 
+O estado atual dos pacotes está detalhado em [`PACKAGES.md`](PACKAGES.md). As fases 1 a 6 preservam a história da POC; quando um nome antigo aparece nelas, ele é histórico e não é mais uma API pública.
+
 ## Mapa da jornada
 
 | Fase | Pergunta principal | Estado |
@@ -14,8 +16,34 @@ Os estados usados aqui são **Planejado**, **Em Andamento**, **Entregue**, **Par
 | 4. Composição | Add-ons conseguem formar capacidades maiores sem importações diretas? | Entregue |
 | 5. Gestão e compatibilidade | O usuário consegue instalar e controlar add-ons remotos? | Parcial |
 | 6. Isolamento | Código não confiável pode ser limitado com segurança? | Planejado |
+| 7. Protocolo público | O contrato pode ser publicado e usado por hosts independentes? | Parcial |
 
-“Parcial” na fase 3 significa que o formato HTTP está entregue, enquanto cache, atualização, negociação de versão e uma experiência genérica para cada recurso HTTP recém-instalado ainda não estão.
+"Parcial" na fase 3 significa que o formato HTTP está entregue, enquanto cache, atualização e validação de respostas ainda não estão. A negociação SemVer e o perfil de capacidades foram entregues na fase 7.
+
+## Fase 7 — Protocolo público v1
+
+**Estado: Parcial**
+
+### Por que
+
+Um contrato misturado ao runtime impede publicação e compatibilidade entre hosts.
+
+### O que foi entregue
+
+- `@addons-poc/protocol@1.0.0`, MIT, com ESM, tipos e schema JSON, pronto para publicação;
+- seção única `contract` v1 em todos os manifestos;
+- capacidades, SemVer, descritores namespaceados e `state-store` oficial;
+- proxy `host.services.use(contrato)` e validação em runtime;
+- loader, registry, status e adaptadores internos ao host;
+- bloqueio de incompatibilidades, dependências obrigatórias e ciclos;
+- ADR 0001 e documentação alinhada.
+
+A publicação no registry ainda não foi executada: o ambiente não possui uma
+sessão npm autenticada nem prova de propriedade do escopo `@addons-poc`.
+
+### Como verificar
+
+Execute `pnpm check:host-boundary`, `pnpm test`, `pnpm build:host` e `npm pack --dry-run` no pacote do protocolo. Depois, com uma conta da organização, publique somente `@addons-poc/protocol@1.0.0` e confirme a instalação em um consumidor limpo.
 
 ## Fase 1 — O alicerce
 
@@ -34,16 +62,16 @@ Antes de pensar em rede ou sandbox, era preciso provar a conversa mais básica: 
 - portas para carregamento e logs;
 - adaptadores com `fetch`, `import()` e console;
 - add-ons de saudação e contador;
-- host React para explorar os serviços;
+- host React genérico para instalar extensões por URL;
 - testes do registro, da validação e do loader.
 
 ### Como verificar
 
-Execute `pnpm test`, inicie `pnpm dev` e use as áreas **Saudação**, **Contador** e **Inspetor**.
+Execute `pnpm test`. Para a interface, inicie `pnpm dev`, informe uma URL de manifesto em **Configurações**, revise o contrato e ative a extensão.
 
 ### Limite que permaneceu
 
-O host importa as sugestões locais durante a build. A interface também instala manifestos por URL e usa o loader remoto para módulos ESM em processo, mas ainda não oferece cache, atualização nem descarregamento completo.
+O host não importa implementações locais: cada extensão precisa publicar seu próprio manifesto e, no formato em processo, seu bundle ESM. O script local `serve-inprocess-addon.mjs` demonstra essa publicação em portas próprias. Ainda não há cache, atualização nem descarregamento completo.
 
 ## Fase 2 — Prioridade e fallback
 
@@ -56,8 +84,8 @@ Um serviço único funciona em uma demonstração feliz. Um ecossistema real pre
 ### O que foi entregue
 
 - interfaces `Greeter` e `Counter`;
-- `withFallback` para chamadas síncronas;
-- `withFallbackAsync` para chamadas assíncronas;
+- helper interno de fallback para chamadas síncronas;
+- helper interno de fallback para chamadas assíncronas;
 - `AggregateFallbackError` para reunir falhas;
 - `addon-hello-pt` com prioridade `10`;
 - falha simulada ao receber o nome `error`;
@@ -66,7 +94,7 @@ Um serviço único funciona em uma demonstração feliz. Um ecossistema real pre
 
 ### Como verificar
 
-Abra a área **Fallback**, use um nome comum e depois use `error`. O segundo caso deve cair para a saudação padrão.
+Execute os testes de fallback em `@addons-poc/protocol`. Um host pode demonstrar esse fluxo depois de instalar duas extensões compatíveis que publiquem o mesmo serviço com prioridades diferentes.
 
 ## Fase 3 — Add-ons como servidores
 
@@ -81,26 +109,24 @@ Nem toda extensão precisa executar dentro do host. Conteúdo remoto e processam
 - manifesto com `resources`, `types`, `idPrefixes` e `catalogs`;
 - `@addons/addon-server` em JavaScript ESM puro;
 - rotas para manifesto, catálogo, busca, opções de texto e conteúdo;
-- `HttpTextAddonClient` no `core`;
+- clientes HTTP locais nos add-ons que consomem o formato de texto;
 - formato `{ texts: [{ id, url, lang, name }] }`;
 - CORS para consumo local pelo navegador;
 - Biblioteca de Textos na porta `5291`;
 - Citações na porta `5292`;
 - Poemas na porta `5293`;
 - Wikipédia na porta `5294`;
-- área **Textos** no host;
 - testes do servidor, cliente e handlers.
 
 ### Parte pendente: compatibilidade e experiência genérica
 
 - armazenar manifestos em cache com política de atualização;
-- declarar e negociar a versão mínima do host;
 - validar respostas HTTP além do manifesto.
 - transformar os recursos de um servidor HTTP recém-instalado em uma aba especializada, sem código prévio no host.
 
 ### Como verificar a parte entregue
 
-Execute `pnpm dev`, abra **Textos** e percorra catálogo, busca e leitura. Interromper um dos quatro servidores não deve impedir os outros de responder.
+Execute `pnpm dev` e instale uma das URLs de manifesto das portas `5291` a `5294`. O host revisa e preserva o contrato; o consumo genérico dos recursos HTTP ainda é a próxima etapa.
 
 ## Fase 4 — Composição de serviços
 
@@ -114,16 +140,17 @@ Add-ons isolados provam extensibilidade básica. A arquitetura fica mais interes
 
 | Add-on | Serviço | Composição demonstrada |
 |---|---|---|
-| `addon-markdown` | `textFormatter` | Usa funções puras de formatação do `core` |
-| `addon-aggregator` | `searchProvider` | Consulta vários add-ons HTTP em paralelo |
-| `addon-favorites` | `favorites` | Consome `bookmarkStore` fornecido pelo host |
-| `addon-health` | `healthCheck` | Consulta manifestos e mede disponibilidade |
+| `addon-markdown` | `addons.markdown.text-formatter` | Usa funções puras locais de formatação |
+| `addon-aggregator` | `addons.aggregator.search-provider` | Consulta vários add-ons HTTP em paralelo |
+| `addon-favorites` | `addons.favorites` | Consome `state-store` opcional |
+| `addon-health` | `addons.health.health-check` | Consulta manifestos e mede disponibilidade |
 
-O host registra `bookmarkStore` com origem `host`. Se esse serviço não existir, favoritos degrada para `MemoryBookmarkStore`.
+O host ou um add-on de armazenamento pode registrar `state-store`; se ele não
+existir, favoritos degrada para memória temporária.
 
 ### Como verificar
 
-Abra **Extras** e exercite formatação, busca agregada, favoritos e verificação de saúde.
+Execute os testes dos pacotes de composição. Um host pode apresentar essas capacidades quando as extensões publicarem abas compatíveis pelo protocolo.
 
 ## Fase 5 — Gestão e compatibilidade
 
@@ -145,7 +172,6 @@ Um ecossistema por URL precisa deixar a escolha com a pessoa usuária sem transf
 
 - edição de prioridade;
 - cache e atualização de manifestos;
-- negociação de versão entre host e add-on;
 - mensagens claras para incompatibilidade;
 - ciclo completo de unload;
 - limpeza transacional de registros quando o setup falhar.

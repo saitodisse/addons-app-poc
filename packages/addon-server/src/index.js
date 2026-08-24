@@ -1,50 +1,5 @@
 import { createServer } from 'node:http';
-
-const VALID_RESOURCE_NAMES = ['catalog', 'search', 'text', 'meta', 'subtitles', 'stream'];
-
-/**
- * Validación mínima del manifiesto (estilo Stremio) para servidores add-ons.
- * La versión canónica vive en `@addons/core` (validateManifest); esta copia en
- * JS puro mantiene al add- on desplegado autónomo, sin arrastrar el runtime TS.
- */
-function validateManifest(data) {
-  const errors = [];
-  const required = ['id', 'version', 'name', 'description', 'author', 'license', 'tab'];
-  for (const field of required) {
-    if (data[field] == null || data[field] === '') {
-      errors.push(`Campo '${field}' es obligatorio`);
-    }
-  }
-  if (!data.tab || typeof data.tab !== 'object' || !data.tab.title || !data.tab.body) {
-    errors.push('tab debe declarar title y body');
-  }
-  const hasResources = Array.isArray(data.resources) && data.resources.length > 0;
-  const hasServices = Array.isArray(data.services) && data.services.length > 0;
-  if (!hasResources && !hasServices) {
-    errors.push('Manifiesto debe declarar services (en-proceso) o resources (HTTP/Stremio)');
-  }
-  if (hasResources) {
-    for (let i = 0; i < data.resources.length; i++) {
-      const res = data.resources[i];
-      if (typeof res.name !== 'string' || !VALID_RESOURCE_NAMES.includes(res.name)) {
-        errors.push(`resources[${i}].name debe ser uno de: ${VALID_RESOURCE_NAMES.join(', ')}`);
-      }
-      if (!Array.isArray(res.types) || res.types.length === 0) {
-        errors.push(`resources[${i}].types debe ser un array no vacío`);
-      }
-    }
-  }
-  const interactions = data.interactions;
-  if (!interactions || typeof interactions !== 'object' || Array.isArray(interactions)) {
-    errors.push('interactions es obligatorio y debe ser un objeto');
-  } else {
-    if (interactions.version !== '1.0.0') errors.push('interactions.version debe ser 1.0.0');
-    if (!Array.isArray(interactions.services) || !interactions.tab || !Array.isArray(interactions.tab.fields) || !Array.isArray(interactions.tab.actions) || !Array.isArray(interactions.state) || !Array.isArray(interactions.http) || !Array.isArray(interactions.logs)) {
-      errors.push('interactions debe declarar services, tab, state, http y logs');
-    }
-  }
-  return { valid: errors.length === 0, errors };
-}
+import { validateManifest as validateProtocolManifest } from '@addons-poc/protocol';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -94,7 +49,7 @@ function plain(res, body) {
 export async function createAddonServer(options) {
   const { manifest, port, handlers, name } = options;
 
-  const validation = validateManifest(manifest);
+  const validation = validateProtocolManifest(manifest);
   if (!validation.valid) {
     throw new Error(`Manifest inválido: ${validation.errors.join(', ')}`);
   }

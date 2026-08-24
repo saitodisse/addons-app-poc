@@ -1,4 +1,4 @@
-import type { AddonInstance } from '@addons/core';
+import type { AddonInstance } from '@addons-poc/protocol';
 import { Link, RUTAS } from '../router';
 
 interface HeaderProps {

@@ -1,6 +1,6 @@
 /**
  * Cliente da API pública da Wikipédia (opensearch + resumo REST v1).
- * O fetch é injetável para testes — o mesmo padrão usado no core.
+ * O fetch é injetável para testes — o mesmo padrão usado no protocolo.
  */
 export function createWikipediaApi({
   fetchFn = (url) => fetch(url),

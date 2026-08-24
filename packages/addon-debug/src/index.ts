@@ -1,29 +1,32 @@
-import type { AddonTab, DebugEntry, DebugLog, HostAPI } from '@addons/core';
+import { defineAddonManifest } from '@addons-poc/protocol';
+import type { AddonTab, DebugEntry, DebugLog, HostAPI } from '@addons-poc/protocol';
 
-export const manifest = {
+export const manifest = defineAddonManifest({
   id: 'debug',
   version: '1.0.0',
   name: 'Debug Add-on',
   description: 'Exibe eventos detalhados emitidos pelas extensões ativas',
   author: 'Equipe AC',
   license: 'MIT',
-  tab: {
+  ui: {
     title: '🐞 Debug',
     body: 'Acompanhe em tempo real a execução reportada pelas extensões ativas.',
   },
   entrypoint: '/packages/addon-debug/dist/bundle.js',
   services: [
-    { id: 'debugLog', version: '1.0.0', name: 'Debug Log', description: 'Registra eventos estruturados das extensões' },
+    { id: 'addons.debug.log', version: '1.0.0', name: 'Debug Log', description: 'Registra eventos estruturados das extensões', priority: 100 },
   ],
-  interactions: {
+  contract: {
     version: '1.0.0',
-    services: [{ id: 'debugLog', role: 'provides', description: 'Registra, lista, limpa e observa eventos estruturados.', methods: [{ id: 'record', description: 'Registra um evento.' }, { id: 'list', description: 'Lista os eventos recentes.' }, { id: 'clear', description: 'Remove eventos.' }, { id: 'subscribe', description: 'Observa alterações no log.' }] }],
-    tab: { fields: [], actions: [{ id: 'clear', label: 'Limpar eventos', description: 'Remove os eventos mantidos em memória.', returns: { description: 'Confirmação da limpeza.', schema: { type: 'object', description: 'Resposta da limpeza.', classification: 'public' } } }] },
+    protocol: { version: '1.0.0', range: '^1.0.0' },
+    capabilities: { required: [], optional: ['registry.services', 'ui.tab', 'logs', 'state-store'] },
+    services: [{ id: 'addons.debug.log', role: 'provides', version: '1.0.0', description: 'Registra, lista, limpa e observa eventos estruturados.', methods: [{ id: 'record', description: 'Registra um evento.' }, { id: 'list', description: 'Lista os eventos recentes.' }, { id: 'clear', description: 'Remove eventos.' }, { id: 'subscribe', description: 'Observa alterações no log.' }] }],
+    ui: { fields: [], actions: [{ id: 'clear', label: 'Limpar eventos', description: 'Remove os eventos mantidos em memória.', returns: { description: 'Confirmação da limpeza.', schema: { type: 'object', description: 'Resposta da limpeza.', classification: 'public' } } }] },
     state: [],
     http: [],
     logs: [{ id: 'lifecycle', level: 'info', message: 'Depuração verbosa ativada', description: 'Confirma a ativação do coletor de eventos.' }],
   },
-};
+});
 
 export function createDebugLog(limit = 200): DebugLog {
   const entries: DebugEntry[] = [];
@@ -70,14 +73,14 @@ function snapshot(log: DebugLog) {
 }
 
 export function setup(host: HostAPI): void {
-  host.registerService('debugLog', createDebugLog(), 100);
+  host.registerService('addons.debug.log', createDebugLog(), 100);
   host.log('info', 'Depuração verbosa ativada');
 }
 
 export function createTab(host: HostAPI): AddonTab {
-  const log = host.services.get<DebugLog>('debugLog');
+  const log = host.services.use<DebugLog>({ id: 'addons.debug.log' });
   return {
-    ...manifest.tab,
+    ...manifest.contract.ui,
     actions: [{ id: 'clear', label: 'Limpar eventos', variant: 'danger' }],
     getSnapshot: () => log ? snapshot(log) : { status: 'error', body: 'Serviço de debug indisponível.' },
     subscribe: (listener) => log?.subscribe(listener) ?? (() => {}),

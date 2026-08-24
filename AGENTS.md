@@ -16,19 +16,22 @@ Pense no sistema como três áreas com responsabilidades bem separadas:
 
 | Área | Papel | Regra de dependência |
 |---|---|---|
-| `packages/core/` | Protocolo, regras, portas e adaptadores | É a base compartilhada e a parte mais crítica |
-| `packages/host-app/` | Aplicativo que consome os add-ons | Pode depender do `core`, mas não define o protocolo |
-| `packages/addon-*/` | Implementações e exemplos | Dependem do `core` ou, no formato HTTP, do `addon-server` |
+| `packages/protocol/` | Contrato público, schema, validadores e SDK | É a fronteira de compatibilidade publicada |
+| `packages/host-app/` | Aplicativo e runtime interno do host | Pode depender do `protocol`, mas nunca de um `addon-*` |
+| `packages/addon-*/` | Implementações e exemplos | Dependem diretamente do `@addons-poc/protocol` ou, no formato HTTP, também do `addon-server` |
 
-Nenhum add-on deve importar do `host-app`. Add-ons também não devem criar dependências diretas entre si: a colaboração acontece por contratos e serviços do `core`.
+Nenhum add-on deve importar do `host-app`, e o `host-app` não deve importar, declarar em `package.json` nem criar alias para um `addon-*`. Add-ons também não devem criar dependências diretas entre si: a colaboração acontece pelo protocolo público e pela URL do manifesto.
 
-O `core` segue uma arquitetura hexagonal leve:
+Uma lista de conveniência com URLs locais de `manifest.json` é permitida na tela de Configurações quando os títulos e descrições vierem genericamente desses manifestos, sem catálogo embutido, imports ou execução de add-ons.
 
-- `domain/` contém tipos e regras puras.
-- `ports/` define o que o núcleo espera do mundo externo.
-- `adapters/` implementa essas portas com navegador, rede, console ou armazenamento.
+Execute `pnpm check:host-boundary` ao mudar `host-app`, dependências ou imports. A checagem impede que implementações de add-on voltem para a build do host.
 
-Add-ons de texto e `@addons/addon-server` usam JavaScript ESM puro. Eles não devem carregar o runtime TypeScript do `core` apenas para servir HTTP.
+O protocolo público mantém apenas contratos e regras puras. O runtime do host segue uma arquitetura hexagonal leve:
+
+- `packages/protocol/src/domain/` contém tipos e regras puras do contrato.
+- `packages/host-app/src/runtime/` contém loader, registry, status e adaptadores internos.
+
+Add-ons de texto e `@addons/addon-server` usam JavaScript ESM puro. O servidor valida o manifesto pelo pacote público já construído; não carrega o runtime do host.
 
 ## Decisões que devem permanecer explícitas
 
@@ -41,13 +44,13 @@ As justificativas e consequências estão em [`docs/DECISIONS.md`](docs/DECISION
 5. Falha no `setup` deixa a instância do add-on em estado de erro.
 6. `withFallback` e `withFallbackAsync` tentam as implementações na ordem de prioridade.
 7. Add-ons em processo usam módulos ESM carregáveis com `import()`.
-8. As regras críticas do protocolo são testadas no `@addons/core`.
-9. Todo manifesto contém metadados completos e declara `services` ou `resources`.
-10. Serviços implementam interfaces de domínio explícitas quando houver um contrato público correspondente.
+8. As regras críticas do protocolo são testadas no `@addons-poc/protocol`.
+9. Todo manifesto contém metadados completos e uma única seção `contract` v1.
+10. Serviços não oficiais usam identificadores namespaceados e descritores SemVer.
 11. Um add-on também pode ser um servidor HTTP no estilo do protocolo Stremio.
 12. O recurso `text` responde com `{ texts: [{ id, url, lang, name }] }` e entrega o conteúdo sob demanda.
 13. O servidor HTTP de add-ons permanece sem dependências externas de runtime.
-14. Serviços podem ser compostos pelo registro, inclusive quando a infraestrutura é fornecida pelo host.
+14. O host escolhe provedores por prioridade; dependências obrigatórias ausentes e ciclos bloqueiam a ativação.
 
 ## Como trabalhar com a documentação
 
@@ -59,7 +62,7 @@ Toda explicação deve seguir a mesma ordem:
 
 Escreva para que uma pessoa inteligente de 16 anos consiga acompanhar. Explique termos técnicos na primeira ocorrência, prefira frases curtas e use tabelas ou listas quando houver três ou mais itens.
 
-Qualquer alteração no `core` exige revisão de `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/MANIFEST-SPEC.md` e `docs/GLOSSARY.md` conforme o impacto.
+Qualquer alteração no `protocol` exige revisão de `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/MANIFEST-SPEC.md` e `docs/GLOSSARY.md` conforme o impacto.
 
 ## Comandos do projeto
 
@@ -108,4 +111,5 @@ Use somente estes estados nos documentos de planejamento:
 | `docs/MANIFEST-SPEC.md` | Ao criar ou alterar um add-on |
 | `docs/PHASES.md` | Para distinguir entregas de planos futuros |
 | `docs/GLOSSARY.md` | Ao encontrar um termo desconhecido |
+| `docs/PACKAGES.md` | Ao trabalhar em um pacote específico ou procurar seu README |
 | `CHANGELOG.md` | Para entender as mudanças entre versões |

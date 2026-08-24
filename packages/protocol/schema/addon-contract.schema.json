@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://addons-poc.dev/schema/addon-contract-1.0.0.json",
+  "title": "@addons-poc/protocol contract v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "protocol", "capabilities", "services", "ui", "state", "http", "logs"],
+  "properties": {
+    "version": { "const": "1.0.0" },
+    "protocol": { "type": "object", "additionalProperties": false, "required": ["version", "range"], "properties": { "version": { "const": "1.0.0" }, "range": { "type": "string", "pattern": "^(\\^|~)?1\\.\\d+\\.\\d+$" } } },
+    "capabilities": { "type": "object", "additionalProperties": false, "required": ["required", "optional"], "properties": { "required": { "type": "array", "items": { "$ref": "#/$defs/capability" }, "uniqueItems": true }, "optional": { "type": "array", "items": { "$ref": "#/$defs/capability" }, "uniqueItems": true } } },
+    "services": { "type": "array", "items": { "$ref": "#/$defs/service" } },
+    "ui": { "type": "object", "additionalProperties": false, "required": ["title", "body", "fields", "actions"], "properties": { "title": { "type": "string", "minLength": 1 }, "body": { "type": "string", "minLength": 1 }, "fields": { "type": "array", "items": { "$ref": "#/$defs/field" } }, "actions": { "type": "array", "items": { "$ref": "#/$defs/action" } } } },
+    "state": { "type": "array", "items": { "$ref": "#/$defs/state" } },
+    "http": { "type": "array", "items": { "$ref": "#/$defs/http" } },
+    "logs": { "type": "array", "items": { "$ref": "#/$defs/log" } },
+    "resources": { "type": "array", "items": { "$ref": "#/$defs/resource" } },
+    "types": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+    "idPrefixes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "catalogs": { "type": "array", "items": { "$ref": "#/$defs/catalog" } }
+  },
+  "$defs": {
+    "capability": { "type": "string", "pattern": "^(registry\\.services|ui\\.tab|logs|state-store|[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+)$" },
+    "schema": { "type": "object", "additionalProperties": false, "required": ["type", "description", "classification"], "properties": { "type": { "enum": ["string", "number", "integer", "boolean", "null", "object", "array"] }, "description": { "type": "string", "minLength": 1 }, "classification": { "enum": ["public", "personal", "secret"] }, "format": { "type": "string" }, "enum": { "type": "array" }, "properties": { "type": "object", "additionalProperties": { "$ref": "#/$defs/schema" } }, "required": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }, "items": { "$ref": "#/$defs/schema" } } },
+    "payload": { "type": "object", "additionalProperties": false, "required": ["description", "schema"], "properties": { "description": { "type": "string", "minLength": 1 }, "schema": { "$ref": "#/$defs/schema" } } },
+    "method": { "type": "object", "additionalProperties": false, "required": ["id", "description"], "properties": { "id": { "type": "string", "pattern": "^[a-z][a-zA-Z0-9_-]*$" }, "description": { "type": "string", "minLength": 1 }, "receives": { "$ref": "#/$defs/payload" }, "returns": { "$ref": "#/$defs/payload" } } },
+    "service": { "type": "object", "additionalProperties": false, "required": ["id", "role", "version", "name", "description", "methods"], "properties": { "id": { "anyOf": [{ "const": "state-store" }, { "type": "string", "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$" }] }, "role": { "enum": ["provides", "consumes"] }, "version": { "type": "string", "pattern": "^(\\^|~)?\\d+\\.\\d+\\.\\d+$" }, "name": { "type": "string", "minLength": 1 }, "description": { "type": "string", "minLength": 1 }, "priority": { "type": "number" }, "required": { "type": "boolean" }, "methods": { "type": "array", "items": { "$ref": "#/$defs/method" } } }, "allOf": [{ "if": { "properties": { "role": { "const": "provides" } } }, "then": { "properties": { "version": { "pattern": "^\\d+\\.\\d+\\.\\d+$" } } } }] },
+    "field": { "type": "object", "additionalProperties": false, "required": ["id", "label", "description", "schema"], "properties": { "id": { "type": "string", "minLength": 1 }, "label": { "type": "string", "minLength": 1 }, "description": { "type": "string", "minLength": 1 }, "required": { "type": "boolean" }, "schema": { "$ref": "#/$defs/schema" } } },
+    "action": { "type": "object", "additionalProperties": false, "required": ["id", "label", "description", "returns"], "properties": { "id": { "type": "string", "minLength": 1 }, "label": { "type": "string", "minLength": 1 }, "description": { "type": "string", "minLength": 1 }, "receives": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }, "returns": { "$ref": "#/$defs/payload" } } },
+    "state": { "type": "object", "additionalProperties": false, "required": ["id", "description", "operations", "value", "retention", "deletionTrigger"], "properties": { "id": { "type": "string", "minLength": 1 }, "description": { "type": "string", "minLength": 1 }, "key": { "type": "string", "minLength": 1 }, "keyPattern": { "type": "string", "minLength": 1 }, "operations": { "type": "array", "minItems": 1, "items": { "enum": ["read", "write", "remove", "list", "clear"] }, "uniqueItems": true }, "value": { "$ref": "#/$defs/payload" }, "retention": { "type": "string", "minLength": 1 }, "deletionTrigger": { "type": "string", "minLength": 1 }, "fallback": { "type": "string" } }, "oneOf": [{ "required": ["key"], "not": { "required": ["keyPattern"] } }, { "required": ["keyPattern"], "not": { "required": ["key"] } }] },
+    "http": { "type": "object", "additionalProperties": false, "required": ["id", "direction", "method", "path", "purpose", "returns"], "properties": { "id": { "type": "string", "minLength": 1 }, "direction": { "enum": ["incoming", "outgoing"] }, "method": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] }, "path": { "type": "string", "pattern": "^/" }, "origin": { "type": "string", "format": "uri" }, "purpose": { "type": "string", "minLength": 1 }, "receives": { "$ref": "#/$defs/payload" }, "returns": { "$ref": "#/$defs/payload" }, "resource": { "type": "string" } } },
+    "log": { "type": "object", "additionalProperties": false, "required": ["id", "level", "message", "description"], "properties": { "id": { "type": "string", "minLength": 1 }, "level": { "enum": ["info", "warn", "error"] }, "message": { "type": "string", "minLength": 1 }, "description": { "type": "string", "minLength": 1 }, "details": { "$ref": "#/$defs/payload" } } },
+    "resource": { "type": "object", "additionalProperties": false, "required": ["name", "types"], "properties": { "name": { "enum": ["catalog", "search", "text", "meta", "subtitles", "stream"] }, "types": { "type": "array", "minItems": 1, "items": { "type": "string" }, "uniqueItems": true }, "idPrefixes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true } } },
+    "catalog": { "type": "object", "additionalProperties": false, "required": ["type", "id", "name"], "properties": { "type": { "type": "string", "minLength": 1 }, "id": { "type": "string", "minLength": 1 }, "name": { "type": "string", "minLength": 1 } } }
+  }
+}

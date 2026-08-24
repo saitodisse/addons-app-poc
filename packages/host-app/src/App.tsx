@@ -1,128 +1,16 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
-import { ServiceRegistry, ConsoleLogger, FetchAddonLoader, assertProvidedService, createContractServiceAccess, getInteractionContractFingerprint, validateInteractionContract, validateManifest, validateTabContract } from '@addons/core';
-import type { AddonInstance, AddonManifest, DebugLog, HostAPI, AddonModule } from '@addons/core';
+import { getInteractionContractFingerprint, validateManifest } from '@addons-poc/protocol';
+import type { AddonInstance, AddonManifest } from '@addons-poc/protocol';
+import { ServiceRegistry } from './runtime/registry';
+import { ConsoleLogger } from './runtime/logger';
+import { FetchAddonLoader } from './runtime/loader';
 import { Header } from './components/Header';
 import { AddonManager } from './components/AddonManager';
 import { AddonSidebar } from './components/AddonSidebar';
 import { AddonTabView } from './components/AddonTabView';
 import { manifestUrlDaRota, navegar, RUTAS, rotaDoAddon, useRuta } from './router';
 
-// Hello add-on
-import * as helloModule from '@addons/addon-hello';
-// Hello PT add-on
-import * as helloPtModule from '@addons/addon-hello-pt';
-// Counter add-on
-import * as counterModule from '@addons/addon-counter';
-// Markdown add-on
-import * as markdownModule from '@addons/addon-markdown';
-// Aggregator add-on
-import * as aggregatorModule from '@addons/addon-aggregator';
-// Favorites add-on
-import * as favoritesModule from '@addons/addon-favorites';
-// Health Check add-on
-import * as healthModule from '@addons/addon-health';
-// Persistência opcional
-import * as storageLocalModule from '@addons/addon-storage-local';
-import * as storageSessionModule from '@addons/addon-storage-session';
-// Observabilidade opcional
-import * as debugModule from '@addons/addon-debug';
-
-type AddonKey = 'hello' | 'hello-pt' | 'counter' | 'markdown' | 'aggregator' | 'favorites' | 'health' | 'storage-local' | 'storage-session' | 'debug';
-
-interface AddonInfo {
-  key: AddonKey;
-  name: string;
-  description: string;
-  manifestUrl: string;
-  module: () => AddonModule;
-}
-
-// Hello add-on
-const ADDONS: Record<AddonKey, AddonInfo> = {
-  hello: {
-    key: 'hello',
-    name: helloModule.manifest.name,
-    description: helloModule.manifest.description,
-    manifestUrl: 'http://localhost:5280/packages/addon-hello/manifest.json',
-    module: () => helloModule,
-  },
-  'hello-pt': {
-    key: 'hello-pt',
-    name: helloPtModule.manifest.name,
-    description: helloPtModule.manifest.description,
-    manifestUrl: 'http://localhost:5280/packages/addon-hello-pt/manifest.json',
-    module: () => helloPtModule,
-  },
-  counter: {
-    key: 'counter',
-    name: counterModule.manifest.name,
-    description: counterModule.manifest.description,
-    manifestUrl: 'http://localhost:5280/packages/addon-counter/manifest.json',
-    module: () => counterModule,
-  },
-  markdown: {
-    key: 'markdown',
-    name: markdownModule.manifest.name,
-    description: markdownModule.manifest.description,
-    manifestUrl: 'http://localhost:5280/packages/addon-markdown/manifest.json',
-    module: () => markdownModule,
-  },
-  aggregator: {
-    key: 'aggregator',
-    name: aggregatorModule.manifest.name,
-    description: aggregatorModule.manifest.description,
-    manifestUrl: 'http://localhost:5280/packages/addon-aggregator/manifest.json',
-    module: () => aggregatorModule,
-  },
-  favorites: {
-    key: 'favorites',
-    name: favoritesModule.manifest.name,
-    description: favoritesModule.manifest.description,
-    manifestUrl: 'http://localhost:5280/packages/addon-favorites/manifest.json',
-    module: () => favoritesModule,
-  },
-  health: {
-    key: 'health',
-    name: healthModule.manifest.name,
-    description: healthModule.manifest.description,
-    manifestUrl: 'http://localhost:5280/packages/addon-health/manifest.json',
-    module: () => healthModule,
-  },
-  'storage-local': {
-    key: 'storage-local',
-    name: storageLocalModule.manifest.name,
-    description: storageLocalModule.manifest.description,
-    manifestUrl: 'http://localhost:5280/packages/addon-storage-local/manifest.json',
-    module: () => storageLocalModule,
-  },
-  'storage-session': {
-    key: 'storage-session',
-    name: storageSessionModule.manifest.name,
-    description: storageSessionModule.manifest.description,
-    manifestUrl: 'http://localhost:5280/packages/addon-storage-session/manifest.json',
-    module: () => storageSessionModule,
-  },
-  debug: {
-    key: 'debug',
-    name: debugModule.manifest.name,
-    description: debugModule.manifest.description,
-    manifestUrl: 'http://localhost:5280/packages/addon-debug/manifest.json',
-    module: () => debugModule,
-  },
-};
-
-const DEFAULT_KEYS: AddonKey[] = [];
-const ALL_KEYS: AddonKey[] = ['storage-local', 'storage-session', 'debug', 'hello', 'hello-pt', 'counter', 'markdown', 'aggregator', 'favorites', 'health'];
 const INSTALLATIONS_STORAGE_KEY = 'addons:host-installations:v1';
-
-const EMPTY_INTERACTIONS = {
-  version: '1.0.0',
-  services: [],
-  tab: { fields: [], actions: [] },
-  state: [],
-  http: [],
-  logs: [],
-};
 
 interface PersistedInstallations {
   manifestUrls: string[];
@@ -162,25 +50,6 @@ function persistInstallations(installations: PersistedInstallations): void {
   }
 }
 
-function installationOrder(manifestUrl: string): number {
-  const key = ALL_KEYS.find((candidate) => ADDONS[candidate].manifestUrl === manifestUrl);
-  if (key === 'storage-local' || key === 'storage-session') return 0;
-  if (key === 'debug') return 1;
-  return 2;
-}
-
-export interface AddonSuggestion {
-  manifestUrl: string;
-  name: string;
-  description: string;
-}
-
-const SUGGESTIONS: AddonSuggestion[] = ALL_KEYS.map((key) => ({
-  manifestUrl: ADDONS[key].manifestUrl,
-  name: ADDONS[key].name,
-  description: ADDONS[key].description,
-}));
-
 export function App() {
   const [registry] = useState(() => new ServiceRegistry());
   const [logger] = useState(() => new ConsoleLogger());
@@ -193,107 +62,22 @@ export function App() {
   const loadedRef = useRef(false);
   const rota = useRuta();
 
-  const loadBundledAddon = useCallback(async (key: AddonKey): Promise<AddonInstance> => {
-    const info = ADDONS[key];
-
-    try {
-      const mod = info.module();
-      const contractValidation = validateInteractionContract(mod.manifest as unknown as Record<string, unknown>);
-      if (!contractValidation.valid) {
-        throw new Error(`Contrato de interação inválido: ${contractValidation.errors.join(', ')}`);
-      }
-      const host: HostAPI = {
-        services: createContractServiceAccess(registry, mod.manifest.interactions),
-        registerService: <T,>(serviceId: string, instance: T, priority?: number) => {
-          assertProvidedService(mod.manifest.interactions, serviceId);
-          registry.register(serviceId, instance, info.manifestUrl, priority);
-        },
-        onUnload: () => {},
-        log: (level, message, details) => {
-          logger.log(level, `[${info.manifestUrl}] ${message}`);
-          registry.get<DebugLog>('debugLog')?.record({
-            addonId: info.manifestUrl,
-            level,
-            message,
-            details,
-            timestamp: Date.now(),
-          });
-        },
-      };
-      await mod.setup(host);
-      const tab = mod.createTab(host);
-      const tabValidation = validateTabContract(mod.manifest as unknown as Record<string, unknown>, tab);
-      if (!tabValidation.valid) {
-        registry.clearAddon(info.manifestUrl);
-        throw new Error(`A aba diverge do contrato: ${tabValidation.errors.join(', ')}`);
-      }
-      return {
-        manifest: mod.manifest,
-        manifestUrl: info.manifestUrl,
-        status: 'ready',
-        services: (mod.manifest.services ?? []).map((service) => service.id),
-        tab,
-      };
-    } catch (error) {
-      logger.log('error', `Erro ao carregar ${info.name}: ${error}`);
-      return {
-        manifest: {
-          id: key,
-          version: '0.0.0',
-          name: info.name,
-          description: 'Falha ao carregar',
-          author: '-',
-          license: '-',
-          tab: info.module().manifest.tab,
-          entrypoint: info.manifestUrl,
-          services: [],
-          interactions: EMPTY_INTERACTIONS,
-        },
-        manifestUrl: info.manifestUrl,
-        status: 'error',
-        error: error as Error,
-        services: [],
-        tab: {
-          ...info.module().manifest.tab,
-        },
-      };
-    }
+  const loadRemoteAddon = useCallback(async (manifestUrl: string): Promise<AddonInstance> => {
+    return new FetchAddonLoader(registry, logger).load(manifestUrl);
   }, [logger, registry]);
 
-  const loadRemoteAddon = useCallback(async (manifestUrl: string): Promise<AddonInstance> => {
-    const response = await fetch(manifestUrl);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status} ao buscar manifesto`);
-    }
-
-    const manifest = await response.json() as AddonManifest;
-    const validation = validateManifest(manifest);
-    if (!validation.valid) {
-      throw new Error(`Manifesto inválido: ${validation.errors.join(', ')}`);
-    }
-
-    if (!manifest.entrypoint) {
-      return {
-        manifest,
-        manifestUrl,
-        status: 'ready',
-        services: [],
-        tab: { ...manifest.tab },
-      };
-    }
-
-    return new FetchAddonLoader(registry, logger).load(manifestUrl);
+  const recheckDependencies = useCallback(async (manifestUrls: string[]) => {
+    const urls = [...new Set(manifestUrls)];
+    if (urls.length === 0) return;
+    const refreshed = await Promise.all(urls.map(async (manifestUrl) => {
+      registry.clearAddon(manifestUrl);
+      return new FetchAddonLoader(registry, logger).load(manifestUrl);
+    }));
+    setAddons((current) => current.map((addon) => refreshed.find((item) => item.manifestUrl === addon.manifestUrl) ?? addon));
   }, [logger, registry]);
 
   const inspectManifest = useCallback(async (value: string): Promise<AddonManifest> => {
     const manifestUrl = normalizeManifestUrl(value);
-    const bundledKey = ALL_KEYS.find((key) => ADDONS[key].manifestUrl === manifestUrl);
-    if (bundledKey) {
-      const manifest = ADDONS[bundledKey].module().manifest;
-      const validation = validateInteractionContract(manifest as unknown as Record<string, unknown>);
-      if (!validation.valid) throw new Error(`Contrato de interação inválido: ${validation.errors.join(', ')}`);
-      return manifest;
-    }
     const response = await fetch(manifestUrl);
     if (!response.ok) throw new Error(`HTTP ${response.status} ao buscar manifesto`);
     const manifest = await response.json() as AddonManifest;
@@ -307,40 +91,48 @@ export function App() {
       loadedRef.current = true;
       const loadInitialAddons = async () => {
         setLoading(true);
-        const instances: AddonInstance[] = [];
+        const instances = new Map<string, AddonInstance>();
         const persisted = readPersistedInstallations();
-        const initialUrls = persisted.manifestUrls.length
-          ? persisted.manifestUrls
-          : DEFAULT_KEYS.map((key) => ADDONS[key].manifestUrl);
-        const sortedUrls = initialUrls
-          .map((url, index) => ({ url, index }))
-          .sort((left, right) => installationOrder(left.url) - installationOrder(right.url) || left.index - right.index)
-          .map(({ url }) => url);
+        const initialUrls = persisted.manifestUrls;
+        try {
+          for (const instance of await new FetchAddonLoader(registry, logger).loadAll(initialUrls)) {
+            if (instance.manifest) instances.set(instance.manifestUrl, instance);
+          }
+        } catch (error) {
+          console.error('Não foi possível restaurar os add-ons instalados', error);
+        }
+        let restored = [...instances.values()];
         const pending: string[] = [];
-
-        for (const manifestUrl of sortedUrls) {
-          const bundledKey = ALL_KEYS.find((key) => ADDONS[key].manifestUrl === manifestUrl);
-          try {
-            const instance = bundledKey
-              ? await loadBundledAddon(bundledKey)
-              : await loadRemoteAddon(manifestUrl);
-            if (instance.status === 'ready') {
-              instances.push(instance);
-              const fingerprint = getInteractionContractFingerprint(instance.manifest.interactions);
-              if (persisted.acceptedContractFingerprints[manifestUrl] !== fingerprint) {
-                pending.push(manifestUrl);
-                registry.clearAddon(manifestUrl);
-              }
-            }
-          } catch (error) {
-            console.error('Não foi possível restaurar o add-on instalado', { manifestUrl, error });
+        for (const instance of restored) {
+          if (instance.status !== 'ready') continue;
+          const fingerprint = getInteractionContractFingerprint(instance.manifest.contract);
+          if (persisted.acceptedContractFingerprints[instance.manifestUrl] !== fingerprint) {
+            pending.push(instance.manifestUrl);
+            registry.clearAddon(instance.manifestUrl);
           }
         }
-        setAddons(instances);
+        const disabled = new Set(persisted.disabledManifestUrls);
+        for (const instance of restored) {
+          if (disabled.has(instance.manifestUrl) || pending.includes(instance.manifestUrl)) {
+            registry.clearAddon(instance.manifestUrl);
+          }
+        }
+        const dependents = restored
+          .filter((instance) => instance.status !== 'error' && !disabled.has(instance.manifestUrl) && !pending.includes(instance.manifestUrl))
+          .filter((instance) => instance.manifest.contract.services.some((service) => service.role === 'consumes'))
+          .map((instance) => instance.manifestUrl);
+        if (dependents.length > 0) {
+          const refreshed = await Promise.all(dependents.map(async (manifestUrl) => {
+            registry.clearAddon(manifestUrl);
+            return new FetchAddonLoader(registry, logger).load(manifestUrl);
+          }));
+          restored = restored.map((instance) => refreshed.find((item) => item.manifestUrl === instance.manifestUrl) ?? instance);
+        }
+        setAddons(restored);
         setAcceptedContractFingerprints(persisted.acceptedContractFingerprints);
         setPendingContractUrls(pending);
         setDisabledAddonUrls([...new Set([
-          ...persisted.disabledManifestUrls.filter((url) => instances.some((addon) => addon.manifestUrl === url)),
+          ...persisted.disabledManifestUrls.filter((url) => restored.some((addon) => addon.manifestUrl === url)),
           ...pending,
         ])]);
         setInstallationsReady(true);
@@ -348,7 +140,7 @@ export function App() {
       };
       void loadInitialAddons();
     }
-  }, [loadBundledAddon, loadRemoteAddon]);
+  }, [loadRemoteAddon]);
 
   useEffect(() => {
     if (!installationsReady) return;
@@ -383,17 +175,14 @@ export function App() {
       return 'Este add-on já está instalado';
     }
 
-    const bundledKey = ALL_KEYS.find((key) => ADDONS[key].manifestUrl === manifestUrl);
     setLoading(true);
     try {
-      const installed = bundledKey
-        ? await loadBundledAddon(bundledKey)
-        : await loadRemoteAddon(manifestUrl);
+      const installed = await loadRemoteAddon(manifestUrl);
 
       if (installed.status === 'error') {
         return installed.error?.message ?? 'Não foi possível instalar o add-on';
       }
-      const currentFingerprint = getInteractionContractFingerprint(installed.manifest.interactions);
+      const currentFingerprint = getInteractionContractFingerprint(installed.manifest.contract);
       if (currentFingerprint !== acceptedFingerprint) {
         registry.clearAddon(manifestUrl);
         return 'O contrato mudou durante a instalação. Revise-o novamente antes de aceitar.';
@@ -402,13 +191,14 @@ export function App() {
       setAddons((current) => [...current, installed]);
       setAcceptedContractFingerprints((current) => ({ ...current, [manifestUrl]: currentFingerprint }));
       logInstalledContract(installed);
+      void recheckDependencies(addons.filter((addon) => addon.status === 'blocked').map((addon) => addon.manifestUrl));
       return undefined;
     } catch (error) {
       return (error as Error).message || 'Não foi possível instalar o add-on';
     } finally {
       setLoading(false);
     }
-  }, [addons, loadBundledAddon, loadRemoteAddon, registry]);
+  }, [addons, loadRemoteAddon, recheckDependencies, registry]);
 
   const toggleAddon = useCallback(async (manifestUrl: string) => {
     const addon = addons.find((current) => current.manifestUrl === manifestUrl);
@@ -417,21 +207,23 @@ export function App() {
     if (pendingContractUrls.includes(manifestUrl)) return;
 
     if (!disabledAddonUrls.includes(manifestUrl)) {
+      const dependents = addons
+        .filter((item) => item.manifestUrl !== manifestUrl && item.manifest.contract.services.some((service) => service.role === 'consumes'))
+        .map((item) => item.manifestUrl);
       registry.clearAddon(manifestUrl);
       setDisabledAddonUrls((urls) => [...urls, manifestUrl]);
+      void recheckDependencies(dependents);
       return;
     }
 
-    const bundledKey = ALL_KEYS.find((key) => ADDONS[key].manifestUrl === manifestUrl);
     setLoading(true);
     try {
-      const reloaded = bundledKey
-        ? await loadBundledAddon(bundledKey)
-        : await loadRemoteAddon(manifestUrl);
+      const reloaded = await loadRemoteAddon(manifestUrl);
 
       if (reloaded.status === 'ready') {
         setAddons((current) => current.map((item) => item.manifestUrl === manifestUrl ? reloaded : item));
         setDisabledAddonUrls((urls) => urls.filter((url) => url !== manifestUrl));
+        void recheckDependencies(addons.filter((addon) => addon.status === 'blocked' && addon.manifestUrl !== manifestUrl).map((addon) => addon.manifestUrl));
       } else {
         console.error('Não foi possível ativar o add-on', reloaded.error);
       }
@@ -440,18 +232,17 @@ export function App() {
     } finally {
       setLoading(false);
     }
-  }, [addons, disabledAddonUrls, loadBundledAddon, loadRemoteAddon, pendingContractUrls, registry]);
+  }, [addons, disabledAddonUrls, loadRemoteAddon, pendingContractUrls, recheckDependencies, registry]);
 
   const acceptContract = useCallback(async (manifestUrl: string) => {
     const addon = addons.find((current) => current.manifestUrl === manifestUrl);
     if (!addon) return;
-    const reviewedFingerprint = getInteractionContractFingerprint(addon.manifest.interactions);
-    const bundledKey = ALL_KEYS.find((key) => ADDONS[key].manifestUrl === manifestUrl);
+    const reviewedFingerprint = getInteractionContractFingerprint(addon.manifest.contract);
     setLoading(true);
     try {
-      const reloaded = bundledKey ? await loadBundledAddon(bundledKey) : await loadRemoteAddon(manifestUrl);
+      const reloaded = await loadRemoteAddon(manifestUrl);
       if (reloaded.status !== 'ready') return;
-      if (getInteractionContractFingerprint(reloaded.manifest.interactions) !== reviewedFingerprint) {
+      if (getInteractionContractFingerprint(reloaded.manifest.contract) !== reviewedFingerprint) {
         setAddons((current) => current.map((item) => item.manifestUrl === manifestUrl ? reloaded : item));
         return;
       }
@@ -459,13 +250,19 @@ export function App() {
       setAcceptedContractFingerprints((current) => ({ ...current, [manifestUrl]: reviewedFingerprint }));
       setPendingContractUrls((urls) => urls.filter((url) => url !== manifestUrl));
       setDisabledAddonUrls((urls) => urls.filter((url) => url !== manifestUrl));
+      void recheckDependencies(addons
+        .filter((item) => item.manifestUrl !== manifestUrl && item.manifest.contract.services.some((service) => service.role === 'consumes'))
+        .map((item) => item.manifestUrl));
     } finally {
       setLoading(false);
     }
-  }, [addons, loadBundledAddon, loadRemoteAddon]);
+  }, [addons, loadRemoteAddon]);
 
   const removeAddon = useCallback((manifestUrl: string) => {
     registry.clearAddon(manifestUrl);
+    const dependents = addons
+      .filter((addon) => addon.manifestUrl !== manifestUrl && addon.manifest.contract.services.some((service) => service.role === 'consumes'))
+      .map((addon) => addon.manifestUrl);
     setAddons((current) => current.filter((addon) => addon.manifestUrl !== manifestUrl));
     setDisabledAddonUrls((urls) => urls.filter((url) => url !== manifestUrl));
     setPendingContractUrls((urls) => urls.filter((url) => url !== manifestUrl));
@@ -473,10 +270,11 @@ export function App() {
       const { [manifestUrl]: _removed, ...remaining } = current;
       return remaining;
     });
-  }, [registry]);
+    void recheckDependencies(dependents);
+  }, [addons, recheckDependencies, registry]);
   const activeAddons = addons.filter((addon) =>
     addon.status === 'ready' &&
-    addon.tab &&
+    addon.ui &&
     !disabledAddonUrls.includes(addon.manifestUrl),
   );
 
@@ -514,7 +312,6 @@ export function App() {
               onToggle={toggleAddon}
               onRemove={removeAddon}
               onAcceptContract={acceptContract}
-              suggestions={SUGGESTIONS}
               loading={loading}
             />
           </section>
@@ -564,6 +361,3 @@ export function App() {
     </div>
   );
 }
-
-export { ADDONS };
-export type { AddonKey };

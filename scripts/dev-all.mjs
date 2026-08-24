@@ -1,7 +1,11 @@
 /**
- * Sobe o host-app E os servidores dos add-ons de texto juntos.
+ * Sobe o host-app e cada add-on como processo independente.
  * Uso: pnpm dev
- * Portas: host-app :5280 · biblioteca :5291 · citações :5292 · poemas :5293 · wikipedia :5294
+ * Portas: host-app :5280 · add-ons HTTP :5291-5294 · add-ons em processo :5301-5310
+ *
+ * Quando um projeto com script `serve` for adicionado, removido ou mudar de
+ * porta, atualize esta lista e sincronize `PORTS` e os padrões de órfãos em
+ * `scripts/kill-all.mjs`.
  */
 import { spawn } from 'node:child_process';
 
@@ -12,6 +16,26 @@ const OPEN_BROWSER = process.argv.includes('--open');
 const isWSL = Boolean(
   process.env.WSL_DISTRO_NAME || process.env.WSL_INTEROP || process.env.WSLENV,
 );
+
+// Todos os pacotes executáveis da demonstração. Pacotes de contrato e
+// bibliotecas compartilhadas não entram porque não têm um servidor próprio.
+// Mantenha esta lista sincronizada com PORTS/padrões em kill-all.mjs.
+const ADDON_SERVERS = [
+  { packageName: '@addons/addon-text-biblioteca', port: 5291 },
+  { packageName: '@addons/addon-text-citacoes', port: 5292 },
+  { packageName: '@addons/addon-text-poemas', port: 5293 },
+  { packageName: '@addons/addon-text-wikipedia', port: 5294 },
+  { packageName: '@addons/addon-hello', port: 5301 },
+  { packageName: '@addons/addon-hello-pt', port: 5302 },
+  { packageName: '@addons/addon-counter', port: 5303 },
+  { packageName: '@addons/addon-markdown', port: 5304 },
+  { packageName: '@addons/addon-aggregator', port: 5305 },
+  { packageName: '@addons/addon-favorites', port: 5306 },
+  { packageName: '@addons/addon-health', port: 5307 },
+  { packageName: '@addons/addon-storage-local', port: 5308 },
+  { packageName: '@addons/addon-storage-session', port: 5309 },
+  { packageName: '@addons/addon-debug', port: 5310 },
+];
 
 const children = [
   spawn(
@@ -24,10 +48,11 @@ const children = [
     ],
     { stdio: 'inherit', shell: true },
   ),
-  spawn('pnpm', ['--filter', '@addons/addon-text-biblioteca', 'serve'], { stdio: 'inherit', shell: true }),
-  spawn('pnpm', ['--filter', '@addons/addon-text-citacoes', 'serve'], { stdio: 'inherit', shell: true }),
-  spawn('pnpm', ['--filter', '@addons/addon-text-poemas', 'serve'], { stdio: 'inherit', shell: true }),
-  spawn('pnpm', ['--filter', '@addons/addon-text-wikipedia', 'serve'], { stdio: 'inherit', shell: true }),
+  ...ADDON_SERVERS.map(({ packageName }) => spawn(
+    'pnpm',
+    ['--filter', packageName, 'serve'],
+    { stdio: 'inherit', shell: true },
+  )),
 ];
 
 if (isWSL) {

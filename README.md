@@ -16,21 +16,21 @@ Essa ideia foi inspirada no protocolo de add-ons do Stremio. A inspiração est�
 
 O projeto demonstra dois formatos de add-on que convivem no mesmo protocolo:
 
-1. **Add-on em processo:** é um módulo JavaScript carregado pelo host. Durante a inicialização, ele registra serviços como saudação, contador ou favoritos.
+1. **Add-on em processo:** é um módulo JavaScript carregado pelo host a partir da URL declarada no manifesto. Durante a inicialização, ele registra os serviços que seu contrato permite.
 2. **Add-on HTTP:** é um servidor independente. O host lê seu manifesto e consulta catálogos, buscas e textos por rotas HTTP.
 
-O host também demonstra **prioridade** e **fallback**. Quando dois add-ons oferecem o mesmo serviço, a implementação de maior prioridade é tentada primeiro. Se ela falhar, `withFallback` ou `withFallbackAsync` tenta a próxima.
+O runtime e os testes também demonstram **prioridade** e **fallback**. Quando dois add-ons oferecem o mesmo serviço, o registry interno ordena as implementações e a operação de fallback tenta a próxima quando a anterior falha. Os helpers de fallback são internos à implementação do runtime; a API pública do add-on continua sendo `host.services.use(contrato)`.
 
-Em **Configurações**, uma pessoa pode informar a URL de um manifesto, revisar o contrato de interação e só então instalar o add-on. A escolha, as extensões desativadas e a aceitação do contrato sobrevivem ao recarregamento da página. Cada extensão ativa ganha uma rota própria na barra lateral.
+Em **Configurações**, uma pessoa pode informar a URL de um manifesto, revisar o contrato do protocolo e só então instalar o add-on. A escolha, as extensões desativadas e a aceitação do contrato sobrevivem ao recarregamento da página. Cada extensão ativa ganha uma rota própria na barra lateral.
 
 ## Visão rápida da arquitetura
 
 ```text
                         contratos e regras
                     ┌──────────────────────┐
-                    │    @addons/core      │
-                    │ manifesto, registry, │
-                    │ validação e clientes │
+                    │ @addons-poc/protocol │
+                    │ contrato v1, schema,│
+                    │ validação e SDK      │
                     └──────────┬───────────┘
                                │
              ┌─────────────────┴─────────────────┐
@@ -42,7 +42,7 @@ Em **Configurações**, uma pessoa pode informar a URL de um manifesto, revisar 
     └─────────────────┘                 └─────────────────┘
 ```
 
-O `core` é o centro do protocolo. O host e os add-ons dependem dele, mas add-ons não dependem do host. Os add-ons HTTP usam `@addons/addon-server`, um servidor Node.js sem dependências externas de runtime.
+`@addons-poc/protocol` é a fronteira pública de compatibilidade. O runtime do host (loader, registro, estados e adaptadores) fica em `packages/host-app/src/runtime`; add-ons não dependem do host nem uns dos outros. Os add-ons HTTP usam `@addons/addon-server`, um servidor Node.js sem dependências externas de runtime.
 
 ## Como executar
 
@@ -53,7 +53,7 @@ pnpm install
 pnpm dev
 ```
 
-O comando inicia o host em `http://localhost:5280` e os quatro servidores de texto:
+O comando inicia o host em `http://localhost:5280`, quatro servidores de texto e dez add-ons em processo. Cada um publica seu próprio manifesto e bundle; o host não os serve.
 
 | Porta | Add-on | Origem do conteúdo |
 |---:|---|---|
@@ -61,6 +61,8 @@ O comando inicia o host em `http://localhost:5280` e os quatro servidores de tex
 | `5292` | Citações da Web | DummyJSON Quotes |
 | `5293` | Poemas | PoetryDB |
 | `5294` | Wikipédia | APIs da Wikipédia |
+
+Os add-ons em processo usam as portas `5301` a `5310`. Por exemplo, `http://localhost:5301/manifest.json` publica o add-on Hello. Cada add-on em processo aceita `pnpm --filter @addons/<nome> serve` para ser executado separadamente.
 
 No WSL2, abra `http://localhost:5280` manualmente no navegador do Windows. O servidor já escuta em `0.0.0.0` e o script evita tentar abrir um navegador dentro do Linux.
 
@@ -76,39 +78,62 @@ pnpm kill-all
 |---|---|
 | `pnpm dev:host` | Inicia apenas o host |
 | `pnpm dev:addons` | Inicia apenas os add-ons HTTP |
+| `pnpm --filter @addons/addon-hello serve` | Empacota e serve apenas o add-on Hello em `5301` |
 | `pnpm test` | Executa os testes de todos os pacotes |
 | `pnpm build:host` | Gera a build de produção do host |
 
-## Como explorar a demonstração
+### Preparar a publicação do protocolo
 
-Comece pela interface do host:
+O pacote público fica em `packages/protocol`. Antes de publicar, confirme a
+conta e a propriedade do escopo na organização; se essa checagem falhar, não
+publique em outro nome:
 
-- **Configurações:** instala uma URL, mostra o contrato antes da ativação, permite desativar ou remover e preserva a escolha após F5.
-- **Saudação:** usa o serviço `greeter`.
-- **Contador:** usa o serviço `counter`.
-- **Fallback:** mostra a troca automática entre duas implementações de `greeter`.
-- **Textos:** consulta os quatro servidores HTTP, navega catálogos, busca e carrega conteúdo sob demanda.
-- **Inspetor:** mostra os serviços presentes no registro.
-- **Extras:** demonstra formatação, busca agregada, favoritos e verificação de disponibilidade.
+```bash
+cd packages/protocol
+npm whoami
+npm access list packages @addons-poc
+npm pack --dry-run
+npm publish --access public
+```
+
+A versão única desta entrega é `@addons-poc/protocol@1.0.0`. Depois do envio,
+confirme `npm view @addons-poc/protocol@1.0.0` e faça uma instalação em um
+projeto temporário.
+
+## Como explorar o host
+
+O host inicia sem add-ons embutidos. Em **Configurações**, informe a URL de um manifesto:
+
+- revise o contrato do protocolo antes de instalar;
+- aceite o contrato para ativar a extensão;
+- abra a rota criada na barra lateral;
+- desative, remova ou recarregue a página para conferir a persistência da escolha.
+
+A mesma tela exibe URLs locais de `manifest.json` como atalho. Os títulos e
+resumos são lidos genericamente de cada manifesto, sem carregar o bundle:
+**Copiar** preenche o campo de URL e **Instalar** preenche o campo e inicia a
+revisão do contrato.
+
+Os quatro servidores HTTP iniciados por `pnpm dev` continuam disponíveis como exemplos independentes. Eles podem ser instalados pelas URLs `http://localhost:5291/manifest.json` a `http://localhost:5294/manifest.json`; o host não os conhece nem os inclui em sua build.
 
 ## Pacotes do projeto
 
 | Pacote | Responsabilidade |
 |---|---|
-| `@addons/core` | Tipos, regras de domínio, registro de serviços, validação, fallback, portas e adaptadores |
-| `@addons/host-app` | Aplicativo React que reúne as demonstrações |
-| `@addons/addon-server` | Servidor HTTP para add-ons de texto |
-| `@addons/addon-hello` | Saudação padrão |
-| `@addons/addon-hello-pt` | Saudação prioritária, usada para demonstrar fallback |
-| `@addons/addon-counter` | Contador com estado em memória |
-| `@addons/addon-markdown` | Serviço `textFormatter` |
-| `@addons/addon-aggregator` | Serviço `searchProvider` para busca em vários servidores |
-| `@addons/addon-favorites` | Serviço `favorites`, persistido pelo `bookmarkStore` do host |
-| `@addons/addon-health` | Serviço `healthCheck` para os servidores remotos |
-| `@addons/addon-storage-local` | Serviço `addonStateStore` persistido no `localStorage` |
-| `@addons/addon-storage-session` | Serviço `addonStateStore` limitado à aba atual |
-| `@addons/addon-debug` | Serviço `debugLog` e aba para eventos estruturados |
-| `@addons/addon-text-*` | Biblioteca, citações, poemas e Wikipédia por HTTP |
+| [`@addons-poc/protocol`](packages/protocol/README.md) | Contrato v1, JSON Schema, SemVer, descritores de serviço, validadores e SDK de autoria |
+| [`@addons/host-app`](packages/host-app/README.md) | Aplicativo React genérico que instala e apresenta add-ons por URL |
+| [`@addons/addon-server`](packages/addon-server/README.md) | Servidor HTTP para add-ons de texto |
+| [`@addons/addon-hello`](packages/addon-hello/README.md) | Saudação padrão |
+| [`@addons/addon-hello-pt`](packages/addon-hello-pt/README.md) | Saudação prioritária, usada para demonstrar fallback |
+| [`@addons/addon-counter`](packages/addon-counter/README.md) | Contador com estado opcional |
+| [`@addons/addon-markdown`](packages/addon-markdown/README.md) | Serviço namespaceado de Markdown |
+| [`@addons/addon-aggregator`](packages/addon-aggregator/README.md) | Busca agregada entre servidores HTTP |
+| [`@addons/addon-favorites`](packages/addon-favorites/README.md) | Serviço namespaceado de favoritos |
+| [`@addons/addon-health`](packages/addon-health/README.md) | Verificação dos servidores remotos |
+| [`@addons/addon-storage-local`](packages/addon-storage-local/README.md) | Serviço oficial opcional `state-store` no `localStorage` |
+| [`@addons/addon-storage-session`](packages/addon-storage-session/README.md) | Serviço oficial opcional `state-store` na sessão |
+| [`@addons/addon-debug`](packages/addon-debug/README.md) | Serviço namespaceado de logs estruturados |
+| [`@addons/addon-text-*`](docs/PACKAGES.md) | Biblioteca, citações, poemas e Wikipédia por HTTP |
 
 ## Onde continuar a leitura
 
@@ -121,12 +146,29 @@ Toda a documentação usa a mesma progressão: começa com a explicação mais s
 5. [`docs/MANIFEST-SPEC.md`](docs/MANIFEST-SPEC.md) especifica os dois formatos de manifesto.
 6. [`docs/PHASES.md`](docs/PHASES.md) mostra o que foi entregue e o que ainda está planejado.
 7. [`docs/GLOSSARY.md`](docs/GLOSSARY.md) define os termos usados no projeto.
+8. [`docs/PACKAGES.md`](docs/PACKAGES.md) reúne o README e o comando de cada pacote.
+
+## Contrato público v1
+
+Todo manifesto tem uma única seção `contract` com versão do protocolo, faixa
+SemVer, capacidades, descritores de serviços, UI declarativa, estado, HTTP e
+logs. O schema publicável está em `@addons-poc/protocol/schema`. Serviços que
+não são oficiais usam nomes namespaceados, como `addons.hello.greeter`.
+
+`host.services.use({ id, version, methods })` devolve uma proxy tipada e
+mediada. A entrada e a saída declaradas são verificadas no ponto de uso. O
+host escolhe provedores por prioridade e deixa fallback explícito. Um serviço
+obrigatório ausente bloqueia a instalação até surgir um provedor compatível;
+ciclos obrigatórios também são bloqueados.
 
 ## Limites atuais
 
-Esta POC prova o protocolo, mas ainda não é uma plataforma pronta para produção. As sugestões locais entram na build do host, porém a tela de Configurações também instala manifestos compatíveis por URL e usa o loader para módulos ESM em processo. Ainda faltam negociação de versões, cache e atualização de manifestos, descarregamento completo, ativação transacional e sandbox.
+Esta POC prova o protocolo, mas ainda não é uma plataforma pronta para produção. Cada add-on precisa publicar seu próprio manifesto e bundle ou servidor HTTP. Ainda faltam cache e atualização de manifestos, sandbox e proxy de rede.
 
-Esses limites são intencionais e estão detalhados na documentação. Separar claramente o que já funciona do que ainda é direção futura mantém a POC honesta e útil.
+Plugins são confiáveis e podem chamar APIs globais. O manifesto registra I/O
+externo para revisão, mas a v1 não oferece sandbox, proxy de rede, `onUnload`
+mediado ou bloqueio de `fetch` direto. Esses limites são intencionais e estão
+detalhados na documentação.
 
 ## Licença
 

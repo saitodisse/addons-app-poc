@@ -6,13 +6,17 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      esbuild:
+        specifier: 0.25.12
+        version: 0.25.12
 
   packages/addon-aggregator:
     dependencies:
-      '@addons/core':
+      '@addons-poc/protocol':
         specifier: workspace:*
-        version: link:../core
+        version: link:../protocol
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -23,9 +27,9 @@ importers:
 
   packages/addon-counter:
     dependencies:
-      '@addons/core':
+      '@addons-poc/protocol':
         specifier: workspace:*
-        version: link:../core
+        version: link:../protocol
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -33,9 +37,9 @@ importers:
 
   packages/addon-debug:
     dependencies:
-      '@addons/core':
+      '@addons-poc/protocol':
         specifier: workspace:*
-        version: link:../core
+        version: link:../protocol
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -46,9 +50,9 @@ importers:
 
   packages/addon-favorites:
     dependencies:
-      '@addons/core':
+      '@addons-poc/protocol':
         specifier: workspace:*
-        version: link:../core
+        version: link:../protocol
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -59,9 +63,9 @@ importers:
 
   packages/addon-health:
     dependencies:
-      '@addons/core':
+      '@addons-poc/protocol':
         specifier: workspace:*
-        version: link:../core
+        version: link:../protocol
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -72,9 +76,9 @@ importers:
 
   packages/addon-hello:
     dependencies:
-      '@addons/core':
+      '@addons-poc/protocol':
         specifier: workspace:*
-        version: link:../core
+        version: link:../protocol
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -82,9 +86,9 @@ importers:
 
   packages/addon-hello-pt:
     dependencies:
-      '@addons/core':
+      '@addons-poc/protocol':
         specifier: workspace:*
-        version: link:../core
+        version: link:../protocol
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -92,9 +96,9 @@ importers:
 
   packages/addon-markdown:
     dependencies:
-      '@addons/core':
+      '@addons-poc/protocol':
         specifier: workspace:*
-        version: link:../core
+        version: link:../protocol
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -104,6 +108,10 @@ importers:
         version: 3.2.7
 
   packages/addon-server:
+    dependencies:
+      '@addons-poc/protocol':
+        specifier: workspace:*
+        version: link:../protocol
     devDependencies:
       vitest:
         specifier: ^3.0.0
@@ -111,9 +119,9 @@ importers:
 
   packages/addon-storage-local:
     dependencies:
-      '@addons/core':
+      '@addons-poc/protocol':
         specifier: workspace:*
-        version: link:../core
+        version: link:../protocol
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -124,9 +132,9 @@ importers:
 
   packages/addon-storage-session:
     dependencies:
-      '@addons/core':
+      '@addons-poc/protocol':
         specifier: workspace:*
-        version: link:../core
+        version: link:../protocol
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -137,6 +145,9 @@ importers:
 
   packages/addon-text-biblioteca:
     dependencies:
+      '@addons-poc/protocol':
+        specifier: workspace:*
+        version: link:../protocol
       '@addons/addon-server':
         specifier: workspace:*
         version: link:../addon-server
@@ -147,6 +158,9 @@ importers:
 
   packages/addon-text-citacoes:
     dependencies:
+      '@addons-poc/protocol':
+        specifier: workspace:*
+        version: link:../protocol
       '@addons/addon-server':
         specifier: workspace:*
         version: link:../addon-server
@@ -157,6 +171,9 @@ importers:
 
   packages/addon-text-poemas:
     dependencies:
+      '@addons-poc/protocol':
+        specifier: workspace:*
+        version: link:../protocol
       '@addons/addon-server':
         specifier: workspace:*
         version: link:../addon-server
@@ -167,6 +184,9 @@ importers:
 
   packages/addon-text-wikipedia:
     dependencies:
+      '@addons-poc/protocol':
+        specifier: workspace:*
+        version: link:../protocol
       '@addons/addon-server':
         specifier: workspace:*
         version: link:../addon-server
@@ -175,50 +195,11 @@ importers:
         specifier: ^3.0.0
         version: 3.2.7
 
-  packages/core:
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-      vitest:
-        specifier: ^3.0.0
-        version: 3.2.7
-
   packages/host-app:
     dependencies:
-      '@addons/addon-aggregator':
+      '@addons-poc/protocol':
         specifier: workspace:*
-        version: link:../addon-aggregator
-      '@addons/addon-counter':
-        specifier: workspace:*
-        version: link:../addon-counter
-      '@addons/addon-debug':
-        specifier: workspace:*
-        version: link:../addon-debug
-      '@addons/addon-favorites':
-        specifier: workspace:*
-        version: link:../addon-favorites
-      '@addons/addon-health':
-        specifier: workspace:*
-        version: link:../addon-health
-      '@addons/addon-hello':
-        specifier: workspace:*
-        version: link:../addon-hello
-      '@addons/addon-hello-pt':
-        specifier: workspace:*
-        version: link:../addon-hello-pt
-      '@addons/addon-markdown':
-        specifier: workspace:*
-        version: link:../addon-markdown
-      '@addons/addon-storage-local':
-        specifier: workspace:*
-        version: link:../addon-storage-local
-      '@addons/addon-storage-session':
-        specifier: workspace:*
-        version: link:../addon-storage-session
-      '@addons/core':
-        specifier: workspace:*
-        version: link:../core
+        version: link:../protocol
       json-highlighter:
         specifier: 1.5.0
         version: 1.5.0(react@19.2.8)
@@ -244,6 +225,18 @@ importers:
       vite:
         specifier: ^6.0.0
         version: 6.4.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7
+
+  packages/protocol:
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7
 
 packages:
 

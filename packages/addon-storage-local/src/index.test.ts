@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createLocalStateStore, createTab } from './index';
-import type { HostAPI } from '@addons/core';
+import type { HostAPI } from '@addons-poc/protocol';
 
 function fakeStorage(): Storage {
   const values = new Map<string, string>();
@@ -22,7 +22,7 @@ describe('Local Storage Add-on', () => {
     const store = createLocalStateStore(fakeStorage());
     await store.set('hello:tab', { values: { name: 'Ana' }, response: { status: 'info', body: 'Olá, Ana!' } });
     const host = {
-      services: { get: () => store },
+      services: { use: () => store },
       registerService: () => {},
       onUnload: () => {},
       log: () => {},

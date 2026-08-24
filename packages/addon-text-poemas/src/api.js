@@ -1,6 +1,6 @@
 /**
  * Cliente da API pública PoetryDB (poemas de domínio público).
- * O fetch é injetável para testes — o mesmo padrão usado no core.
+ * O fetch é injetável para testes — o mesmo padrão usado no protocolo.
  */
 export function createPoetryApi({ fetchFn = (url) => fetch(url), baseUrl = 'https://poetrydb.org' } = {}) {
   async function getJson(url) {

@@ -2,14 +2,20 @@
 
 Este contexto define a linguagem usada para extensões independentes e para o host que as instala. Ele separa o que uma extensão declara do que o host pode verificar e permitir.
 
+O contrato público vive em `packages/protocol` e é distribuído como
+`@addons-poc/protocol@1.0.0`. Loader, registry e adaptadores são internos de
+`packages/host-app`; implementações e servidores ficam nos demais pacotes. O
+[índice de pacotes](docs/PACKAGES.md) aponta para o README de cada um.
+
 ## Linguagem
 
 **Declaração de interação**:
 A parte do manifesto que informa as entradas, saídas, armazenamento e demais interações de um add-on. Para interações mediadas pelo host, ela também é a regra que o host usa para permitir ou bloquear o acesso.
 _Evite_: permissões implícitas, capacidades escondidas
 
-**Contrato de interação**:
-Bloco obrigatório `interactions` no manifesto que reúne a declaração de interação de um add-on, sem substituir os atuais `services` e `resources`.
+**Contrato do protocolo**:
+Bloco obrigatório `contract` no manifesto. Ele reúne versão/faixa do protocolo,
+capacidades, serviços, UI, estado, HTTP e logs; não existe parser legado.
 _Evite_: contrato separado por formato, cadastro manual no host
 
 **Destino efetivo de estado**:
@@ -21,7 +27,9 @@ Subconjunto documentado de JSON Schema usado no contrato de interação para des
 _Evite_: descrição livre de formatos, schema não validado
 
 **Manifesto compatível**:
-Manifesto que contém um contrato de interação válido. O host recusa instalar manifestos sem esse contrato.
+Manifesto que contém um contrato v1 válido, atende ao perfil de capacidades do
+host e não depende de serviço obrigatório ausente. O host recusa instalar
+manifestos incompatíveis.
 _Evite_: contrato ausente, compatibilidade silenciosa
 
 **Interação externa declarada**:
@@ -40,8 +48,9 @@ _Evite_: segredo em manifesto, segredo em log
 Parte do contrato que informa a chave ou padrão de chave, esquema, operações permitidas, retenção e gatilho de exclusão de um estado. Quem grava declara uma chave concreta; um provedor de armazenamento pode declarar um padrão que aceita.
 _Evite_: estado sem chave, retenção implícita
 
-**Contrato coerente**:
-Contrato de interação cujas partes mediadas pelo host correspondem aos serviços, recursos, ações, campos e acessos a estado observados na instalação. Uma divergência torna o add-on incompatível.
+**Proxy de serviço**:
+Objeto obtido por `host.services.use(contrato)`. Ele só expõe o descritor
+declarado e valida método, entrada e saída em runtime.
 _Evite_: contrato apenas ilustrativo, capacidade mediada não declarada
 
 **Revisão de contrato**:

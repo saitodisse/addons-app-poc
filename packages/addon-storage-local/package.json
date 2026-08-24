@@ -4,14 +4,15 @@
   "type": "module",
   "private": true,
   "dependencies": {
-    "@addons/core": "workspace:*"
+    "@addons-poc/protocol": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   },
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "serve": "node ../../scripts/serve-inprocess-addon.mjs addon-storage-local 5308"
   },
   "exports": {
     ".": "./src/index.ts"

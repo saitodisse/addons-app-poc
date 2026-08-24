@@ -1,14 +1,15 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { defineAddonManifest } from '@addons-poc/protocol';
 import { createAddonServer } from './index.js';
 
-const manifest = {
+const manifest = defineAddonManifest({
   id: 'text-teste',
   version: '1.0.0',
   name: 'Teste de Textos',
   description: 'Servidor de teste',
   author: 'Equipe AC',
   license: 'MIT',
-  tab: { title: 'Teste', body: 'Uma aba de teste.' },
+  ui: { title: 'Teste', body: 'Uma aba de teste.' },
   resources: [
     { name: 'catalog', types: ['text'] },
     { name: 'search', types: ['text'] },
@@ -16,15 +17,21 @@ const manifest = {
   ],
   types: ['text'],
   catalogs: [{ type: 'text', id: 'classicos', name: 'Clássicos' }],
-  interactions: {
+  contract: {
     version: '1.0.0',
+    protocol: { version: '1.0.0', range: '^1.0.0' },
+    capabilities: { required: [], optional: ['registry.services', 'ui.tab', 'logs', 'state-store'] },
     services: [],
-    tab: { fields: [], actions: [] },
+    ui: { fields: [], actions: [] },
     state: [],
-    http: [],
+    http: [
+      { id: 'catalog', direction: 'incoming', method: 'GET', path: '/catalog/{type}/{catalogId}.json', purpose: 'Entrega catálogo.', resource: 'catalog', returns: { description: 'Catálogo.', schema: { type: 'object', description: 'Catálogo.', classification: 'public' } } },
+      { id: 'search', direction: 'incoming', method: 'GET', path: '/search/{type}/{query}.json', purpose: 'Busca catálogo.', resource: 'search', returns: { description: 'Busca.', schema: { type: 'object', description: 'Busca.', classification: 'public' } } },
+      { id: 'text', direction: 'incoming', method: 'GET', path: '/text/{type}/{id}.json', purpose: 'Entrega texto.', resource: 'text', returns: { description: 'Texto.', schema: { type: 'object', description: 'Texto.', classification: 'public' } } },
+    ],
     logs: [],
   },
-};
+});
 
 const handlers = {
   catalog: async (type, catalogId) => ({
@@ -62,7 +69,7 @@ describe('createAddonServer (estilo Stremio)', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.id).toBe('text-teste');
-    expect(body.resources[0].name).toBe('catalog');
+    expect(body.contract.resources[0].name).toBe('catalog');
   });
 
   it('serve /catalog/<type>/<id>.json', async () => {

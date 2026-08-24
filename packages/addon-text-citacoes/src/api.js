@@ -1,6 +1,6 @@
 /**
  * Cliente da API pública de citações (DummyJSON Quotes).
- * O fetch é injetável para testes — o mesmo padrão usado no core.
+ * O fetch é injetável para testes — o mesmo padrão usado no protocolo.
  *
  * Observação: a API não possui endpoint de busca; o add-on baixa um lote
  * (processamento externo) e filtra localmente em handlers.js.

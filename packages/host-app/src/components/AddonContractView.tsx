@@ -1,5 +1,5 @@
 import { JsonHighlighter } from 'json-highlighter';
-import type { AddonManifest } from '@addons/core';
+import type { AddonManifest } from '@addons-poc/protocol';
 
 interface AddonContractViewProps {
   manifest: AddonManifest;
@@ -26,7 +26,7 @@ function SchemaLabel({ description, classification }: { description: string; cla
 }
 
 export function AddonContractView({ manifest, manifestUrl, stateDestination }: AddonContractViewProps) {
-  const contract = manifest.interactions;
+  const contract = manifest.contract;
   const offered = contract.services.filter((service) => service.role === 'provides');
   const consumed = contract.services.filter((service) => service.role === 'consumes');
   const incoming = contract.http.filter((request) => request.direction === 'incoming');
@@ -35,7 +35,7 @@ export function AddonContractView({ manifest, manifestUrl, stateDestination }: A
   return (
     <div style={{ display: 'grid', gap: 20, marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
       <p style={{ margin: 0, color: '#94a3b8', fontSize: 13, lineHeight: 1.5 }}>
-        Contrato <code style={{ color: '#c4b5fd' }}>interactions v{contract.version}</code>. O host confere serviços, campos e ações mediadas antes de ativar o add-on.
+        Contrato <code style={{ color: '#c4b5fd' }}>contract v{contract.version}</code>. O host confere serviços, campos e ações mediadas antes de ativar o add-on.
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 18 }}>
@@ -44,14 +44,14 @@ export function AddonContractView({ manifest, manifestUrl, stateDestination }: A
         </Section>
 
         <Section title="O que recebe">
-          {(contract.tab.fields.length || consumed.length) ? <ItemList>
-            {contract.tab.fields.map((field) => <li key={`field-${field.id}`}><strong style={{ color: '#e2e8f0' }}>{field.label}</strong> — <SchemaLabel description={field.description} classification={field.schema.classification} /></li>)}
-            {consumed.map((service) => <li key={`consumed-${service.id}`}><strong style={{ color: '#e2e8f0' }}>{service.id}</strong> — {service.description}{service.required ? ' Necessário.' : ' Opcional.'}</li>)}
+          {(contract.ui.fields.length || consumed.length) ? <ItemList>
+            {contract.ui.fields.map((field) => <li key={`field-${field.id}`}><strong style={{ color: '#e2e8f0' }}>{field.label}</strong> — <SchemaLabel description={field.description} classification={field.schema.classification} /></li>)}
+            {consumed.map((service) => <li key={`consumed-${service.id}`}><strong style={{ color: '#e2e8f0' }}>{service.id}</strong> — {service.description}{service.required === false ? ' Opcional.' : ' Necessário.'}</li>)}
           </ItemList> : <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>Não recebe campos nem serviços de outros add-ons.</p>}
         </Section>
 
         <Section title="Ações e respostas">
-          {contract.tab.actions.length ? <ItemList>{contract.tab.actions.map((action) => <li key={`action-${action.id}`}><strong style={{ color: '#e2e8f0' }}>{action.label}</strong> — {action.description} Retorna: <SchemaLabel description={action.returns.description} classification={action.returns.schema.classification} /></li>)}</ItemList> : <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>Não expõe ação interativa nesta aba.</p>}
+          {contract.ui.actions.length ? <ItemList>{contract.ui.actions.map((action) => <li key={`action-${action.id}`}><strong style={{ color: '#e2e8f0' }}>{action.label}</strong> — {action.description} Retorna: <SchemaLabel description={action.returns.description} classification={action.returns.schema.classification} /></li>)}</ItemList> : <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>Não expõe ação interativa nesta aba.</p>}
         </Section>
 
         <Section title="Estado persistido">

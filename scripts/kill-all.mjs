@@ -1,9 +1,14 @@
 /**
  * Mata todos os processos do ambiente de desenvolvimento:
- * host-app (:5280), biblioteca (:5291), citações (:5292) e poemas (:5293),
- * incluindo órfãos do dev-all (vite / add-on servers) que tenham sobrado.
+ * host-app (:5280), add-ons HTTP (:5291-5294) e add-ons em processo
+ * (:5301-5310), incluindo órfãos do dev-all (vite / add-on servers) que
+ * tenham sobrado.
  * Uso: pnpm kill-all
  * Envia SIGTERM e, se o processo insistir, SIGKILL.
+ *
+ * A lista de portas e os padrões abaixo precisam acompanhar
+ * `ADDON_SERVERS` em `scripts/dev-all.mjs` quando um projeto executável for
+ * adicionado, removido ou mudar de porta.
  *
  * Ferramentas usadas na ordem: fuser → ss (para descobrir quem escuta na
  * porta) e pgrep (para órfãos do dev-all). O próprio processo e seus
@@ -11,7 +16,11 @@
  */
 import { execFileSync } from 'node:child_process';
 
-const PORTS = [5280, 5291, 5292, 5293];
+const PORTS = [
+  5280,
+  5291, 5292, 5293, 5294,
+  5301, 5302, 5303, 5304, 5305, 5306, 5307, 5308, 5309, 5310,
+];
 
 /** PIDs escutando na porta. fuser devolve os PIDs; ss é o fallback. */
 function pidsOnPort(port) {
@@ -89,10 +98,13 @@ for (const port of PORTS) {
   }
 }
 
-// órfãos do dev-all: vite do host-app, dev-all e wrappers addon-text
+// Órfãos do dev-all: o processo coordenador, o Vite, os servidores em
+// processo e os wrappers dos quatro servidores HTTP. Mantenha estes padrões
+// sincronizados com ADDON_SERVERS em dev-all.mjs.
 for (const pattern of [
   'dev-all\\.mjs',
-  'addon-text-(biblioteca|citacoes|poemas)',
+  'serve-inprocess-addon\\.mjs',
+  'addon-text-(biblioteca|citacoes|poemas|wikipedia)',
   'vite/bin/vite\\.js',
 ]) {
   for (const pid of pidsByPattern(pattern)) {
@@ -101,7 +113,7 @@ for (const pattern of [
 }
 
 if (pids.size === 0) {
-  console.log('[kill-all] Nada rodando nas portas 5280/5291/5292/5293. Tudo limpo.');
+  console.log(`[kill-all] Nada rodando nas portas ${PORTS.join('/')}. Tudo limpo.`);
   process.exit(0);
 }
 

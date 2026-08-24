@@ -1,15 +1,16 @@
+import { defineAddonManifest } from '@addons-poc/protocol';
 /**
  * Manifesto do add-on Wikipédia, formato estilo Stremio.
  * Processamento externo real: busca e resumos de artigos na Wikipédia.
  */
-export const manifest = {
+export const manifest = defineAddonManifest({
   id: 'text-wikipedia',
   version: '1.0.0',
   name: 'Wikipédia (resumos)',
   description: 'Artigos e resumos da Wikipédia (processamento externo real)',
   author: 'Equipe AC',
   license: 'MIT',
-  tab: { title: '🌐 Wikipédia', body: 'Textos consultados pela Wikipédia via HTTP.' },
+  ui: { title: '🌐 Wikipédia', body: 'Textos consultados pela Wikipédia via HTTP.' },
   resources: [
     { name: 'catalog', types: ['page'], idPrefixes: [] },
     { name: 'search', types: ['page'], idPrefixes: [] },
@@ -20,10 +21,12 @@ export const manifest = {
   catalogs: [
     { type: 'page', id: 'aleatorios', name: 'Artigos Aleatórios' },
   ],
-  interactions: {
+  contract: {
     version: '1.0.0',
+    protocol: { version: '1.0.0', range: '^1.0.0' },
+    capabilities: { required: [], optional: ['registry.services', 'ui.tab', 'logs', 'state-store'] },
     services: [],
-    tab: { fields: [], actions: [] },
+    ui: { fields: [], actions: [] },
     state: [],
     http: [
       { id: 'catalog', direction: 'incoming', method: 'GET', path: '/catalog/{type}/{catalogId}.json', purpose: 'Entrega artigos aleatórios.', resource: 'catalog', returns: { description: 'Metadados dos artigos.', schema: { type: 'object', description: 'Objeto com metas.', classification: 'public' } } },
@@ -36,4 +39,4 @@ export const manifest = {
     ],
     logs: [],
   },
-};
+});

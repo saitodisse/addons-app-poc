@@ -9,10 +9,7 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@addons/core": ["../core/src/index.ts"],
-      "@addons/addon-hello": ["../addon-hello/src/index.ts"],
-      "@addons/addon-hello-pt": ["../addon-hello-pt/src/index.ts"],
-      "@addons/addon-counter": ["../addon-counter/src/index.ts"]
+      "@addons-poc/protocol": ["../protocol/src/index.ts"]
     }
   },
   "include": ["src"]

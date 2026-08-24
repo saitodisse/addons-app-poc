@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createFavoritesService, createOptionalStateFavoritesService, manifest } from './index';
-import { MemoryBookmarkStore } from '@addons/core';
+import { MemoryBookmarkStore } from './memory-bookmark-store';
 
 describe('createFavoritesService', () => {
   it('lista, adiciona e remove usando uma store', async () => {
@@ -30,7 +30,7 @@ describe('createFavoritesService', () => {
   it('só grava a lista quando o serviço de estado opcional existe', async () => {
     const saved = new Map<string, unknown>();
     const services = {
-      get: <T,>(id: string) => id === 'addonStateStore' ? {
+      use: <T,>(contract: { id: string }) => contract.id === 'state-store' ? {
         get: async <V,>(key: string) => saved.get(key) as V | undefined,
         set: async <V,>(key: string, value: V) => { saved.set(key, value); },
         remove: async () => {}, listKeys: async () => [], clear: async () => {},
@@ -45,6 +45,6 @@ describe('createFavoritesService', () => {
 describe('manifest', () => {
   it('declara o serviço favorites', () => {
     expect(manifest.id).toBe('favorites');
-    expect(manifest.services.map((s) => s.id)).toContain('favorites');
+    expect(manifest.contract.services.map((s) => s.id)).toContain('addons.favorites');
   });
 });

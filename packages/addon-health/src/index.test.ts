@@ -35,6 +35,6 @@ describe('HealthChecker', () => {
 describe('manifest', () => {
   it('declara o serviço healthCheck', () => {
     expect(manifest.id).toBe('health');
-    expect(manifest.services.map((s) => s.id)).toContain('healthCheck');
+    expect(manifest.contract.services.map((s) => s.id)).toContain('addons.health.health-check');
   });
 });

@@ -1,15 +1,16 @@
+import { defineAddonManifest } from '@addons-poc/protocol';
 /**
  * Manifesto do add-on Citações, formato estilo Stremio.
  * Este add-on faz processamento externo: busca citações de uma API pública.
  */
-export const manifest = {
+export const manifest = defineAddonManifest({
   id: 'text-citacoes',
   version: '1.0.0',
   name: 'Citações da Web',
   description: 'Citações famosas buscadas em uma API pública (processamento externo)',
   author: 'Equipe AC',
   license: 'MIT',
-  tab: { title: '💬 Citações', body: 'Citações consultadas por HTTP.' },
+  ui: { title: '💬 Citações', body: 'Citações consultadas por HTTP.' },
   resources: [
     { name: 'catalog', types: ['quote'], idPrefixes: [] },
     { name: 'search', types: ['quote'], idPrefixes: [] },
@@ -20,10 +21,12 @@ export const manifest = {
   catalogs: [
     { type: 'quote', id: 'populares', name: 'Citações Populares' },
   ],
-  interactions: {
+  contract: {
     version: '1.0.0',
+    protocol: { version: '1.0.0', range: '^1.0.0' },
+    capabilities: { required: [], optional: ['registry.services', 'ui.tab', 'logs', 'state-store'] },
     services: [],
-    tab: { fields: [], actions: [] },
+    ui: { fields: [], actions: [] },
     state: [],
     http: [
       { id: 'catalog', direction: 'incoming', method: 'GET', path: '/catalog/{type}/{catalogId}.json', purpose: 'Entrega citações populares.', resource: 'catalog', returns: { description: 'Metadados das citações.', schema: { type: 'object', description: 'Objeto com metas.', classification: 'public' } } },
@@ -35,4 +38,4 @@ export const manifest = {
     ],
     logs: [],
   },
-};
+});

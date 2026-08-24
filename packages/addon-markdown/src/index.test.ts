@@ -22,6 +22,6 @@ describe('createTextFormatter', () => {
 describe('manifest', () => {
   it('declara el serviço textFormatter', () => {
     expect(manifest.id).toBe('markdown');
-    expect(manifest.services.map((s) => s.id)).toContain('textFormatter');
+    expect(manifest.contract.services.map((s) => s.id)).toContain('addons.markdown.text-formatter');
   });
 });

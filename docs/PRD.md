@@ -1,6 +1,6 @@
 # Requisitos do produto
 
-**Status: Parcial** · **Versão da POC: 0.4.1**
+**Status: Parcial** · **Versão da POC: 1.0.0 pronta para publicação**
 
 Este documento define o que a prova de conceito precisa demonstrar. Ele não descreve um produto comercial pronto; descreve as perguntas técnicas que o experimento deve responder e as evidências esperadas para cada resposta.
 
@@ -16,7 +16,7 @@ A POC existe para testar essa hipótese com código executável, não apenas com
 
 ## O que está sendo validado
 
-O experimento precisa provar seis ideias:
+O experimento precisa provar sete ideias:
 
 1. **Declaração:** um manifesto descreve a identidade, os metadados e as capacidades do add-on.
 2. **Desacoplamento:** o host consulta serviços por contrato, sem depender da implementação em cada ponto de uso.
@@ -24,28 +24,42 @@ O experimento precisa provar seis ideias:
 4. **Degradação:** uma falha pode levar o sistema a uma alternativa sem derrubar o restante.
 5. **Independência operacional:** um add-on pode funcionar como servidor HTTP fora do processo do host.
 6. **Revisão consciente:** antes de ativar uma URL, a pessoa consegue ler as interações declaradas; uma mudança posterior exige nova aceitação.
+7. **Fronteira pública:** hosts e add-ons dependem de `@addons-poc/protocol@1.0.0`, enquanto loader, registry e adaptadores ficam internos ao host.
+
+## Contrato público v1
+
+Todo manifesto usa uma única seção `contract` com faixa SemVer, capacidades,
+descritores de serviços namespaceados, UI declarativa, estado, HTTP e logs.
+`validateManifest` e o schema publicado recusam o formato legado. O acesso de
+serviço é `host.services.use(contrato)`, com negociação de método e versão.
+
+O host bloqueia capacidades incompatíveis, serviços obrigatórios ausentes e
+ciclos obrigatórios antes de importar o bundle. `state-store` é uma capacidade
+oficial opcional. O protocolo declara I/O externo, mas não promete sandbox.
+
+A distribuição do protocolo está pronta para `npm publish --access public`; a
+publicação efetiva depende de uma sessão autenticada com propriedade do escopo
+`@addons-poc`.
 
 ## Para quem a demonstração serve
 
 | Perfil | Pergunta que a POC ajuda a responder |
 |---|---|
-| Pessoa que mantém o protocolo | As fronteiras do `core` são pequenas, claras e testáveis? |
+| Pessoa que mantém o protocolo | A fronteira pública é pequena, clara e testável? |
 | Pessoa que cria add-ons | É possível oferecer uma capacidade sem conhecer detalhes internos do host? |
 | Pessoa que mantém o host | É possível ativar, consultar e substituir capacidades de modo previsível? |
 | Pessoa que avalia arquitetura | Os formatos em processo e HTTP podem conviver sem se confundir? |
 
 ## Experiência demonstrada
 
-Ao iniciar o projeto, o leitor deve conseguir abrir o host e percorrer uma história completa:
+Ao iniciar o projeto, o leitor deve conseguir abrir um host vazio, instalar URLs compatíveis e percorrer uma história completa definida pelos add-ons escolhidos:
 
-1. usar um serviço de saudação;
-2. usar um contador com estado;
-3. provocar a falha do saudador prioritário e observar o fallback;
-4. navegar catálogos de servidores independentes;
-5. pesquisar conteúdo vindo de fontes externas;
-6. abrir o conteúdo apenas quando necessário;
-7. testar serviços compostos, como favoritos, formatação e saúde.
-8. instalar uma extensão por URL, revisar seu contrato e reencontrá-la após recarregar a página.
+1. instalar uma extensão por URL;
+2. revisar seu contrato antes da ativação;
+3. usar somente os campos e ações que a extensão declarou;
+4. desativar, reativar ou remover a instalação;
+5. reencontrar a instalação após recarregar a página;
+6. pedir nova revisão quando o contrato daquela mesma URL mudar.
 
 ## Requisitos funcionais
 
@@ -56,11 +70,11 @@ Os estados significam: **Entregue** quando o comportamento está implementado no
 | ID | Requisito | Estado | Evidência atual |
 |---|---|---|---|
 | F1.1 | Definir um manifesto comum | Entregue | `AddonManifest` e `validateManifest` |
-| F1.2 | Validar o manifesto antes do consumo | Entregue | Testes de validação no `core` |
-| F1.3 | Registrar serviços por identificador | Entregue | `ServiceRegistry.register` |
-| F1.4 | Consultar uma ou todas as implementações | Entregue | `get` e `getAll` |
+| F1.2 | Validar o manifesto antes do consumo | Entregue | Testes de validação no `protocol` |
+| F1.3 | Registrar serviços por identificador | Entregue | `packages/host-app/src/runtime/registry.ts: ServiceRegistry.register` |
+| F1.4 | Consultar uma ou todas as implementações | Entregue | `ServiceRegistry.get` e `getAll`, internos ao host |
 | F1.5 | Ordenar implementações por prioridade | Entregue | Ordenação decrescente no registro |
-| F1.6 | Limpar serviços por add-on | Entregue | `clearAddon` |
+| F1.6 | Limpar serviços por add-on | Entregue | `ServiceRegistry.clearAddon`, interno ao host |
 | F1.7 | Expor um `HostAPI` pequeno | Entregue | `services`, `registerService`, `onUnload` e `log` |
 | F1.8 | Representar carregamento e erro | Entregue | `AddonInstance` e `AddonStatus` |
 
@@ -68,33 +82,33 @@ Os estados significam: **Entregue** quando o comportamento está implementado no
 
 | ID | Requisito | Estado | Evidência atual |
 |---|---|---|---|
-| F2.1 | Exportar `manifest` e `setup` | Entregue | Add-ons locais de exemplo |
+| F2.1 | Exportar `manifest`, `setup` e `createTab` | Entregue | Add-ons locais de exemplo |
 | F2.2 | Carregar manifesto e bundle por URL | Entregue | `FetchAddonLoader` e testes com mocks |
-| F2.3 | Instalar uma URL arbitrária pela interface | Entregue | Configurações valida o manifesto, pede revisão e usa `FetchAddonLoader` quando há `entrypoint` |
+| F2.3 | Instalar uma URL arbitrária pela interface | Entregue | Configurações valida o manifesto, pede revisão, oferece URLs locais com `name`/`description` lidos genericamente e usa `FetchAddonLoader` quando há `entrypoint` |
 | F2.4 | Não deixar falha de setup derrubar o host | Entregue | Loader devolve instância em `error` |
-| F2.5 | Remover registros parciais após falha de setup | Parcial | `clearAddon` existe, mas o loader não o chama nesse erro |
+| F2.5 | Remover registros parciais após falha de setup | Entregue | `FetchAddonLoader` chama `clearAddon` e executa callbacks registrados |
 | F2.6 | Executar callbacks de descarregamento | Planejado | Callbacks são coletados, mas não há ciclo público de unload |
-| F2.7 | Demonstrar serviços de saudação e contador | Entregue | `addon-hello`, `addon-hello-pt` e `addon-counter` |
+| F2.7 | Demonstrar serviços de saudação e contador | Entregue | Pacotes `addon-hello`, `addon-hello-pt` e `addon-counter`, sem acoplamento ao host |
 
 ### Prioridade, fallback e composição
 
 | ID | Requisito | Estado | Evidência atual |
 |---|---|---|---|
-| F3.1 | Tentar implementações síncronas em ordem | Entregue | `withFallback` |
-| F3.2 | Tentar implementações assíncronas em ordem | Entregue | `withFallbackAsync` |
-| F3.3 | Reunir falhas quando nenhuma opção funciona | Entregue | `AggregateFallbackError` |
-| F3.4 | Definir interfaces TypeScript para serviços | Entregue | Interfaces e tipos exportados pelo `core` |
-| F3.5 | Permitir infraestrutura fornecida pelo host | Entregue | `bookmarkStore` com origem `host` |
+| F3.1 | Tentar implementações síncronas em ordem | Entregue | helper interno de fallback coberto pelos testes do protocolo |
+| F3.2 | Tentar implementações assíncronas em ordem | Entregue | helper interno de fallback coberto pelos testes do protocolo |
+| F3.3 | Reunir falhas quando nenhuma opção funciona | Entregue | `AggregateFallbackError` coberto pelos testes do protocolo |
+| F3.4 | Definir descritores TypeScript para serviços | Entregue | `ServiceInteraction`, schemas de entrada/saída e `services.use` |
+| F3.5 | Permitir infraestrutura fornecida pelo host | Entregue | `state-store` opcional, com prioridade entre provedores |
 | F3.6 | Permitir composição sem importação direta | Entregue | Favoritos, agregador e health check |
 
 ### Add-ons HTTP de texto
 
 | ID | Requisito | Estado | Evidência atual |
 |---|---|---|---|
-| F4.1 | Declarar `resources`, `types` e `catalogs` | Entregue | Quatro manifestos HTTP |
+| F4.1 | Declarar `resources`, `types` e `catalogs` dentro de `contract` | Entregue | Quatro manifestos HTTP canônicos |
 | F4.2 | Servir manifesto e recursos por rotas estáveis | Entregue | `@addons/addon-server` |
 | F4.3 | Liberar acesso do host pelo navegador | Entregue | Cabeçalhos CORS e resposta a `OPTIONS` |
-| F4.4 | Consumir catálogo, busca e opções de texto | Entregue | `HttpTextAddonClient` |
+| F4.4 | Consumir catálogo, busca e opções de texto | Entregue | Clientes HTTP locais dos add-ons agregador e health |
 | F4.5 | Entregar conteúdo sob demanda por URL | Entregue | Payload `texts` e rota `content.txt` |
 | F4.6 | Demonstrar conteúdo embutido | Entregue | Biblioteca de Textos |
 | F4.7 | Demonstrar processamento externo | Entregue | Citações, PoetryDB e Wikipédia |
@@ -106,21 +120,21 @@ Os estados significam: **Entregue** quando o comportamento está implementado no
 | ID | Requisito | Estado | Evidência atual |
 |---|---|---|---|
 | F5.1 | Mostrar add-ons ativos e seus estados | Entregue | Área de gestão do host |
-| F5.2 | Ativar e remover exemplos locais | Entregue | `AddonManager` |
+| F5.2 | Ativar e remover add-ons instalados por URL | Entregue | `AddonManager` |
 | F5.3 | Persistir add-ons escolhidos | Entregue | `addons:host-installations:v1` preserva URLs, extensões desativadas e contratos aceitos |
-| F5.4 | Permitir reordenar prioridades | Planejado | Prioridades são definidas pelo código |
-| F5.5 | Negociar versão do host | Planejado | Não existe `hostVersion` aplicado |
+| F5.4 | Escolher provedores por prioridade explícita | Entregue | `priority` no descritor e ordenação determinística no registry interno |
+| F5.5 | Negociar versão do protocolo e capacidades | Entregue | `checkContractCompatibility` antes do `import()` |
 | F5.6 | Isolar código em Worker ou iframe | Planejado | Add-ons em processo compartilham o contexto do host |
 | F5.7 | Aplicar política de confiança e permissões | Planejado | Não há assinatura, autorização ou consentimento por capacidade |
 | F5.8 | Dar rota própria a cada extensão ativa | Entregue | Hash codifica a URL do manifesto em `#/addons/<url>` |
 | F5.9 | Pedir nova revisão quando o contrato mudar | Entregue | Impressão digital do contrato bloqueia a reativação até nova aceitação |
-| F5.10 | Mediar interações internas declaradas | Entregue | Host restringe serviços, campos de ações e chaves de estado ao contrato |
+| F5.10 | Mediar interações internas declaradas | Entregue | Proxy valida serviço, entrada, saída, campos, ações, estado e logs |
 
 ## Requisitos não funcionais
 
 ### Clareza do protocolo
 
-Uma pessoa deve conseguir compreender o caminho de um add-on lendo o manifesto, o `HostAPI` e o `ServiceRegistry`. A documentação começa simples e aprofunda progressivamente.
+Uma pessoa deve conseguir compreender o caminho de um add-on lendo o manifesto, o `HostAPI` público e a descrição do `ServiceRegistry` interno do host. A documentação começa simples e aprofunda progressivamente.
 
 ### Testabilidade
 
@@ -128,7 +142,7 @@ Regras centrais devem funcionar sem rede real. Funções de `fetch` e armazename
 
 ### Dependências controladas
 
-O `@addons/core` não deve depender de React ou Vite. O `@addons/addon-server` deve permanecer sem dependências externas de runtime.
+O `@addons-poc/protocol` não deve depender de React ou Vite. O `@addons/addon-server` deve permanecer sem dependências externas de runtime.
 
 ### Compatibilidade
 
@@ -142,17 +156,17 @@ Falhas, segurança e isolamento devem ser descritos de acordo com o comportament
 
 ### Criar um add-on em processo
 
-Uma pessoa escolhe ou define uma interface de serviço, cria um manifesto com `entrypoint` e `services`, exporta um `setup` e registra sua implementação pelo `HostAPI`. Depois, gera um bundle ESM e o hospeda junto do manifesto.
+Uma pessoa escolhe ou define um descritor de serviço dentro de `contract`, cria um manifesto com `entrypoint`, exporta um `setup` e registra sua implementação pelo `HostAPI`. Depois, gera um bundle ESM e o hospeda junto do manifesto.
 
-As sugestões da demonstração são pacotes do workspace que entram na build do host. Além delas, a tela **Configurações** aceita uma URL HTTP ou HTTPS, valida o manifesto, mostra o contrato e chama `FetchAddonLoader` para importar o bundle ESM após a aceitação.
+A tela **Configurações** aceita uma URL HTTP ou HTTPS, valida o manifesto, mostra o contrato e chama `FetchAddonLoader` para importar o bundle ESM após a aceitação. O `host-app` não tem dependência de implementação, catálogo embutido nem caminho especial para add-ons do workspace. Para desenvolvimento local, cada pacote em processo pode publicar `manifest.json` e `bundle.js` com seu próprio comando `serve`.
 
 ### Criar um add-on HTTP
 
-Uma pessoa escreve um manifesto com `resources`, implementa handlers de catálogo, busca, texto e conteúdo, e entrega tudo ao `createAddonServer`. O host precisa apenas da URL base para iniciar a conversa.
+Uma pessoa escreve um manifesto com `contract.resources`, implementa handlers de catálogo, busca, texto e conteúdo, e entrega tudo ao `createAddonServer`. O host precisa apenas da URL base para iniciar a conversa.
 
 ### Usar fallback
 
-Duas implementações registram o mesmo serviço. O consumidor chama `withFallback`, que tenta a maior prioridade. Se houver exceção, tenta a próxima. Se nenhuma responder, o consumidor recebe `AggregateFallbackError` e decide como apresentar a falha.
+Duas implementações registram o mesmo serviço. O runtime interno ordena pela maior prioridade e o helper de fallback, mantido como implementação interna testada, tenta a próxima quando a anterior lança uma exceção. A API pública do add-on continua sendo `host.services.use(contrato)`; o consumidor não importa o registry nem o helper.
 
 ### Ler um texto remoto
 
@@ -166,8 +180,8 @@ A hipótese principal é considerada demonstrada quando todas estas evidências 
 - o fallback usa a alternativa depois de uma falha simulada;
 - um erro de carregamento vira estado observável em vez de encerrar o host;
 - um serviço pode consumir infraestrutura do host pelo registro;
-- quatro servidores HTTP são descobertos por manifesto;
-- catálogo, busca, opções de texto e conteúdo funcionam de ponta a ponta;
+- um servidor HTTP compatível é descoberto por manifesto;
+- catálogo, busca, opções de texto e conteúdo funcionam de ponta a ponta pelo cliente HTTP do protocolo;
 - pelo menos uma origem externa é transformada no contrato comum;
 - a busca agregada continua útil quando uma origem falha;
 - uma URL compatível pode ser revisada, instalada e restaurada depois de recarregar;
@@ -180,7 +194,7 @@ A hipótese principal é considerada demonstrada quando todas estas evidências 
 - marketplace ou catálogo público com backend;
 - autenticação e autorização;
 - auditoria ou assinatura criptográfica de add-ons;
-- publicação dos pacotes no npm;
+- publicação automática no npm sem credenciais da organização;
 - suporte a Service Worker ou WebAssembly;
 - sandbox pronto para produção;
 - garantia de disponibilidade das APIs públicas de exemplo;

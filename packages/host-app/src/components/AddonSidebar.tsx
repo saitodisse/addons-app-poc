@@ -1,4 +1,4 @@
-import type { AddonInstance } from '@addons/core';
+import type { AddonInstance } from '@addons-poc/protocol';
 
 interface AddonSidebarProps {
   addons: AddonInstance[];
@@ -48,10 +48,10 @@ export function AddonSidebar({ addons, disabledAddonUrls, selectedManifestUrl, l
                 }}
               >
                 <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: selected ? 650 : 500 }}>
-                  {addon.tab?.title ?? addon.manifest.name}
+                  {addon.ui?.title ?? addon.manifest.name}
                 </span>
                 <span style={{ display: 'block', marginTop: 2, color: enabled ? '#64748b' : '#94a3b8', fontSize: 10 }}>
-                  {enabled ? 'Ativo' : addon.status === 'error' ? 'Com erro' : 'Desativado'}
+                  {enabled ? 'Ativo' : addon.status === 'blocked' ? 'Aguardando dependência' : addon.status === 'error' ? 'Com erro' : 'Desativado'}
                 </span>
               </button>
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { AddonInstance } from '@addons/core';
+import type { AddonInstance } from '@addons-poc/protocol';
 import { AddonContractView } from './AddonContractView';
 
 interface AddonCardProps {
@@ -91,6 +91,7 @@ export function AddonCard({ addon, enabled, onToggle, onRemove, stateDestination
         </button>
       </div>
       </div>
+      {addon.status === 'blocked' && <p role="status" style={{ margin: '12px 0 0', color: '#fbbf24', fontSize: 12 }}>Bloqueado até uma dependência obrigatória ficar disponível{addon.blockReason ? `: ${addon.blockReason}` : '.'}</p>}
       {reviewRequired && <p role="status" style={{ margin: '12px 0 0', color: '#fde68a', fontSize: 12 }}>O contrato mudou desde a última aceitação. Revise o JSON abaixo antes de ativar.</p>}
       {expanded && <AddonContractView manifest={addon.manifest} manifestUrl={addon.manifestUrl} stateDestination={stateDestination} />}
     </div>

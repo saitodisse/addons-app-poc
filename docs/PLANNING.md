@@ -2,6 +2,12 @@
 
 Este documento conta como a arquitetura ganhou forma. Ele é uma narrativa histórica, não uma lista de regras atuais. Para consultar contratos vigentes, use `ARCHITECTURE.md`, `DECISIONS.md` e `MANIFEST-SPEC.md`.
 
+## Estado atual após o protocolo público v1
+
+O plano histórico foi convertido em uma implementação compatível com `@addons-poc/protocol@1.0.0`. O antigo núcleo misturava registro, loader e helpers de domínio; hoje o pacote público contém somente contrato, schema, validadores e SDK, enquanto loader, registry, status e adaptadores vivem em `packages/host-app/src/runtime`. Todos os manifestos usam uma única seção `contract` v1, inclusive os servidores HTTP, e todos os add-ons têm README próprio no [índice de pacotes](PACKAGES.md).
+
+A publicação no npm continua pendente de autenticação e confirmação de propriedade do escopo `@addons-poc`. Não existe compatibilidade automática com o formato legado nem publicação em outro nome.
+
 ## 1. O incômodo inicial
 
 A conversa começou com um problema comum em sistemas modulares: partes que deveriam ser substituíveis estavam ligadas por dependências diretas. Trocar uma implementação significava alterar importações, reconstruir aplicações e coordenar versões de muitas peças ao mesmo tempo.
@@ -83,7 +89,7 @@ As respostas completas, incluindo consequências e lacunas atuais, estão em `DE
 
 Depois que duas implementações puderam coexistir, apareceu uma diferença importante: ordenar não é o mesmo que executar.
 
-O registro ficou responsável apenas pela lista ordenada. As funções `withFallback` e `withFallbackAsync` receberam a responsabilidade de chamar cada implementação e lidar com exceções.
+O registro ficou responsável apenas pela lista ordenada. As funções `withFallback` e `withFallbackAsync` receberam a responsabilidade de chamar cada implementação e lidar com exceções; elas permanecem como helpers internos cobertos por testes, não como exportação da biblioteca pública.
 
 O `addon-hello-pt` tornou a ideia visível. Ele tem prioridade maior, mas falha de propósito para o nome `error`. Nesse momento, o saudador padrão assume.
 
@@ -93,7 +99,7 @@ Essa demonstração mostrou que substituição não precisa ser uma decisão de 
 
 Com o fluxo em processo funcionando, o projeto voltou à pergunta maior: um add-on pode morar em qualquer lugar?
 
-Surgiu o segundo formato. Em vez de `entrypoint` e `services`, o manifesto poderia declarar `resources`, `types` e `catalogs`. O host não executaria o servidor; faria requisições HTTP.
+Surgiu o segundo formato. Um add-on HTTP omite `entrypoint`, declara `resources`, `types` e `catalogs` dentro da mesma seção `contract` e responde por HTTP. O host não executa o servidor; faz requisições HTTP.
 
 O `@addons/addon-server` foi criado para reduzir o trabalho repetitivo. Um add-on fornece quatro funções, e o framework monta manifesto, catálogo, busca, opções de texto e conteúdo.
 
@@ -122,7 +128,7 @@ Depois de provar add-ons isolados, a POC passou a demonstrar composição:
 - o agregador consulta vários servidores e mescla resultados;
 - favoritos usa um armazenamento oferecido pelo host;
 - health check consulta os mesmos servidores para medir disponibilidade;
-- o formatador reaproveita regras puras do `core`.
+- o formatador mantém suas regras puras no add-on que o utiliza.
 
 O ponto central é que nenhuma dessas extensões importa outra extensão. Elas conhecem contratos ou URLs, e o registro continua sendo a fronteira dentro do processo.
 
@@ -136,12 +142,12 @@ Registrar essas diferenças é parte do resultado da POC. Um experimento é vali
 
 ## 12. A direção daqui para frente
 
-O próximo capítulo não é adicionar mais exemplos. É completar o ciclo de vida:
+Com o protocolo público v1 definido, o próximo capítulo não é adicionar mais exemplos. É completar o ciclo de vida:
 
 1. tornar a ativação transacional;
 2. executar a limpeza no unload;
 3. permitir editar prioridades e apresentar recursos HTTP instalados de modo genérico;
-4. negociar versões, armazenar manifestos em cache e definir atualização;
+4. armazenar manifestos em cache e definir atualização;
 5. investigar isolamento real.
 
 Quando essas etapas existirem, a POC poderá responder uma pergunta mais exigente: não apenas “o protocolo funciona?”, mas “ele continua compreensível e seguro quando add-ons deixam de ser confiáveis?”.

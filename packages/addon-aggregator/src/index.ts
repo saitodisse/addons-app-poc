@@ -1,5 +1,11 @@
-import type { AddonStateStore, AddonTab, HostAPI, TextAddonClientPort, SearchProvider } from '@addons/core';
-import { createTabStatePersistence, HttpTextAddonClient } from '@addons/core';
+import { defineAddonManifest } from '@addons-poc/protocol';
+import type { AddonStateStore, AddonTab, HostAPI, TextAddonClientPort } from '@addons-poc/protocol';
+import { createTabStatePersistence } from '@addons-poc/protocol';
+import { HttpTextAddonClient } from './http-client';
+
+interface SearchProvider {
+  search(query: string, limit?: number): Promise<{ title: string; snippet?: string }[]>;
+}
 
 /**
  * Add-ons de texto conhecidos (URL = identidade, como no Stremio).
@@ -16,7 +22,7 @@ export const DEFAULT_BASE_URLS = [
  * Serviço de busca agregada (meta-search): consulta vários add-ons de texto
  * remotos em paralelo e mescla os resultados, tolerando falhas individuais.
  *
- * Implementa `SearchProvider` do núcleo. O cliente HTTP é injetável para testes.
+ * Implementa o contrato local `SearchProvider`. O cliente HTTP é injetável para testes.
  */
 export class SearchAggregator implements SearchProvider {
   constructor(
@@ -51,43 +57,45 @@ export class SearchAggregator implements SearchProvider {
   }
 }
 
-export const manifest = {
+export const manifest = defineAddonManifest({
   id: 'aggregator',
   version: '1.0.0',
   name: 'Aggregator Add-on',
   description: 'Meta-search: busca em vários add-ons de texto remotos com tolerância a falhas',
   author: 'Equipe AC',
   license: 'MIT',
-  tab: {
+  ui: {
     title: '🔎 Busca agregada',
     body: 'Consulta os add-ons de texto disponíveis e reúne seus resultados.',
   },
   entrypoint: '/packages/addon-aggregator/dist/bundle.js',
   services: [
-    { id: 'searchProvider', version: '1.0.0', name: 'Search Provider', description: 'Busca agregada entre add-ons de texto' },
+    { id: 'addons.aggregator.search-provider', version: '1.0.0', name: 'Search Provider', description: 'Busca agregada entre add-ons de texto' },
   ],
-  interactions: {
+  contract: {
     version: '1.0.0',
-    services: [{ id: 'searchProvider', role: 'provides', description: 'Busca em provedores de texto e reúne resultados.', methods: [{ id: 'search', description: 'Busca por termo.', receives: { description: 'Termo e limite da busca.', schema: { type: 'object', description: 'Parâmetros da busca.', classification: 'personal', properties: { query: { type: 'string', description: 'Termo buscado.', classification: 'personal' } }, required: ['query'] } }, returns: { description: 'Resultados de texto.', schema: { type: 'array', description: 'Resultados mesclados.', classification: 'personal' } } }] }, { id: 'addonStateStore', role: 'consumes', description: 'Mantém o histórico quando um provedor de estado está ativo.', required: false, methods: [{ id: 'get', description: 'Lê o histórico.' }, { id: 'set', description: 'Grava ou limpa o histórico.' }] }],
-    tab: { fields: [{ id: 'query', label: 'Termo de busca', description: 'Termo enviado aos provedores de texto.', required: true, schema: { type: 'string', description: 'Termo buscado.', classification: 'personal' } }], actions: [{ id: 'search', label: 'Buscar', description: 'Consulta os quatro provedores de texto.', receives: ['query'], returns: { description: 'Lista de resultados encontrados.', schema: { type: 'array', description: 'Resultados de busca.', classification: 'personal' } } }, { id: 'history', label: 'Histórico', description: 'Lê os termos buscados anteriormente.', returns: { description: 'Histórico de termos.', schema: { type: 'array', description: 'Termos de busca.', classification: 'personal' } } }, { id: 'clear-history', label: 'Limpar histórico', description: 'Remove os termos salvos.', returns: { description: 'Confirmação da limpeza.', schema: { type: 'object', description: 'Resposta da limpeza.', classification: 'public' } } }] },
+    protocol: { version: '1.0.0', range: '^1.0.0' },
+    capabilities: { required: [], optional: ['registry.services', 'ui.tab', 'logs', 'state-store'] },
+    services: [{ id: 'addons.aggregator.search-provider', role: 'provides', version: '1.0.0', description: 'Busca em provedores de texto e reúne resultados.', methods: [{ id: 'search', description: 'Busca por termo.', receives: { description: 'Termo da busca.', schema: { type: 'string', description: 'Termo buscado.', classification: 'personal' } }, returns: { description: 'Resultados de texto.', schema: { type: 'array', description: 'Resultados mesclados.', classification: 'personal' } } }] }, { id: 'state-store', role: 'consumes', version: '1.0.0', description: 'Mantém o histórico quando um provedor de estado está ativo.', required: false, methods: [{ id: 'get', description: 'Lê o histórico.' }, { id: 'set', description: 'Grava ou limpa o histórico.' }] }],
+    ui: { fields: [{ id: 'query', label: 'Termo de busca', description: 'Termo enviado aos provedores de texto.', required: true, schema: { type: 'string', description: 'Termo buscado.', classification: 'personal' } }], actions: [{ id: 'search', label: 'Buscar', description: 'Consulta os quatro provedores de texto.', receives: ['query'], returns: { description: 'Lista de resultados encontrados.', schema: { type: 'array', description: 'Resultados de busca.', classification: 'personal' } } }, { id: 'history', label: 'Histórico', description: 'Lê os termos buscados anteriormente.', returns: { description: 'Histórico de termos.', schema: { type: 'array', description: 'Termos de busca.', classification: 'personal' } } }, { id: 'clear-history', label: 'Limpar histórico', description: 'Remove os termos salvos.', returns: { description: 'Confirmação da limpeza.', schema: { type: 'object', description: 'Resposta da limpeza.', classification: 'public' } } }] },
     state: [{ id: 'history', description: 'Até vinte termos pesquisados, do mais recente para o mais antigo.', key: 'aggregator:history', operations: ['read', 'write', 'remove'], value: { description: 'Histórico de termos.', schema: { type: 'array', description: 'Termos buscados.', classification: 'personal', items: { type: 'string', description: 'Termo buscado.', classification: 'personal' } } }, retention: 'Enquanto o provedor de armazenamento escolhido pelo host conservar o estado.', deletionTrigger: 'Ação Limpar histórico ou limpeza do provedor.', fallback: 'memory' }, { id: 'tab', description: 'Campos e última resposta da aba.', key: 'aggregator:tab', operations: ['read', 'write'], value: { description: 'Estado visual da aba.', schema: { type: 'object', description: 'Busca e resposta.', classification: 'personal' } }, retention: 'Enquanto o provedor conservar o estado.', deletionTrigger: 'Limpeza do provedor ou dados do navegador.', fallback: 'memory' }],
     http: ['http://localhost:5291', 'http://localhost:5292', 'http://localhost:5293', 'http://localhost:5294'].map((origin, index) => ({ id: `search-${index + 1}`, direction: 'outgoing', method: 'GET', origin, path: '/search/text/{query}.json', purpose: 'Busca resultados no provedor de texto instalado na demonstração.', receives: { description: 'Termo da busca incluído na rota.', schema: { type: 'string', description: 'Termo buscado.', classification: 'personal' } }, returns: { description: 'Metadados de textos encontrados.', schema: { type: 'object', description: 'Resposta de busca.', classification: 'public' } } })),
     logs: [{ id: 'lifecycle', level: 'info', message: 'Add-on aggregator configurado com sucesso', description: 'Confirma a ativação do add-on.' }],
   },
-};
+});
 
 export function setup(host: HostAPI): void {
   const aggregator = new SearchAggregator(new HttpTextAddonClient(), DEFAULT_BASE_URLS);
-  host.registerService('searchProvider', aggregator);
+  host.registerService('addons.aggregator.search-provider', aggregator);
   host.log('info', 'Add-on aggregator configurado com sucesso');
 }
 
 export function createTab(host: HostAPI): AddonTab {
-  const searchProvider = host.services.get<SearchProvider>('searchProvider');
+  const searchProvider = host.services.use<SearchProvider>({ id: 'addons.aggregator.search-provider' });
   let memoryHistory: string[] = [];
 
   const readHistory = async (): Promise<string[]> => {
-    const store = host.services.get<AddonStateStore>('addonStateStore');
+    const store = host.services.use<AddonStateStore>({ id: 'state-store' });
     if (!store) return memoryHistory;
     const saved = await store.get<string[]>('aggregator:history');
     if (saved) return saved;
@@ -97,11 +105,11 @@ export function createTab(host: HostAPI): AddonTab {
 
   const saveHistory = async (history: string[]) => {
     memoryHistory = history;
-    await host.services.get<AddonStateStore>('addonStateStore')?.set('aggregator:history', history);
+    await host.services.use<AddonStateStore>({ id: 'state-store' })?.set('aggregator:history', history);
   };
 
   return {
-    ...manifest.tab,
+    ...manifest.contract.ui,
     fields: [{ id: 'query', label: 'Termo de busca', placeholder: 'Ex.: poesia', required: true }],
     actions: [
       { id: 'search', label: 'Buscar' },
