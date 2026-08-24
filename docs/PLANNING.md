@@ -6,7 +6,10 @@ Este documento conta como a arquitetura ganhou forma. Ele é uma narrativa hist�
 
 O plano histórico foi convertido em uma implementação compatível com `@addons-poc/protocol@1.0.0`. O antigo núcleo misturava registro, loader e helpers de domínio; hoje o pacote público contém somente contrato, schema, validadores e SDK, enquanto loader, registry, status e adaptadores vivem em `packages/host-app/src/runtime`. Todos os manifestos usam uma única seção `contract` v1, inclusive os servidores HTTP, e todos os add-ons têm README próprio no [índice de pacotes](PACKAGES.md).
 
-A publicação no npm continua pendente de autenticação e confirmação de propriedade do escopo `@addons-poc`. Não existe compatibilidade automática com o formato legado nem publicação em outro nome.
+`@addons-poc/protocol@1.0.0` foi publicado no npm depois da confirmação da
+conta e da propriedade do escopo `@addons-poc`. Os consumidores agora apontam
+para a versão do registry, sem compatibilidade automática com o formato legado
+nem publicação em outro nome.
 
 ## 1. O incômodo inicial
 

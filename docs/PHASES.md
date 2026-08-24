@@ -16,13 +16,13 @@ O estado atual dos pacotes está detalhado em [`PACKAGES.md`](PACKAGES.md). As f
 | 4. Composição | Add-ons conseguem formar capacidades maiores sem importações diretas? | Entregue |
 | 5. Gestão e compatibilidade | O usuário consegue instalar e controlar add-ons remotos? | Parcial |
 | 6. Isolamento | Código não confiável pode ser limitado com segurança? | Planejado |
-| 7. Protocolo público | O contrato pode ser publicado e usado por hosts independentes? | Parcial |
+| 7. Protocolo público | O contrato pode ser publicado e usado por hosts independentes? | Entregue |
 
 "Parcial" na fase 3 significa que o formato HTTP está entregue, enquanto cache, atualização e validação de respostas ainda não estão. A negociação SemVer e o perfil de capacidades foram entregues na fase 7.
 
 ## Fase 7 — Protocolo público v1
 
-**Estado: Parcial**
+**Estado: Entregue**
 
 ### Por que
 
@@ -30,7 +30,7 @@ Um contrato misturado ao runtime impede publicação e compatibilidade entre hos
 
 ### O que foi entregue
 
-- `@addons-poc/protocol@1.0.0`, MIT, com ESM, tipos e schema JSON, pronto para publicação;
+- `@addons-poc/protocol@1.0.0`, MIT, com ESM, tipos e schema JSON, publicado no npm;
 - seção única `contract` v1 em todos os manifestos;
 - capacidades, SemVer, descritores namespaceados e `state-store` oficial;
 - proxy `host.services.use(contrato)` e validação em runtime;
@@ -38,12 +38,16 @@ Um contrato misturado ao runtime impede publicação e compatibilidade entre hos
 - bloqueio de incompatibilidades, dependências obrigatórias e ciclos;
 - ADR 0001 e documentação alinhada.
 
-A publicação no registry ainda não foi executada: o ambiente não possui uma
-sessão npm autenticada nem prova de propriedade do escopo `@addons-poc`.
+O pacote foi consultado no registry com `npm view` e instalado em um consumidor
+limpo. Os consumidores do workspace agora usam a versão publicada, registrada
+no lockfile por sua integridade.
 
 ### Como verificar
 
-Execute `pnpm check:host-boundary`, `pnpm test`, `pnpm build:host` e `npm pack --dry-run` no pacote do protocolo. Depois, com uma conta da organização, publique somente `@addons-poc/protocol@1.0.0` e confirme a instalação em um consumidor limpo.
+Execute `pnpm check:host-boundary`, `pnpm test`, `pnpm build:host`,
+`npm pack --dry-run` no pacote do protocolo e `npm view
+@addons-poc/protocol@1.0.0`. Para uma nova versão, publique somente o pacote
+com a conta da organização e confirme a instalação em um consumidor limpo.
 
 ## Fase 1 — O alicerce
 

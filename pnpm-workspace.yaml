@@ -2,3 +2,6 @@ packages:
   - 'packages/*'
 allowBuilds:
   esbuild: true
+# Permite instalar imediatamente a versão recém-publicada do protocolo.
+minimumReleaseAgeExclude:
+  - '@addons-poc/protocol@1.0.0'

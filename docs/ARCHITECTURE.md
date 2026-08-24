@@ -1,6 +1,6 @@
 # Arquitetura do addons-app-poc
 
-**Status: Parcial · Protocolo 1.0.0 pronto para publicação**
+**Status: Parcial · Protocolo 1.0.0 publicado**
 
 Os READMEs operacionais de cada pacote estão reunidos em [`PACKAGES.md`](PACKAGES.md). Este documento explica a fronteira; os READMEs explicam como executar cada implementação.
 
@@ -28,8 +28,9 @@ Configurações oferece uma lista de conveniência com URLs locais de
 ela não importa bundles nem conhece serviços específicos. Add-ons não importam
 outros add-ons.
 
-O pacote foi empacotado e testado em consumidor limpo; o envio ao npm aguarda
-uma sessão autenticada com propriedade confirmada do escopo `@addons-poc`.
+O pacote foi publicado no npm e testado em consumidor limpo. Os pacotes
+consumidores usam `@addons-poc/protocol@1.0.0` do registry, enquanto o código
+fonte em `packages/protocol` permanece no workspace para testes e novas versões.
 
 | Área | Responsabilidade | Pode depender de |
 |---|---|---|

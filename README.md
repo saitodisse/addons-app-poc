@@ -82,23 +82,21 @@ pnpm kill-all
 | `pnpm test` | Executa os testes de todos os pacotes |
 | `pnpm build:host` | Gera a build de produção do host |
 
-### Preparar a publicação do protocolo
+### Protocolo publicado no npm
 
-O pacote público fica em `packages/protocol`. Antes de publicar, confirme a
-conta e a propriedade do escopo na organização; se essa checagem falhar, não
-publique em outro nome:
+O pacote público fica em `packages/protocol` e está disponível como
+`@addons-poc/protocol@1.0.0`. Todos os consumidores do workspace usam essa
+versão publicada; o lockfile registra o pacote do registry, não um link local.
+Para confirmar o artefato e testar um consumidor:
 
 ```bash
-cd packages/protocol
-npm whoami
-npm access list packages @addons-poc
-npm pack --dry-run
-npm publish --access public
+npm view @addons-poc/protocol@1.0.0 version dist.tarball
+npm install @addons-poc/protocol@1.0.0
 ```
 
-A versão única desta entrega é `@addons-poc/protocol@1.0.0`. Depois do envio,
-confirme `npm view @addons-poc/protocol@1.0.0` e faça uma instalação em um
-projeto temporário.
+Para publicar uma versão futura, confirme a conta e a propriedade do escopo
+`@addons-poc` antes de usar `npm publish --access public`; não existe fallback
+automático para outro nome.
 
 ## Como explorar o host
 

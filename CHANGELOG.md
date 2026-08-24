@@ -4,11 +4,27 @@ Este arquivo conta, em ordem inversa, como o projeto evoluiu. A leitura rápida 
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.0.1] - 2026-08-24
+
+### Alterado
+
+- Todos os consumidores do workspace, incluindo host, servidor HTTP e add-ons,
+  passaram a declarar `@addons-poc/protocol@1.0.0` como dependência do npm.
+- O lockfile registra a integridade do pacote publicado, sem links locais para
+  `packages/protocol`.
+- A instalação do workspace passou a liberar explicitamente a versão publicada
+  recém-lançada durante a janela de verificação de idade do pnpm.
+
+### Publicação
+
+- Confirmada a publicação pública de `@addons-poc/protocol@1.0.0` e a
+  instalação em um consumidor limpo.
+
 ## [1.0.0] - 2026-08-24
 
 ### Adicionado
 
-- `@addons-poc/protocol@1.0.0`, preparado para publicação pública no npm e licenciado em MIT (o envio depende de credenciais do escopo).
+- `@addons-poc/protocol@1.0.0`, publicado publicamente no npm e licenciado em MIT.
 - Contrato v1 com JSON Schema, faixa SemVer, capacidades, descritores
   namespaceados, schemas de método, UI, estado, HTTP e logs.
 - Proxy `host.services.use(contrato)`, `state-store` oficial opcional e

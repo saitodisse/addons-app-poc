@@ -1,6 +1,6 @@
 # Requisitos do produto
 
-**Status: Parcial** · **Versão da POC: 1.0.0 pronta para publicação**
+**Status: Parcial** · **Versão da POC: 1.0.1** · **Protocolo publicado: 1.0.0**
 
 Este documento define o que a prova de conceito precisa demonstrar. Ele não descreve um produto comercial pronto; descreve as perguntas técnicas que o experimento deve responder e as evidências esperadas para cada resposta.
 
@@ -37,9 +37,9 @@ O host bloqueia capacidades incompatíveis, serviços obrigatórios ausentes e
 ciclos obrigatórios antes de importar o bundle. `state-store` é uma capacidade
 oficial opcional. O protocolo declara I/O externo, mas não promete sandbox.
 
-A distribuição do protocolo está pronta para `npm publish --access public`; a
-publicação efetiva depende de uma sessão autenticada com propriedade do escopo
-`@addons-poc`.
+A distribuição do protocolo está publicada como `@addons-poc/protocol@1.0.0`.
+Host e add-ons consomem essa versão pelo registry; o pacote fonte permanece no
+workspace para testes e manutenção.
 
 ## Para quem a demonstração serve
 

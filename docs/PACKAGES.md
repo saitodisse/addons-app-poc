@@ -28,7 +28,11 @@ O host precisa instalar e revisar add-ons sem conhecer implementações concreta
 | [`@addons/addon-text-poemas`](../packages/addon-text-poemas/README.md) | servidor HTTP | Poemas carregados da PoetryDB | [`packages/addon-text-poemas`](../packages/addon-text-poemas/README.md) |
 | [`@addons/addon-text-wikipedia`](../packages/addon-text-wikipedia/README.md) | servidor HTTP | Resumos e buscas na Wikipédia em português | [`packages/addon-text-wikipedia`](../packages/addon-text-wikipedia/README.md) |
 
-Todos os add-ons dependem diretamente de `@addons-poc/protocol`. Os quatro add-ons HTTP também dependem de `@addons/addon-server`; não há dependência entre add-ons de domínio.
+Todos os add-ons e o host dependem diretamente de `@addons-poc/protocol@1.0.0`,
+instalado do npm. O lockfile mantém a integridade do artefato publicado; não há
+link local do protocolo durante a instalação do workspace. Os quatro add-ons
+HTTP também dependem de `@addons/addon-server`; não há dependência entre add-ons
+de domínio.
 
 ## Como usar esta documentação
 

@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@addons/addon-server": "workspace:*",
-    "@addons-poc/protocol": "workspace:*"
+    "@addons-poc/protocol": "1.0.0"
   },
   "devDependencies": {
     "vitest": "^3.0.0"

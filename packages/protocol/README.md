@@ -87,7 +87,10 @@ cd packages/protocol
 npm pack --dry-run
 ```
 
-O envio público de `@addons-poc/protocol@1.0.0` requer uma conta autenticada e propriedade confirmada do escopo `@addons-poc`; não há fallback automático para outro nome.
+`@addons-poc/protocol@1.0.0` já está publicado no npm. Para confirmar a versão
+distribuída, execute `npm view @addons-poc/protocol@1.0.0 version dist.tarball`.
+Uma versão futura exige conta autenticada e propriedade confirmada do escopo
+`@addons-poc`; não há fallback automático para outro nome.
 
 ## Limites de compatibilidade
 

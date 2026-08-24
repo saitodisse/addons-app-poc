@@ -15,8 +15,8 @@ importers:
   packages/addon-aggregator:
     dependencies:
       '@addons-poc/protocol':
-        specifier: workspace:*
-        version: link:../protocol
+        specifier: 1.0.0
+        version: 1.0.0
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -28,8 +28,8 @@ importers:
   packages/addon-counter:
     dependencies:
       '@addons-poc/protocol':
-        specifier: workspace:*
-        version: link:../protocol
+        specifier: 1.0.0
+        version: 1.0.0
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -38,8 +38,8 @@ importers:
   packages/addon-debug:
     dependencies:
       '@addons-poc/protocol':
-        specifier: workspace:*
-        version: link:../protocol
+        specifier: 1.0.0
+        version: 1.0.0
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -51,8 +51,8 @@ importers:
   packages/addon-favorites:
     dependencies:
       '@addons-poc/protocol':
-        specifier: workspace:*
-        version: link:../protocol
+        specifier: 1.0.0
+        version: 1.0.0
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -64,8 +64,8 @@ importers:
   packages/addon-health:
     dependencies:
       '@addons-poc/protocol':
-        specifier: workspace:*
-        version: link:../protocol
+        specifier: 1.0.0
+        version: 1.0.0
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -77,8 +77,8 @@ importers:
   packages/addon-hello:
     dependencies:
       '@addons-poc/protocol':
-        specifier: workspace:*
-        version: link:../protocol
+        specifier: 1.0.0
+        version: 1.0.0
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -87,8 +87,8 @@ importers:
   packages/addon-hello-pt:
     dependencies:
       '@addons-poc/protocol':
-        specifier: workspace:*
-        version: link:../protocol
+        specifier: 1.0.0
+        version: 1.0.0
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -97,8 +97,8 @@ importers:
   packages/addon-markdown:
     dependencies:
       '@addons-poc/protocol':
-        specifier: workspace:*
-        version: link:../protocol
+        specifier: 1.0.0
+        version: 1.0.0
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -110,8 +110,8 @@ importers:
   packages/addon-server:
     dependencies:
       '@addons-poc/protocol':
-        specifier: workspace:*
-        version: link:../protocol
+        specifier: 1.0.0
+        version: 1.0.0
     devDependencies:
       vitest:
         specifier: ^3.0.0
@@ -120,8 +120,8 @@ importers:
   packages/addon-storage-local:
     dependencies:
       '@addons-poc/protocol':
-        specifier: workspace:*
-        version: link:../protocol
+        specifier: 1.0.0
+        version: 1.0.0
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -133,8 +133,8 @@ importers:
   packages/addon-storage-session:
     dependencies:
       '@addons-poc/protocol':
-        specifier: workspace:*
-        version: link:../protocol
+        specifier: 1.0.0
+        version: 1.0.0
     devDependencies:
       typescript:
         specifier: ^5.7.0
@@ -146,8 +146,8 @@ importers:
   packages/addon-text-biblioteca:
     dependencies:
       '@addons-poc/protocol':
-        specifier: workspace:*
-        version: link:../protocol
+        specifier: 1.0.0
+        version: 1.0.0
       '@addons/addon-server':
         specifier: workspace:*
         version: link:../addon-server
@@ -159,8 +159,8 @@ importers:
   packages/addon-text-citacoes:
     dependencies:
       '@addons-poc/protocol':
-        specifier: workspace:*
-        version: link:../protocol
+        specifier: 1.0.0
+        version: 1.0.0
       '@addons/addon-server':
         specifier: workspace:*
         version: link:../addon-server
@@ -172,8 +172,8 @@ importers:
   packages/addon-text-poemas:
     dependencies:
       '@addons-poc/protocol':
-        specifier: workspace:*
-        version: link:../protocol
+        specifier: 1.0.0
+        version: 1.0.0
       '@addons/addon-server':
         specifier: workspace:*
         version: link:../addon-server
@@ -185,8 +185,8 @@ importers:
   packages/addon-text-wikipedia:
     dependencies:
       '@addons-poc/protocol':
-        specifier: workspace:*
-        version: link:../protocol
+        specifier: 1.0.0
+        version: 1.0.0
       '@addons/addon-server':
         specifier: workspace:*
         version: link:../addon-server
@@ -198,8 +198,8 @@ importers:
   packages/host-app:
     dependencies:
       '@addons-poc/protocol':
-        specifier: workspace:*
-        version: link:../protocol
+        specifier: 1.0.0
+        version: 1.0.0
       json-highlighter:
         specifier: 1.5.0
         version: 1.5.0(react@19.2.8)
@@ -239,6 +239,9 @@ importers:
         version: 3.2.7
 
 packages:
+
+  '@addons-poc/protocol@1.0.0':
+    resolution: {integrity: sha512-jpEKzhlQurkpGGmFe/RH0E1vhgZ5jP0DWws0Uuf7utOjf8UXXqp21d0x5tMbcTdayJtoru90ps1UuL1+T8n9iQ==}
 
   '@babel/code-frame@7.29.7':
     resolution: {integrity: sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==}
@@ -1025,6 +1028,8 @@ packages:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
 
 snapshots:
+
+  '@addons-poc/protocol@1.0.0': {}
 
   '@babel/code-frame@7.29.7':
     dependencies:
