@@ -18,7 +18,25 @@ O estado atual dos pacotes está detalhado em [`PACKAGES.md`](PACKAGES.md). As f
 | 6. Isolamento | Código não confiável pode ser limitado com segurança? | Planejado |
 | 7. Protocolo público | O contrato pode ser publicado e usado por hosts independentes? | Entregue |
 
-"Parcial" na fase 3 significa que o formato HTTP está entregue, enquanto cache, atualização e validação de respostas ainda não estão. A negociação SemVer e o perfil de capacidades foram entregues na fase 7.
+"Parcial" na fase 3 significa que o formato HTTP está entregue, enquanto a interface genérica de catálogo, busca e leitura, o cache, a atualização e a validação de respostas ainda não estão. A negociação SemVer e o perfil de capacidades foram entregues na fase 7.
+
+## Verificação de 08/09/2026
+
+Este registro separa a base já demonstrada das pendências para continuar o experimento. O estado geral permanece **Parcial**: o protocolo público e a instalação por URL estão entregues, mas o ciclo de vida e a experiência HTTP ainda precisam ser completados.
+
+A verificação usou o código do commit `09ac6da`, versão da POC `1.0.1`, com consumidores de `@addons-poc/protocol@1.0.0` pelo npm. Antes desta atualização documental, o checkout estava na branch `master`, sem alterações locais.
+
+A versão `1.0.2` consolida esta revisão documental. Os comandos abaixo foram repetidos na finalização dessa versão, com os mesmos resultados; o protocolo permanece em `1.0.0`.
+
+| Verificação executada | Resultado |
+|---|---|
+| `pnpm test` | 136 testes passaram em 24 arquivos; inclui a checagem da fronteira do host e a build do protocolo |
+| `pnpm build:host` | TypeScript, checagem da fronteira e build de produção passaram |
+| Inspeção do loader e da gestão de instalações | Confirmadas a limpeza básica após falha de `setup`, a ausência de unload completo e a aba apenas informativa para manifestos sem `entrypoint` |
+
+Não houve nova verificação visual no navegador, consulta ao npm nem verificação do remoto Git. A publicação do protocolo e seu teste em consumidor limpo pertencem à entrega registrada em 24/08 no [changelog](../CHANGELOG.md).
+
+Para reproduzir a demonstração manual, execute `pnpm dev`, abra `http://localhost:5280` e instale `http://localhost:5301/manifest.json` em **Configurações**. Revise e aceite o contrato, abra a aba Hello e recarregue a página. O resultado esperado é a instalação permanecer disponível. Esse roteiro não foi executado nesta verificação.
 
 ## Fase 7 — Protocolo público v1
 
@@ -125,7 +143,7 @@ Nem toda extensão precisa executar dentro do host. Conteúdo remoto e processam
 ### Parte pendente: compatibilidade e experiência genérica
 
 - armazenar manifestos em cache com política de atualização;
-- validar respostas HTTP além do manifesto.
+- validar respostas HTTP além do manifesto;
 - transformar os recursos de um servidor HTTP recém-instalado em uma aba especializada, sem código prévio no host.
 
 ### Como verificar a parte entregue
@@ -170,7 +188,11 @@ Um ecossistema por URL precisa deixar a escolha com a pessoa usuária sem transf
 - expansão de cada add-on instalado com explicação e JSON completo do manifesto;
 - persistência das URLs, extensões desativadas e impressão digital do contrato aceito;
 - reativação bloqueada quando o contrato muda na mesma URL;
-- validação de serviços, campos, ações e acesso mediado a estado.
+- validação de serviços, campos, ações e acesso mediado a estado;
+- compatibilidade de versões e capacidades, com bloqueio de dependências obrigatórias ausentes e ciclos;
+- limpeza básica dos serviços registrados quando `setup` falha, coberta por teste do loader.
+
+A limpeza básica chama os callbacks de `onUnload` e depois remove os serviços da URL. Ela ainda não garante recuperação se um desses callbacks lançar uma exceção. Ao desativar ou remover uma instância ativa, a interface limpa o registro de serviços, mas não executa esses callbacks. Veja os detalhes na [arquitetura](ARCHITECTURE.md#loader-e-estados).
 
 ### Parte pendente
 
@@ -178,11 +200,11 @@ Um ecossistema por URL precisa deixar a escolha com a pessoa usuária sem transf
 - cache e atualização de manifestos;
 - mensagens claras para incompatibilidade;
 - ciclo completo de unload;
-- limpeza transacional de registros quando o setup falhar.
+- garantir que uma falha em callback de limpeza não impeça os demais callbacks nem a remoção dos serviços.
 
 ### Condição de conclusão
 
-A fase termina quando um usuário consegue adicionar uma URL válida, reiniciar o host e encontrar o add-on preservado; uma URL inválida ou incompatível deve produzir erro compreensível sem alterar os add-ons já ativos.
+A instalação persistente já funciona. Para concluir a fase, o host deve também executar a limpeza completa ao desativar ou remover uma instância, preservar a remoção dos serviços mesmo se um callback falhar, permitir editar prioridades e oferecer cache e atualização de manifestos. URLs inválidas ou incompatíveis devem produzir erros compreensíveis sem alterar os add-ons já ativos.
 
 ## Fase 6 — Isolamento e confiança
 
@@ -208,10 +230,10 @@ Uma extensão de teste deve falhar, travar ou tentar um acesso não autorizado s
 
 ## Ordem recomendada para o próximo trabalho
 
-1. Corrigir a limpeza de registros após falha de `setup`.
-2. Implementar e testar o ciclo de unload.
-3. Adicionar edição de prioridades e uma experiência genérica para recursos HTTP instalados.
-4. Adicionar negociação de versão, cache e atualização de manifestos.
+1. Completar e testar o ciclo de unload ao desativar ou remover add-ons, incluindo recuperação quando um callback de limpeza falhar.
+2. Apresentar catálogo, busca e leitura dos recursos HTTP instalados de modo genérico, validando suas respostas.
+3. Adicionar edição de prioridades e melhorar as mensagens de incompatibilidade.
+4. Adicionar cache e atualização de manifestos, preservando a nova revisão quando o contrato mudar.
 5. Só então escolher o modelo de sandbox.
 
 Essa ordem fecha primeiro inconsistências do ciclo de vida, depois adiciona conveniência e, por último, enfrenta o isolamento — o tema mais caro e sensível.

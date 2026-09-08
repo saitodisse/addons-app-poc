@@ -47,6 +47,8 @@ O servidor local do host usa a porta `5280`. `pnpm dev` inicia o host e os quatr
 
 Os add-ons são confiáveis nesta POC. O host valida o contrato, entradas, saídas, estado, ações e logs declarados, mas não promete sandbox, bloqueio de APIs globais ou proxy de rede. I/O externo deve aparecer em `contract.http` e passar por revisão.
 
-O loader executa callbacks `onUnload` quando uma ativação falha; o ciclo completo de descarregamento ao desativar ou remover uma instância ainda é uma lacuna conhecida.
+O loader executa callbacks `onUnload` quando uma ativação falha e depois remove os serviços registrados. Uma exceção em callback pode interromper essa limpeza. Ao desativar ou remover uma instância ativa, o host remove seus serviços, mas ainda não executa os callbacks. O ciclo completo de descarregamento é o próximo trabalho no [roteiro](../../docs/PHASES.md#ordem-recomendada-para-o-próximo-trabalho).
+
+Manifestos HTTP sem `entrypoint` recebem uma aba com título e descrição. A interface genérica de catálogo, busca e leitura ainda está planejada.
 
 Consulte a [especificação de manifesto](../../docs/MANIFEST-SPEC.md) e o [índice dos pacotes](../../docs/PACKAGES.md).

@@ -1,6 +1,6 @@
 # Requisitos do produto
 
-**Status: Parcial** · **Versão da POC: 1.0.1** · **Protocolo publicado: 1.0.0**
+**Status: Parcial** · **Versão da POC: 1.0.2** · **Protocolo publicado: 1.0.0**
 
 Este documento define o que a prova de conceito precisa demonstrar. Ele não descreve um produto comercial pronto; descreve as perguntas técnicas que o experimento deve responder e as evidências esperadas para cada resposta.
 
@@ -85,10 +85,11 @@ Os estados significam: **Entregue** quando o comportamento está implementado no
 | F2.1 | Exportar `manifest`, `setup` e `createTab` | Entregue | Add-ons locais de exemplo |
 | F2.2 | Carregar manifesto e bundle por URL | Entregue | `FetchAddonLoader` e testes com mocks |
 | F2.3 | Instalar uma URL arbitrária pela interface | Entregue | Configurações valida o manifesto, pede revisão, oferece URLs locais com `name`/`description` lidos genericamente e usa `FetchAddonLoader` quando há `entrypoint` |
-| F2.4 | Não deixar falha de setup derrubar o host | Entregue | Loader devolve instância em `error` |
-| F2.5 | Remover registros parciais após falha de setup | Entregue | `FetchAddonLoader` chama `clearAddon` e executa callbacks registrados |
-| F2.6 | Executar callbacks de descarregamento | Planejado | Callbacks são coletados, mas não há ciclo público de unload |
+| F2.4 | Não deixar falha de setup derrubar o host | Entregue | Loader devolve instância em `error` quando a limpeza termina sem exceção; falha na própria limpeza está em F2.8 |
+| F2.5 | Remover registros parciais após falha de setup | Entregue | Teste do loader comprova `clearAddon` após falha de setup sem callbacks de limpeza; falha em callback está em F2.8 |
+| F2.6 | Executar callbacks de descarregamento | Parcial | Loader chama callbacks quando a ativação falha; desativar ou remover instâncias ativas ainda não os executa |
 | F2.7 | Demonstrar serviços de saudação e contador | Entregue | Pacotes `addon-hello`, `addon-hello-pt` e `addon-counter`, sem acoplamento ao host |
+| F2.8 | Concluir a limpeza mesmo se um callback falhar | Planejado | Exceção em `unloadAll` pode impedir callbacks seguintes, `clearAddon` e o retorno de uma instância em `error` |
 
 ### Prioridade, fallback e composição
 
@@ -114,6 +115,8 @@ Os estados significam: **Entregue** quando o comportamento está implementado no
 | F4.7 | Demonstrar processamento externo | Entregue | Citações, PoetryDB e Wikipédia |
 | F4.8 | Tolerar uma origem indisponível na busca agregada | Entregue | `Promise.allSettled` no agregador |
 | F4.9 | Armazenar manifesto em cache | Planejado | O cliente busca novamente |
+| F4.10 | Explorar recursos HTTP instalados pela interface genérica | Planejado | Manifestos sem `entrypoint` recebem apenas aba com título e descrição, sem catálogo, busca ou leitura |
+| F4.11 | Validar respostas dos recursos HTTP além do manifesto | Planejado | Validação estrutural das respostas ainda pendente |
 
 ### Gestão, compatibilidade e isolamento
 
@@ -129,6 +132,12 @@ Os estados significam: **Entregue** quando o comportamento está implementado no
 | F5.8 | Dar rota própria a cada extensão ativa | Entregue | Hash codifica a URL do manifesto em `#/addons/<url>` |
 | F5.9 | Pedir nova revisão quando o contrato mudar | Entregue | Impressão digital do contrato bloqueia a reativação até nova aceitação |
 | F5.10 | Mediar interações internas declaradas | Entregue | Proxy valida serviço, entrada, saída, campos, ações, estado e logs |
+| F5.11 | Editar prioridades pela interface | Planejado | A ordem atual vem dos descritores; não há editor no host |
+| F5.12 | Definir uma política de atualização de manifestos | Planejado | Persistência de URLs e contratos aceitos não constitui uma política de atualização |
+
+O [registro de verificação de 08/09/2026](PHASES.md#verificação-de-08092026)
+documenta os testes, a build e os limites da conferência local. A ordem do
+próximo trabalho também está em `PHASES.md`.
 
 ## Requisitos não funcionais
 

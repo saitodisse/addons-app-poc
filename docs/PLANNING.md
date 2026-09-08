@@ -139,20 +139,22 @@ O ponto central é que nenhuma dessas extensões importa outra extensão. Elas c
 
 O código revelou diferenças entre uma arquitetura desenhada e uma arquitetura realmente demonstrada. A tela de Configurações passou a buscar manifestos por URL, exibir o contrato de interação antes da instalação e restaurar as escolhas após F5. Para módulos em processo, ela chama o `FetchAddonLoader`; para manifestos HTTP, preserva a declaração e sua aba genérica.
 
-Essa evolução também deixou claro o que a revisão de contrato faz e o que ela não faz. A impressão digital aceita detecta uma alteração na mesma URL e bloqueia a reativação até nova leitura, mas não prova autoria nem impede código em processo de usar APIs do navegador. O loader recebe callbacks de unload, mas não oferece o ciclo que os executa. Uma falha de setup vira estado `error`, mas registros criados antes da exceção ainda precisam ser removidos explicitamente.
+Essa evolução também deixou claro o que a revisão de contrato faz e o que ela não faz. A impressão digital aceita detecta uma alteração na mesma URL e bloqueia a reativação até nova leitura, mas não prova autoria nem impede código em processo de usar APIs do navegador.
+
+A limpeza básica após falha de `setup` já existe: o loader chama callbacks de `onUnload`, remove os serviços registrados e devolve estado `error`. Ainda falta garantir essa recuperação quando um callback de limpeza falha e executar os callbacks ao desativar ou remover uma instância ativa. Para manifestos HTTP sem `entrypoint`, a aba atual apresenta apenas título e descrição; catálogo, busca e leitura ainda precisam de uma interface genérica.
 
 Registrar essas diferenças é parte do resultado da POC. Um experimento é valioso justamente quando mostra quais peças da ideia são simples e quais exigem desenho adicional.
 
 ## 12. A direção daqui para frente
 
-Com o protocolo público v1 definido, o próximo capítulo não é adicionar mais exemplos. É completar o ciclo de vida:
+Com o protocolo público v1 entregue, a continuação começa pelo ciclo de vida:
 
-1. tornar a ativação transacional;
-2. executar a limpeza no unload;
-3. permitir editar prioridades e apresentar recursos HTTP instalados de modo genérico;
-4. armazenar manifestos em cache e definir atualização;
+1. completar o unload ao desativar ou remover add-ons e garantir a limpeza mesmo quando um callback falhar;
+2. apresentar catálogo, busca e leitura HTTP de modo genérico, com validação das respostas;
+3. permitir editar prioridades e melhorar as mensagens de incompatibilidade;
+4. armazenar manifestos em cache e definir atualização, preservando a revisão de contratos alterados;
 5. investigar isolamento real.
 
 Quando essas etapas existirem, a POC poderá responder uma pergunta mais exigente: não apenas “o protocolo funciona?”, mas “ele continua compreensível e seguro quando add-ons deixam de ser confiáveis?”.
 
-O roteiro verificável está em `PHASES.md`, e os requisitos correspondentes estão em `PRD.md`.
+O roteiro e o [registro de verificação de 08/09/2026](PHASES.md#verificação-de-08092026) estão em `PHASES.md`, e os requisitos correspondentes estão em `PRD.md`.

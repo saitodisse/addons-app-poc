@@ -64,8 +64,21 @@ Schema equivalente é empacotado em `@addons-poc/protocol/schema`.
 
 `FetchAddonLoader` busca o manifesto, valida protocolo e capacidades, importa o
 bundle ESM apenas depois dessa validação e confere que o `manifest` exportado
-tem o mesmo fingerprint do manifesto remoto. Falha de import ou `setup` vira
-uma instância `error`; registros parciais são limpos.
+tem o mesmo fingerprint (impressão digital do contrato) do manifesto remoto.
+Falha de import vira uma instância `error`. Se `setup` ou a criação da aba
+falhar, o loader chama os callbacks de `onUnload`, remove os serviços da URL
+com `clearAddon` e devolve uma instância `error`.
+
+Essa recuperação ainda tem um limite: `unloadAll` não captura exceções dos
+callbacks. Se um deles falhar, interrompe os seguintes e impede a chamada de
+`clearAddon` e o retorno normal da instância de erro. O teste
+[`loader.test.ts`](../packages/host-app/src/runtime/loader.test.ts) comprova a
+remoção dos registros após falha de `setup` sem callbacks de limpeza; não
+comprova recuperação quando a própria limpeza falha.
+
+Desativar ou remover uma instância em `App.tsx` limpa seus serviços e reavalia
+dependências, mas não chama os callbacks de `onUnload`. Completar esse ciclo
+de descarregamento é o próximo trabalho registrado em [PHASES.md](PHASES.md).
 
 ### Registry e prioridade
 
@@ -105,6 +118,11 @@ texto e conteúdo. O servidor e os quatro exemplos HTTP são ESM puro. Eles
 validam com o protocolo público, mas não importam runtime TypeScript do host.
 I/O externo deve constar em `contract.http`; a v1 torna a declaração visível,
 mas não intercepta `fetch` direto.
+
+Ao instalar um manifesto sem `entrypoint`, o loader cria uma aba com título e
+descrição, sem ações de catálogo, busca ou leitura. Os servidores e clientes
+de exemplo demonstram esses recursos, mas a interface genérica para consumi-los
+diretamente após a instalação ainda está planejada.
 
 ## Capacidade oficial opcional
 

@@ -4,6 +4,15 @@ Este arquivo conta, em ordem inversa, como o projeto evoluiu. A leitura rápida 
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.0.2] - 2026-09-08
+
+### Documentação
+
+- Registrado o estado atual da POC, com 136 testes aprovados, build de produção aprovada e limites explícitos da verificação local.
+- Corrigido o planejamento para reconhecer a compatibilidade de versões e a limpeza básica após falha de inicialização como implementadas.
+- Detalhadas as pendências de descarregamento ao desativar ou remover add-ons, recuperação de falhas nos callbacks de limpeza e interface genérica dos recursos HTTP.
+- Alinhados os requisitos e a ordem dos próximos trabalhos: ciclo de vida, experiência HTTP, edição de prioridades, cache e atualização de manifestos, seguidos de isolamento.
+
 ## [1.0.1] - 2026-08-24
 
 ### Alterado

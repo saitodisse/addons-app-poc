@@ -110,8 +110,12 @@ Se `setup` lançar uma exceção, o loader devolve uma `AddonInstance` com statu
 ### Consequências técnicas e lacuna atual
 
 O loader executa os callbacks registrados, limpa os serviços daquela URL e
-devolve uma instância em `error`. Assim um setup parcial não fica visível para
-os demais add-ons.
+devolve uma instância em `error`, desde que os callbacks terminem sem exceção.
+A remoção de registros após falha de `setup` tem teste no runtime do host.
+Ainda falta garantir que uma falha no próprio callback não interrompa os
+demais callbacks nem impeça a remoção dos serviços. A ativação atual registra
+serviços diretamente no registry; não há uma transação que os mantenha
+invisíveis até a conclusão do `setup`.
 
 ## 7. Fallback é uma operação explícita
 

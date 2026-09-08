@@ -17,7 +17,7 @@ Essa ideia foi inspirada no protocolo de add-ons do Stremio. A inspiração est�
 O projeto demonstra dois formatos de add-on que convivem no mesmo protocolo:
 
 1. **Add-on em processo:** é um módulo JavaScript carregado pelo host a partir da URL declarada no manifesto. Durante a inicialização, ele registra os serviços que seu contrato permite.
-2. **Add-on HTTP:** é um servidor independente. O host lê seu manifesto e consulta catálogos, buscas e textos por rotas HTTP.
+2. **Add-on HTTP:** é um servidor independente. Clientes de exemplo consultam catálogos, buscas e textos por rotas HTTP. O host instala seu manifesto e apresenta uma aba informativa; a navegação genérica desses recursos pela interface ainda está planejada.
 
 O runtime e os testes também demonstram **prioridade** e **fallback**. Quando dois add-ons oferecem o mesmo serviço, o registry interno ordena as implementações e a operação de fallback tenta a próxima quando a anterior falha. Os helpers de fallback são internos à implementação do runtime; a API pública do add-on continua sendo `host.services.use(contrato)`.
 
@@ -161,7 +161,9 @@ ciclos obrigatórios também são bloqueados.
 
 ## Limites atuais
 
-Esta POC prova o protocolo, mas ainda não é uma plataforma pronta para produção. Cada add-on precisa publicar seu próprio manifesto e bundle ou servidor HTTP. Ainda faltam cache e atualização de manifestos, sandbox e proxy de rede.
+Esta POC prova o protocolo, mas ainda não é uma plataforma pronta para produção. Cada add-on precisa publicar seu próprio manifesto e bundle ou servidor HTTP. Ainda faltam descarregamento completo ao desativar ou remover add-ons, interface genérica para recursos HTTP, edição de prioridades, cache e atualização de manifestos, sandbox e proxy de rede.
+
+A versão `1.0.2` consolida o estado atual na documentação. A [verificação de 08/09/2026](docs/PHASES.md#verificação-de-08092026) registra 136 testes aprovados e build de produção aprovada, com o escopo e os limites da conferência. O próximo passo recomendado é completar o descarregamento, incluindo falhas nos callbacks de limpeza, e depois a experiência HTTP genérica.
 
 Plugins são confiáveis e podem chamar APIs globais. O manifesto registra I/O
 externo para revisão, mas a v1 não oferece sandbox, proxy de rede, `onUnload`
