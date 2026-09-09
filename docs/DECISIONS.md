@@ -398,8 +398,9 @@ a busca e Esc limpar os resultados.
 - a tabela existe em todas as rotas e também quando não há provedores ativos;
 - a URL de conteúdo do recurso `text` é um fallback quando a meta não oferece
   uma URL própria;
-- o limite é aplicado por add-on no host, depois da resposta da rede, e não
-  muda o contrato ou o servidor da extensão;
+- o limite é aplicado por add-on no host, depois da resposta da rede, e pode ser
+  ajustado na lateral ou em Configurações; ele não muda o contrato ou o servidor
+  da extensão;
 - com um `state-store` ativo, `host:search:results:v1` guarda a última consulta
   e suas linhas; sem esse serviço, o resultado permanece apenas em memória;
 - a validação atual garante a forma básica `{ metas: [...] }`; schemas

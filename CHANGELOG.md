@@ -4,6 +4,13 @@ Este arquivo conta, em ordem inversa, como o projeto evoluiu. A leitura rápida 
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.1.1] - 2026-09-09
+
+### Alterado
+
+- A lateral de extensões agora exibe o limite de resultados de busca para Biblioteca, Citações, Poemas e Wikipédia.
+- O controle da lateral compartilha a mesma configuração persistida da tela de Configurações e continua aplicando o limite à tabela principal.
+
 ## [1.1.0] - 2026-09-08
 
 ### Adicionado

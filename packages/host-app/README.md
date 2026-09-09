@@ -22,6 +22,7 @@ limpa campo e resultados. `src/search.ts` é um adaptador interno que consulta
 as rotas `/search/<type>/<query>.json`, aplica o limite configurado por add-on,
 isola falhas de uma origem e produz linhas com tipo, ID, URL, nome, descrição e
 metadados visuais opcionais. A tabela permanece visível mesmo sem extensões.
+O limite pode ser ajustado na lateral de extensões ou em Configurações.
 Quando existe um `state-store` ativo, o host grava a consulta e as linhas sob a
 chave `host:search:results:v1`.
 

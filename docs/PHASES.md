@@ -93,12 +93,12 @@ ativas e comparar suas respostas.
 
 ### O que
 
-A versão `1.1.0` fixa um campo de pesquisa no cabeçalho e mantém uma tabela de
+A versão `1.1.1` fixa um campo de pesquisa no cabeçalho e mantém uma tabela de
 resultados no início de todas as rotas, inclusive quando não há extensões. Enter
 consulta add-ons que declaram `search`; Esc limpa o campo e a tabela. Citações
 da Web, Poemas e Wikipédia aparecem na mesma listagem com tipo, ID, URL, nome,
 descrição e emoji. Cada extensão de busca tem um limite configurável em
-Configurações. Quando Local Storage ou Session Storage está ativo, a consulta e
+Configurações e na lateral de extensões. Quando Local Storage ou Session Storage está ativo, a consulta e
 as linhas são salvas pelo `state-store`.
 
 ### Como

@@ -4,6 +4,7 @@ import type { AddonInstance, AddonManifest } from '@addons-poc/protocol';
 import { AddonCard } from './AddonCard';
 import { AddonContractView } from './AddonContractView';
 import { LOCAL_MANIFEST_SUGGESTIONS, loadLocalManifestSuggestions } from '../local-manifest-suggestions';
+import { DEFAULT_SEARCH_LIMIT } from '../search';
 
 interface AddonManagerProps {
   addons: AddonInstance[];
@@ -183,7 +184,7 @@ export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, s
                 onToggle={onToggle}
                 onRemove={onRemove}
                 stateDestination={getStateDestination(addon.manifest.contract, activeProviderIds)}
-                searchLimit={searchLimits[addon.manifestUrl] ?? 10}
+                searchLimit={searchLimits[addon.manifestUrl] ?? DEFAULT_SEARCH_LIMIT}
                 onSearchLimitChange={onSearchLimitChange}
                 reviewRequired={pendingContractUrls.includes(addon.manifestUrl)}
                 onAcceptContract={(manifestUrl) => void onAcceptContract(manifestUrl)}

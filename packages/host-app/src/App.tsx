@@ -482,6 +482,8 @@ export function App() {
                 onSelect={selectAddon}
                 onToggle={toggleAddon}
                 onReviewContract={reviewAddonContract}
+                searchLimits={searchLimits}
+                onSearchLimitChange={onSearchLimitChange}
               />
 
               <div style={{

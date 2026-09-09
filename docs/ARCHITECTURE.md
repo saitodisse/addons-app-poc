@@ -108,6 +108,9 @@ nessa chave: quando há um provedor `state-store`, o host grava a consulta e as
 linhas em `host:search:results:v1`, respeitando a mesma fronteira opcional de
 persistência usada pelos add-ons.
 
+O mesmo limite é editável na lateral de extensões durante a demonstração; os
+dois controles atualizam a mesma configuração por URL.
+
 ## Dois formatos de add-on
 
 ### Em processo
