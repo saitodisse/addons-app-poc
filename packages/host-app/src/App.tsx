@@ -442,7 +442,7 @@ export function App() {
         onClearSearch={clearSearch}
       />
 
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 24px 48px' }}>
+      <main className={rota === RUTAS.inicio ? 'host-home-main' : undefined} style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 24px 48px' }}>
         <SearchResultsTable
           query={searchQuery}
           results={searchResults}
@@ -467,12 +467,12 @@ export function App() {
             />
           </section>
         ) : (
-          <section>
+          <section className="host-live-sidebar" aria-label="Demonstração ao vivo">
             <h2 style={{ fontSize: 14, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: 12 }}>
               Demonstração ao Vivo
             </h2>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(216px, 276px) minmax(0, 1fr)', gap: 16, alignItems: 'start' }}>
+            <div className="host-live-sidebar-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, alignItems: 'start' }}>
               <AddonSidebar
                 addons={addons}
                 disabledAddonUrls={disabledAddonUrls}
@@ -486,12 +486,12 @@ export function App() {
                 onSearchLimitChange={onSearchLimitChange}
               />
 
-              <div style={{
+              <div className="host-live-sidebar-detail" style={{
                 background: 'rgba(255,255,255,0.03)',
                 border: '1px solid rgba(255,255,255,0.08)',
                 borderRadius: 12,
-                padding: 24,
-                minHeight: 300,
+                padding: 14,
+                minHeight: 180,
               }}>
                 {selectedAddon ? (
                   <AddonTabView key={selectedAddon.manifestUrl} addon={selectedAddon} />

@@ -1,0 +1,60 @@
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+main.host-home-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+  gap: 18px;
+  align-items: start;
+  width: 100%;
+  max-width: none !important;
+  margin: 0 !important;
+  box-sizing: border-box;
+}
+
+main.host-home-main > section[aria-label="Resultados da pesquisa"] {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  margin-bottom: 0 !important;
+}
+
+main.host-home-main > .host-live-sidebar {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+  overflow: hidden;
+}
+
+main.host-home-main > .host-live-sidebar > h2 {
+  margin: 0 0 10px;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  main.host-home-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  main.host-home-main > section[aria-label="Resultados da pesquisa"],
+  main.host-home-main > .host-live-sidebar {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  main.host-home-main > .host-live-sidebar {
+    margin-top: 0;
+  }
+}

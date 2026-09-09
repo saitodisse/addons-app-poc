@@ -135,7 +135,10 @@ linha com `type`, `id`, `url`, `name` e `description`, além de `emoji` ou `imag
 quando disponíveis. A URL de conteúdo gerada pelo próprio servidor funciona
 como fallback quando a meta não fornece uma URL. Uma falha de uma origem é
 mostrada na tabela e não impede as demais respostas; o limite configurado é
-aplicado por add-on.
+aplicado por add-on. Na home, a tabela ocupa a coluna principal em largura
+total e a demonstração ao vivo fica em uma barra lateral direita responsiva.
+Para reduzir a largura da listagem, a apresentação não cria uma coluna `URL`:
+o nome da linha recebe o hyperlink para a URL preservada no modelo do resultado.
 
 O adaptador fica em `packages/host-app/src/search.ts` e usa `fetch` diretamente,
 sem adicionar o runtime do host ao protocolo público. O cabeçalho mantém o

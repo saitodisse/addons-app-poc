@@ -113,6 +113,30 @@ linhas de Citações, Poemas e Wikipédia no fluxo real. `pnpm test` passou com
 142 testes em 26 arquivos, `pnpm build:host` gerou a build de produção e a
 checagem de fronteira confirmou que o host não depende de add-ons concretos.
 
+## Verificação do layout da home em 09/09/2026
+
+### Por que
+
+A tabela e a demonstração ao vivo dividiam a largura em uma sequência vertical,
+deixando a listagem principal menor do que precisava e repetindo a URL como uma
+coluna extensa.
+
+### O que
+
+A versão `1.1.2` faz a home ocupar toda a largura disponível. A tabela fica na
+coluna principal e a demonstração ao vivo fica em uma barra lateral direita de
+menor largura; abaixo de 900 px, as duas áreas se empilham. A coluna `URL` foi
+removida da apresentação, e o nome de cada linha abre a URL do conteúdo.
+
+### Como
+
+Com `pnpm dev` em execução, a home foi conferida em viewport desktop e mobile.
+No desktop, os resultados ocuparam a coluna principal e a demonstração ficou à
+direita; no mobile, a demonstração apareceu abaixo sem estreitar a tabela. A
+primeira linha confirmou o hyperlink no nome e a ausência do cabeçalho `URL`.
+`pnpm test` passou com 142 testes em 26 arquivos e `pnpm build:host` gerou a
+build de produção.
+
 ## Verificação da persistência do contador em 08/09/2026
 
 ### Por que

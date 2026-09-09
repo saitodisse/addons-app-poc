@@ -26,6 +26,11 @@ O limite pode ser ajustado na lateral de extensões ou em Configurações.
 Quando existe um `state-store` ativo, o host grava a consulta e as linhas sob a
 chave `host:search:results:v1`.
 
+Na home, a tabela ocupa toda a largura disponível e a demonstração ao vivo fica
+em uma barra lateral direita menor, empilhada abaixo em telas estreitas. A
+coluna visual de URL não é exibida: o nome de cada resultado abre sua URL de
+conteúdo.
+
 O registro interno ordena provedores por prioridade e nome do add-on. Serviços obrigatórios ausentes deixam a instalação bloqueada; quando um provedor aparece, o host pode reavaliá-la. Dependências obrigatórias em ciclo também são bloqueadas.
 
 ## Como funciona

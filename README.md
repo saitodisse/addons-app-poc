@@ -116,10 +116,13 @@ revisão do contrato.
 
 No topo do host existe uma busca fixa. Pressione **Enter** para consultar todos
 os add-ons HTTP ativos que declaram `search`; pressione **Esc** para limpar o
-campo e a tabela. Cada linha normalizada mostra tipo, ID, URL, nome e descrição,
-com emoji ou imagem quando o manifesto ou a resposta oferecerem esse dado.
-Em Configurações, cada add-on de busca pode definir seu limite de resultados.
-Com um provedor `state-store` ativo, a consulta e as linhas ficam persistidas.
+campo e a tabela. A home mantém a tabela principal em largura total e coloca a
+demonstração ao vivo em uma barra lateral direita, que se empilha em telas
+menores. Cada linha normalizada mostra tipo, ID, nome e descrição; o nome abre a
+URL do conteúdo, com emoji ou imagem quando o manifesto ou a resposta oferecerem
+esse dado. Em Configurações, cada add-on de busca pode definir seu limite de
+resultados. Com um provedor `state-store` ativo, a consulta e as linhas ficam
+persistidas.
 
 Os quatro servidores HTTP iniciados por `pnpm dev` continuam disponíveis como exemplos independentes. Eles podem ser instalados pelas URLs `http://localhost:5291/manifest.json` a `http://localhost:5294/manifest.json`; o host não os conhece nem os inclui em sua build.
 
@@ -172,7 +175,7 @@ ciclos obrigatórios também são bloqueados.
 
 Esta POC prova o protocolo, mas ainda não é uma plataforma pronta para produção. Cada add-on precisa publicar seu próprio manifesto e bundle ou servidor HTTP. Ainda faltam descarregamento completo ao desativar ou remover add-ons, catálogo e leitura genéricos dos recursos HTTP, validação completa das respostas, edição de prioridades, cache e atualização de manifestos, sandbox e proxy de rede.
 
-A versão `1.1.1` lista automaticamente os estados nas abas de armazenamento, limita o painel de JSON a esses provedores e oferece busca global para recursos HTTP `search`. O limite de cada add-on aparece na lateral de extensões e em Configurações. A [verificação da inspeção dos estados em 08/09/2026](docs/PHASES.md#verificação-da-inspeção-dos-estados-em-08092026) registra o carregamento inicial, a abertura dos detalhes em Local e Sessão e a ocultação do painel nas demais abas. A [verificação da busca global](docs/PHASES.md#verificação-da-busca-global-em-08092026) registra a tabela, os limites por add-on e a persistência. O próximo passo recomendado é completar o descarregamento, incluindo falhas nos callbacks de limpeza, e depois concluir catálogo e leitura HTTP genéricos.
+A versão `1.1.2` mantém a busca global e os limites por add-on da versão anterior, ocupa toda a largura disponível na home, organiza a demonstração ao vivo em uma barra lateral direita responsiva e transforma o nome de cada resultado em link para o conteúdo. A [verificação da inspeção dos estados em 08/09/2026](docs/PHASES.md#verificação-da-inspeção-dos-estados-em-08092026) registra o carregamento inicial, a abertura dos detalhes em Local e Sessão e a ocultação do painel nas demais abas. A [verificação da busca global](docs/PHASES.md#verificação-da-busca-global-em-08092026) registra a tabela, os limites por add-on e a persistência. O próximo passo recomendado é completar o descarregamento, incluindo falhas nos callbacks de limpeza, e depois concluir catálogo e leitura HTTP genéricos.
 
 Plugins são confiáveis e podem chamar APIs globais. O manifesto registra I/O
 externo para revisão, mas a v1 não oferece sandbox, proxy de rede, `onUnload`

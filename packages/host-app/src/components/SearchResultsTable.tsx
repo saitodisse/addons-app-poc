@@ -47,7 +47,6 @@ export function SearchResultsTable({ query, results, errors, loading, providerCo
               {hasVisualColumn && <th scope="col" style={{ padding: '9px 10px', width: 44 }}> </th>}
               <th scope="col" style={{ padding: '9px 10px' }}>Tipo</th>
               <th scope="col" style={{ padding: '9px 10px' }}>ID</th>
-              <th scope="col" style={{ padding: '9px 10px' }}>URL</th>
               <th scope="col" style={{ padding: '9px 10px' }}>Nome</th>
               <th scope="col" style={{ padding: '9px 10px' }}>Descrição</th>
             </tr>
@@ -62,9 +61,8 @@ export function SearchResultsTable({ query, results, errors, loading, providerCo
                 )}
                 <td style={{ padding: '11px 10px', whiteSpace: 'nowrap' }}><code style={{ color: '#c4b5fd' }}>{result.type}</code></td>
                 <td style={{ padding: '11px 10px', maxWidth: 180, overflowWrap: 'anywhere' }}><code style={{ color: '#e2e8f0' }}>{result.id}</code></td>
-                <td style={{ padding: '11px 10px', maxWidth: 260, overflowWrap: 'anywhere' }}><a href={result.url} target="_blank" rel="noreferrer" style={{ color: '#93c5fd' }}>{result.url}</a></td>
                 <td style={{ padding: '11px 10px', minWidth: 170, color: '#f1f5f9', fontWeight: 600 }}>
-                  {result.name}
+                  <a href={result.url} target="_blank" rel="noreferrer" aria-label={`Abrir ${result.name}`} style={{ color: '#93c5fd', textDecoration: 'none' }}>{result.name}</a>
                   <span style={{ display: 'block', marginTop: 3, color: '#64748b', fontSize: 11, fontWeight: 400 }}>{result.sourceAddonName}</span>
                 </td>
                 <td style={{ padding: '11px 10px', minWidth: 190, color: '#cbd5e1', lineHeight: 1.45 }}>{result.description}</td>
@@ -72,7 +70,7 @@ export function SearchResultsTable({ query, results, errors, loading, providerCo
             ))}
             {results.length === 0 && (
               <tr>
-                <td colSpan={hasVisualColumn ? 6 : 5} style={{ padding: '28px 10px', color: '#64748b', textAlign: 'center' }}>
+                <td colSpan={hasVisualColumn ? 5 : 4} style={{ padding: '28px 10px', color: '#64748b', textAlign: 'center' }}>
                   {loading ? 'Consultando os add-ons ativos…' : emptyMessage}
                 </td>
               </tr>

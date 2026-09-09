@@ -4,6 +4,13 @@ Este arquivo conta, em ordem inversa, como o projeto evoluiu. A leitura rápida 
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.1.2] - 2026-09-09
+
+### Alterado
+
+- A home agora ocupa toda a largura disponível e apresenta a demonstração ao vivo em uma barra lateral direita responsiva.
+- A tabela de resultados remove a coluna URL e torna o nome de cada item o link para seu conteúdo.
+
 ## [1.1.1] - 2026-09-09
 
 ### Alterado
