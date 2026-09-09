@@ -66,6 +66,20 @@ A versão `1.0.4` centraliza a lista dos 14 manifestos locais no add-on Saúde e
 
 Na rota `#/addons/http%3A%2F%2Flocalhost%3A5307%2Fmanifest.json`, a ação **Verificar agora** foi executada com os servidores da demonstração ativos. O resultado passou de `4/4 online` para `14/14 online` e apresentou 14 linhas de estado.
 
+## Verificação da identificação na lista de Saúde em 08/09/2026
+
+### Por que
+
+Os resultados mostravam apenas o endereço, o que dificultava reconhecer qual add-on respondia em cada porta.
+
+### O que
+
+A versão `1.0.5` renomeia a aba para **Saúde dos Add-ons**. Cada linha mostra o nome lido do manifesto e o endereço consultado, além do estado e da latência; quando o servidor não responde, a lista usa o nome conhecido da demonstração.
+
+### Como
+
+Depois de executar **Verificar agora** na rota do add-on Saúde, a lista foi conferida para os 14 servidores. Cada linha apresentou um nome distinto e seu endereço `http://localhost:<porta>`.
+
 ## Fase 7 — Protocolo público v1
 
 **Estado: Entregue**

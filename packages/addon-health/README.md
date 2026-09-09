@@ -4,11 +4,11 @@ Add-on em processo que fornece `addons.health.health-check` `1.0.0`.
 
 ## Por que existe
 
-Torna observável o estado dos provedores HTTP sem acoplar o host a uma lista de serviços de texto.
+Torna observável o estado dos add-ons sem acoplar o host a uma lista de serviços.
 
 ## O que oferece
 
-O método `check()` consulta os 14 manifestos dos servidores locais da demonstração, mede cada resposta e retorna os estados. Essas chamadas `GET /manifest.json` estão declaradas em `contract.http`. O estado da aba é opcional e usa `state-store` quando disponível.
+A aba **Saúde dos Add-ons** consulta os 14 manifestos dos servidores locais da demonstração, mede cada resposta e retorna o nome, o endereço e o estado de cada um. Essas chamadas `GET /manifest.json` estão declaradas em `contract.http`. O estado da aba é opcional e usa `state-store` quando disponível.
 
 ## Como executar e testar
 

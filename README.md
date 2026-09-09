@@ -64,7 +64,7 @@ O comando inicia o host em `http://localhost:5280`, quatro servidores de texto e
 
 Os add-ons em processo usam as portas `5301` a `5310`. Por exemplo, `http://localhost:5301/manifest.json` publica o add-on Hello. Cada add-on em processo aceita `pnpm --filter @addons/<nome> serve` para ser executado separadamente.
 
-A aba **Saúde** consulta os 14 manifestos da demonstração, mede a latência de cada servidor e mostra quais estão online ou indisponíveis.
+A aba **Saúde dos Add-ons** consulta os 14 manifestos da demonstração, mede a latência de cada servidor e mostra o nome, o endereço e o estado de cada um.
 
 No WSL2, abra `http://localhost:5280` manualmente no navegador do Windows. O servidor já escuta em `0.0.0.0` e o script evita tentar abrir um navegador dentro do Linux.
 
@@ -165,7 +165,7 @@ ciclos obrigatórios também são bloqueados.
 
 Esta POC prova o protocolo, mas ainda não é uma plataforma pronta para produção. Cada add-on precisa publicar seu próprio manifesto e bundle ou servidor HTTP. Ainda faltam descarregamento completo ao desativar ou remover add-ons, interface genérica para recursos HTTP, edição de prioridades, cache e atualização de manifestos, sandbox e proxy de rede.
 
-A versão `1.0.4` consolida a experiência de gestão e a verificação completa dos servidores na documentação. A [verificação de 08/09/2026](docs/PHASES.md#verificação-da-lista-de-saúde-em-08092026) registra 136 testes aprovados, build de produção aprovada, a ativação de Citações e Poemas e os 14 servidores exibidos na aba Saúde. O próximo passo recomendado é completar o descarregamento, incluindo falhas nos callbacks de limpeza, e depois a experiência HTTP genérica.
+A versão `1.0.5` consolida a experiência de gestão e a identificação dos servidores na documentação. A [verificação de 08/09/2026](docs/PHASES.md#verificação-da-identificação-na-lista-de-saúde-em-08092026) registra 136 testes aprovados, build de produção aprovada, a ativação de Citações e Poemas e os 14 servidores exibidos com nome e endereço na aba Saúde dos Add-ons. O próximo passo recomendado é completar o descarregamento, incluindo falhas nos callbacks de limpeza, e depois a experiência HTTP genérica.
 
 Plugins são confiáveis e podem chamar APIs globais. O manifesto registra I/O
 externo para revisão, mas a v1 não oferece sandbox, proxy de rede, `onUnload`

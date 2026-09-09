@@ -24,7 +24,25 @@ export const HEALTH_BASE_URLS = [
   'http://localhost:5310', // debug
 ];
 
+const HEALTH_FALLBACK_NAMES: Record<string, string> = {
+  'http://localhost:5291': 'Biblioteca de Textos',
+  'http://localhost:5292': 'Citações da Web',
+  'http://localhost:5293': 'Poemas (PoetryDB)',
+  'http://localhost:5294': 'Wikipédia (resumos)',
+  'http://localhost:5301': 'Hello Add-on',
+  'http://localhost:5302': 'Hello PT Add-on',
+  'http://localhost:5303': 'Counter Add-on',
+  'http://localhost:5304': 'Markdown Add-on',
+  'http://localhost:5305': 'Aggregator Add-on',
+  'http://localhost:5306': 'Favorites Add-on',
+  'http://localhost:5307': 'Saúde dos Add-ons',
+  'http://localhost:5308': 'Local Storage Add-on',
+  'http://localhost:5309': 'Session Storage Add-on',
+  'http://localhost:5310': 'Debug Add-on',
+};
+
 export interface HealthEntry {
+  name: string;
   baseUrl: string;
   ok: boolean;
   latencyMs: number | null;
@@ -53,11 +71,12 @@ export class HealthChecker implements HealthCheckService {
     const entries = await Promise.all(
       this.baseUrls.map(async (baseUrl) => {
         const t0 = Date.now();
+        const fallbackName = HEALTH_FALLBACK_NAMES[baseUrl] ?? baseUrl;
         try {
-          await this.client.getManifest(baseUrl);
-          return { baseUrl, ok: true, latencyMs: Date.now() - t0 };
+          const remoteManifest = await this.client.getManifest(baseUrl);
+          return { name: remoteManifest.name || fallbackName, baseUrl, ok: true, latencyMs: Date.now() - t0 };
         } catch (error) {
-          return { baseUrl, ok: false, latencyMs: Date.now() - t0, error: (error as Error).message };
+          return { name: fallbackName, baseUrl, ok: false, latencyMs: Date.now() - t0, error: (error as Error).message };
         }
       }),
     );
@@ -69,17 +88,17 @@ export class HealthChecker implements HealthCheckService {
 export const manifest = defineAddonManifest({
   id: 'health',
   version: '1.0.0',
-  name: 'Health Check Add-on',
+  name: 'Saúde dos Add-ons',
   description: 'Verifica disponibilidade e latência dos servidores da demonstração',
   author: 'Equipe AC',
   license: 'MIT',
   ui: {
-    title: '💚 Saúde',
+    title: '💚 Saúde dos Add-ons',
     body: 'Verifique disponibilidade e latência de todos os servidores da demonstração.',
   },
   entrypoint: '/packages/addon-health/dist/bundle.js',
   services: [
-    { id: 'addons.health.health-check', version: '1.0.0', name: 'Health Check', description: 'Status de disponibilidade dos add-ons remotos' },
+    { id: 'addons.health.health-check', version: '1.0.0', name: 'Saúde dos Add-ons', description: 'Status de disponibilidade dos add-ons da demonstração' },
   ],
   contract: {
     version: '1.0.0',
@@ -116,8 +135,8 @@ export function createTab(host: HostAPI): AddonTab {
         title: `${online}/${entries.length} online`,
         body: 'Resultado da última verificação.',
         items: entries.map((entry) => ({
-          label: entry.baseUrl,
-          value: entry.ok ? `Online · ${entry.latencyMs} ms` : `Indisponível · ${entry.error ?? 'erro desconhecido'}`,
+          label: entry.name,
+          value: `${entry.baseUrl} · ${entry.ok ? `Online · ${entry.latencyMs} ms` : `Indisponível · ${entry.error ?? 'erro desconhecido'}`}`,
         })),
       };
     },

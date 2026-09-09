@@ -21,12 +21,14 @@ describe('HealthChecker', () => {
     expect(ok.length).toBe(HEALTH_BASE_URLS.length - 1);
     expect(bad.length).toBe(1); // 5293
     expect(bad[0].error).toBeTruthy();
+    expect(bad[0].name).toBe('Poemas (PoetryDB)');
     expect(ok[0].latencyMs).toBeGreaterThanOrEqual(0);
   });
 
   it('mede latência em cada entrada', async () => {
     const checker = new HealthChecker(fakeClient(), ['http://localhost:5291']);
     const [entry] = await checker.checkAll();
+    expect(entry.name).toBe('x');
     expect(entry.latencyMs).toBeTypeOf('number');
     expect(entry.ok).toBe(true);
   });
@@ -38,5 +40,7 @@ describe('manifest', () => {
     expect(manifest.contract.services.map((s) => s.id)).toContain('addons.health.health-check');
     expect(manifest.contract.http).toHaveLength(HEALTH_BASE_URLS.length);
     expect(HEALTH_BASE_URLS).toContain('http://localhost:5310');
+    expect(manifest.name).toBe('Saúde dos Add-ons');
+    expect(manifest.contract.ui?.title).toBe('💚 Saúde dos Add-ons');
   });
 });
