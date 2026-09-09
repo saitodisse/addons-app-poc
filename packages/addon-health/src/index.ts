@@ -4,7 +4,7 @@ import { createTabStatePersistence } from '@addons-poc/protocol';
 import { HttpTextAddonClient } from './http-client';
 
 /**
- * Add-ons de texto conhecidos (URL = identidade, como no Stremio).
+ * Servidores da demonstração conhecidos (URL = identidade, como no Stremio).
  * O health-check consulta o manifesto de cada um para verificar disponibilidade.
  */
 export const HEALTH_BASE_URLS = [
@@ -12,6 +12,16 @@ export const HEALTH_BASE_URLS = [
   'http://localhost:5292', // citações
   'http://localhost:5293', // poemas
   'http://localhost:5294', // wikipedia
+  'http://localhost:5301', // hello
+  'http://localhost:5302', // hello pt
+  'http://localhost:5303', // contador
+  'http://localhost:5304', // markdown
+  'http://localhost:5305', // agregador
+  'http://localhost:5306', // favoritos
+  'http://localhost:5307', // saúde
+  'http://localhost:5308', // armazenamento local
+  'http://localhost:5309', // armazenamento da sessão
+  'http://localhost:5310', // debug
 ];
 
 export interface HealthEntry {
@@ -26,8 +36,8 @@ export interface HealthCheckService {
 }
 
 /**
- * Serviço de saúde (health-check): verifica a disponibilidade de cada add-on
- * de texto remoto buscando o manifesto e medindo a latência.
+ * Serviço de saúde (health-check): verifica a disponibilidade de cada servidor
+ * da demonstração buscando o manifesto e medindo a latência.
  *
  * Implementa o padrão de degradação: falhas individuais viram `ok: false`
  * sem lançar erro. O cliente HTTP é injetável para testes.
@@ -60,12 +70,12 @@ export const manifest = defineAddonManifest({
   id: 'health',
   version: '1.0.0',
   name: 'Health Check Add-on',
-  description: 'Verifica disponibilidade e latência dos add-ons de texto remotos',
+  description: 'Verifica disponibilidade e latência dos servidores da demonstração',
   author: 'Equipe AC',
   license: 'MIT',
   ui: {
     title: '💚 Saúde',
-    body: 'Verifique disponibilidade e latência dos add-ons de texto remotos.',
+    body: 'Verifique disponibilidade e latência de todos os servidores da demonstração.',
   },
   entrypoint: '/packages/addon-health/dist/bundle.js',
   services: [
@@ -75,10 +85,10 @@ export const manifest = defineAddonManifest({
     version: '1.0.0',
     protocol: { version: '1.0.0', range: '^1.0.0' },
     capabilities: { required: [], optional: ['registry.services', 'ui.tab', 'logs', 'state-store'] },
-    services: [{ id: 'addons.health.health-check', role: 'provides', version: '1.0.0', description: 'Mede disponibilidade e latência dos provedores de texto.', methods: [{ id: 'checkAll', description: 'Consulta todos os manifestos configurados.', returns: { description: 'Estado de cada provedor.', schema: { type: 'array', description: 'Disponibilidade e latência.', classification: 'public' } } }] }, { id: 'state-store', role: 'consumes', version: '1.0.0', description: 'Guarda a última resposta da aba quando há armazenamento.', required: false, methods: [{ id: 'get', description: 'Lê a aba salva.' }, { id: 'set', description: 'Grava a aba.' }] }],
-    ui: { fields: [], actions: [{ id: 'check', label: 'Verificar agora', description: 'Verifica os quatro provedores de texto.', returns: { description: 'Resultado da verificação.', schema: { type: 'array', description: 'Disponibilidade dos provedores.', classification: 'public' } } }] },
+    services: [{ id: 'addons.health.health-check', role: 'provides', version: '1.0.0', description: 'Mede disponibilidade e latência dos servidores da demonstração.', methods: [{ id: 'checkAll', description: 'Consulta todos os manifestos configurados.', returns: { description: 'Estado de cada servidor.', schema: { type: 'array', description: 'Disponibilidade e latência.', classification: 'public' } } }] }, { id: 'state-store', role: 'consumes', version: '1.0.0', description: 'Guarda a última resposta da aba quando há armazenamento.', required: false, methods: [{ id: 'get', description: 'Lê a aba salva.' }, { id: 'set', description: 'Grava a aba.' }] }],
+    ui: { fields: [], actions: [{ id: 'check', label: 'Verificar agora', description: 'Verifica todos os servidores da demonstração.', returns: { description: 'Resultado da verificação.', schema: { type: 'array', description: 'Disponibilidade dos servidores.', classification: 'public' } } }] },
     state: [{ id: 'tab', description: 'Última resposta da verificação.', key: 'health:tab', operations: ['read', 'write'], value: { description: 'Estado visual da aba.', schema: { type: 'object', description: 'Resposta da verificação.', classification: 'public' } }, retention: 'Enquanto o provedor de armazenamento escolhido pelo host conservar o estado.', deletionTrigger: 'Limpeza do provedor ou dados do navegador.', fallback: 'memory' }],
-    http: ['http://localhost:5291', 'http://localhost:5292', 'http://localhost:5293', 'http://localhost:5294'].map((origin, index) => ({ id: `manifest-${index + 1}`, direction: 'outgoing', method: 'GET', origin, path: '/manifest.json', purpose: 'Confere se o provedor responde e mede a latência.', returns: { description: 'Manifesto do provedor remoto.', schema: { type: 'object', description: 'Manifesto remoto.', classification: 'public' } } })),
+    http: HEALTH_BASE_URLS.map((origin, index) => ({ id: `manifest-${index + 1}`, direction: 'outgoing', method: 'GET', origin, path: '/manifest.json', purpose: 'Confere se o servidor responde e mede a latência.', returns: { description: 'Manifesto do servidor.', schema: { type: 'object', description: 'Manifesto remoto.', classification: 'public' } } })),
     logs: [{ id: 'lifecycle', level: 'info', message: 'Add-on health configurado com sucesso', description: 'Confirma a ativação do add-on.' }],
   },
 });

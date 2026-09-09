@@ -52,6 +52,20 @@ A versão `1.0.3` torna as ações visíveis: add-ons prontos mostram `Ativar` o
 
 Com `pnpm dev` em execução, a verificação abriu a rota de um add-on, conferiu os botões de Citações e Poemas, desativou e reativou cada um e simulou uma impressão digital de contrato antiga. O primeiro fluxo terminou em `Ativo`; o segundo exibiu `Revisar e ativar` e navegou para `#/settings`.
 
+## Verificação da lista de Saúde em 08/09/2026
+
+### Por que
+
+A aba Saúde ainda usava uma lista histórica de quatro servidores HTTP, embora `pnpm dev` inicie 14 servidores na demonstração.
+
+### O que
+
+A versão `1.0.4` centraliza a lista dos 14 manifestos locais no add-on Saúde e usa a mesma lista no código, no contrato HTTP, na descrição da aba e nos testes. A resposta mostra cada servidor com sua latência ou erro.
+
+### Como
+
+Na rota `#/addons/http%3A%2F%2Flocalhost%3A5307%2Fmanifest.json`, a ação **Verificar agora** foi executada com os servidores da demonstração ativos. O resultado passou de `4/4 online` para `14/14 online` e apresentou 14 linhas de estado.
+
 ## Fase 7 — Protocolo público v1
 
 **Estado: Entregue**

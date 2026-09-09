@@ -8,7 +8,7 @@ Torna observável o estado dos provedores HTTP sem acoplar o host a uma lista de
 
 ## O que oferece
 
-O método `check()` consulta os quatro manifestos HTTP locais, mede a resposta e retorna os estados. Essas chamadas `GET /manifest.json` estão declaradas em `contract.http`. O estado da aba é opcional e usa `state-store` quando disponível.
+O método `check()` consulta os 14 manifestos dos servidores locais da demonstração, mede cada resposta e retorna os estados. Essas chamadas `GET /manifest.json` estão declaradas em `contract.http`. O estado da aba é opcional e usa `state-store` quando disponível.
 
 ## Como executar e testar
 

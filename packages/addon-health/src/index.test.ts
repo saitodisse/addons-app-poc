@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { HealthChecker, HEALTH_BASE_URLS, manifest } from './index';
 
-/** Cliente falso: 5291 e 5292 OK, 5293 fora do ar. */
+/** Cliente falso: todos respondem, menos o servidor de Poemas (5293). */
 function fakeClient() {
   return {
     async getManifest(baseUrl: string) {
@@ -18,7 +18,7 @@ describe('HealthChecker', () => {
     expect(entries.length).toBe(HEALTH_BASE_URLS.length);
     const ok = entries.filter((e) => e.ok);
     const bad = entries.filter((e) => !e.ok);
-    expect(ok.length).toBe(3); // 5291, 5292, 5294
+    expect(ok.length).toBe(HEALTH_BASE_URLS.length - 1);
     expect(bad.length).toBe(1); // 5293
     expect(bad[0].error).toBeTruthy();
     expect(ok[0].latencyMs).toBeGreaterThanOrEqual(0);
@@ -36,5 +36,7 @@ describe('manifest', () => {
   it('declara o serviço healthCheck', () => {
     expect(manifest.id).toBe('health');
     expect(manifest.contract.services.map((s) => s.id)).toContain('addons.health.health-check');
+    expect(manifest.contract.http).toHaveLength(HEALTH_BASE_URLS.length);
+    expect(HEALTH_BASE_URLS).toContain('http://localhost:5310');
   });
 });

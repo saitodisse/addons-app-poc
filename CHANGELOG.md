@@ -4,6 +4,13 @@ Este arquivo conta, em ordem inversa, como o projeto evoluiu. A leitura rápida 
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.0.4] - 2026-09-08
+
+### Corrigido
+
+- O add-on Saúde deixou de consultar apenas os quatro servidores HTTP de texto e passou a verificar os 14 servidores da demonstração, incluindo os add-ons em processo.
+- A declaração `contract.http`, a descrição da aba e os testes do Saúde agora usam a mesma lista completa de manifestos.
+
 ## [1.0.3] - 2026-09-08
 
 ### Alterado
