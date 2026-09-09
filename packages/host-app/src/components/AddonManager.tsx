@@ -9,6 +9,8 @@ interface AddonManagerProps {
   addons: AddonInstance[];
   disabledAddonUrls: string[];
   pendingContractUrls: string[];
+  searchLimits: Record<string, number>;
+  onSearchLimitChange: (manifestUrl: string, value: number) => void;
   onInspectManifest: (url: string) => Promise<AddonManifest>;
   onInstallFromUrl: (url: string, acceptedFingerprint: string) => Promise<string | undefined>;
   onToggle: (manifestUrl: string) => Promise<void>;
@@ -22,7 +24,7 @@ interface PendingInstallation {
   manifest: AddonManifest;
 }
 
-export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, onInspectManifest, onInstallFromUrl, onToggle, onRemove, onAcceptContract, loading }: AddonManagerProps) {
+export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, searchLimits, onSearchLimitChange, onInspectManifest, onInstallFromUrl, onToggle, onRemove, onAcceptContract, loading }: AddonManagerProps) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pendingInstallation, setPendingInstallation] = useState<PendingInstallation | null>(null);
@@ -166,6 +168,9 @@ export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, o
         <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#94a3b8' }}>
           Add-ons instalados
         </h2>
+        <p style={{ color: '#64748b', fontSize: 13, lineHeight: 1.5, margin: '0 0 12px' }}>
+          Add-ons que declaram busca permitem ajustar quantos resultados entram na listagem principal.
+        </p>
         {addons.length === 0 ? (
           <p style={{ color: '#64748b', fontSize: 13, margin: 0 }}>Nenhum add-on instalado.</p>
         ) : (
@@ -178,6 +183,8 @@ export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, o
                 onToggle={onToggle}
                 onRemove={onRemove}
                 stateDestination={getStateDestination(addon.manifest.contract, activeProviderIds)}
+                searchLimit={searchLimits[addon.manifestUrl] ?? 10}
+                onSearchLimitChange={onSearchLimitChange}
                 reviewRequired={pendingContractUrls.includes(addon.manifestUrl)}
                 onAcceptContract={(manifestUrl) => void onAcceptContract(manifestUrl)}
               />

@@ -12,6 +12,7 @@ Este glossário traduz os nomes técnicos usados no projeto. Leia a definição 
 | **state-store** | Serviço oficial opcional que guarda um valor serializável por chave. `storage-local` e `storage-session` o oferecem; sem ele, o add-on mantém somente o estado atual em memória. |
 | **API** | Contrato usado por dois componentes para conversar. Neste projeto, pode ser uma interface TypeScript ou um conjunto de rotas HTTP. |
 | **Bundle** | Arquivo JavaScript pronto para execução. O loader importa o bundle ESM indicado por `entrypoint`. |
+| **Busca global** | Campo fixo do host que consulta recursos HTTP `search` de todos os add-ons ativos. A resposta é agregada na tabela central sem código específico para cada extensão. |
 | **Catálogo** | Coleção navegável anunciada por um add-on HTTP. A rota de catálogo devolve itens no campo `metas`. |
 | **Composição de serviços** | Construção de um serviço a partir de outros serviços do registro. Favoritos, por exemplo, consulta `state-store` sem importar o host. |
 | **Classificação de dado** | Rótulo `public`, `personal` ou `secret` de um dado declarado. Ele explica o tratamento esperado, sem colocar o valor real no manifesto. |
@@ -37,6 +38,8 @@ Este glossário traduz os nomes técnicos usados no projeto. Leia a definição 
 | **Revisão de contrato** | Estado em que uma instalação permanece desativada até a pessoa aceitar a nova declaração de interação encontrada na mesma URL. |
 | **Persistência de aba** | Ponte declarada pela própria aba com `load` e `save`. Ela permite ao host restaurar campos e respostas sem saber o significado dos dados. |
 | **Metas** | Lista de metadados devolvida por catálogo e busca. Cada item contém pelo menos `id`, `type` e `name`. |
+| **Linha de resultado** | Forma normalizada que a tabela do host exibe para uma meta de busca: tipo, ID, URL, nome e descrição, com emoji ou imagem opcionais. |
+| **Limite de busca** | Quantidade máxima de linhas que o host aceita de cada add-on em uma consulta. O valor é configurável por manifesto e não altera a API remota. |
 | **Porta** | Interface que descreve uma necessidade. Não confundir com porta TCP, como `5291`. |
 | **Prioridade** | Número que ordena implementações do mesmo serviço. Quanto maior o número, mais cedo ela será consultada. |
 | **Processamento externo** | Trabalho que um add-on delega a outra API. Os add-ons de poemas e Wikipédia transformam respostas públicas no contrato desta POC. |

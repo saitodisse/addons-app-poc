@@ -1,6 +1,6 @@
 # Requisitos do produto
 
-**Status: Parcial** · **Versão da POC: 1.0.7** · **Protocolo publicado: 1.0.0**
+**Status: Parcial** · **Versão da POC: 1.1.0** · **Protocolo publicado: 1.0.0**
 
 Este documento define o que a prova de conceito precisa demonstrar. Ele não descreve um produto comercial pronto; descreve as perguntas técnicas que o experimento deve responder e as evidências esperadas para cada resposta.
 
@@ -61,6 +61,12 @@ Ao iniciar o projeto, o leitor deve conseguir abrir um host vazio, instalar URLs
 5. reencontrar a instalação após recarregar a página;
 6. pedir nova revisão quando o contrato daquela mesma URL mudar.
 
+Quando há add-ons HTTP de busca ativos, a mesma tela mantém um campo de
+pesquisa no topo. Enter consulta as extensões, Esc limpa a consulta e a
+listagem central reúne as respostas em linhas com tipo, ID, URL, nome e
+descrição. Um provedor de `state-store` pode preservar a consulta e os
+resultados entre recarregamentos.
+
 ## Requisitos funcionais
 
 Os estados significam: **Entregue** quando o comportamento está implementado no escopo indicado; **Parcial** quando uma parte funciona, mas ainda há uma lacuna relevante; **Planejado** quando a POC ainda não implementa o requisito.
@@ -115,8 +121,8 @@ Os estados significam: **Entregue** quando o comportamento está implementado no
 | F4.7 | Demonstrar processamento externo | Entregue | Citações, PoetryDB e Wikipédia |
 | F4.8 | Tolerar uma origem indisponível na busca agregada | Entregue | `Promise.allSettled` no agregador |
 | F4.9 | Armazenar manifesto em cache | Planejado | O cliente busca novamente |
-| F4.10 | Explorar recursos HTTP instalados pela interface genérica | Planejado | Manifestos sem `entrypoint` recebem apenas aba com título e descrição, sem catálogo, busca ou leitura |
-| F4.11 | Validar respostas dos recursos HTTP além do manifesto | Planejado | Validação estrutural das respostas ainda pendente |
+| F4.10 | Explorar recursos HTTP instalados pela interface genérica | Entregue | `SearchResultsTable` e `search.ts` consultam recursos `search` de add-ons ativos; limites por add-on, Enter/Esc e persistência opcional no `state-store` |
+| F4.11 | Validar respostas dos recursos HTTP além do manifesto | Parcial | O host rejeita payloads de busca sem `metas`; schemas completos de catálogo, texto e conteúdo ainda estão pendentes |
 
 ### Gestão, compatibilidade e isolamento
 
@@ -171,7 +177,7 @@ A tela **Configurações** aceita uma URL HTTP ou HTTPS, valida o manifesto, mos
 
 ### Criar um add-on HTTP
 
-Uma pessoa escreve um manifesto com `contract.resources`, implementa handlers de catálogo, busca, texto e conteúdo, e entrega tudo ao `createAddonServer`. O host precisa apenas da URL base para iniciar a conversa.
+Uma pessoa escreve um manifesto com `contract.resources`, implementa handlers de catálogo, busca, texto e conteúdo, e entrega tudo ao `createAddonServer`. O host precisa apenas da URL base para iniciar a conversa. Se o manifesto declarar `search`, a busca global do host consulta a extensão sem código específico para ela.
 
 ### Usar fallback
 
@@ -179,7 +185,7 @@ Duas implementações registram o mesmo serviço. O runtime interno ordena pela 
 
 ### Ler um texto remoto
 
-O host busca o manifesto, consulta um catálogo ou uma busca, escolhe um item, pede as opções em `/text/...json` e só então baixa a URL de conteúdo. O servidor de origem pode consultar outra API antes de responder, sem mudar o contrato visto pelo host.
+O host busca o manifesto, consulta uma busca e mostra os metadados na tabela central. Para leitura completa, o fluxo futuro buscará um catálogo ou uma opção em `/text/...json` e só então baixará a URL de conteúdo. O servidor de origem pode consultar outra API antes de responder, sem mudar o contrato visto pelo host.
 
 ## Critérios de sucesso da POC
 
@@ -193,6 +199,8 @@ A hipótese principal é considerada demonstrada quando todas estas evidências 
 - catálogo, busca, opções de texto e conteúdo funcionam de ponta a ponta pelo cliente HTTP do protocolo;
 - pelo menos uma origem externa é transformada no contrato comum;
 - a busca agregada continua útil quando uma origem falha;
+- uma busca global consulta Citações, Poemas e Wikipédia e conserva linhas quando uma origem falha;
+- os resultados podem ser preservados por um `state-store` ativo;
 - uma URL compatível pode ser revisada, instalada e restaurada depois de recarregar;
 - uma mudança de contrato na mesma URL mantém a extensão desativada até nova aceitação;
 - serviços, campos de ação e estado não declarados são recusados antes de uso pelo host;

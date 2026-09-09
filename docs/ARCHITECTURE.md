@@ -102,6 +102,12 @@ Configurações guarda URLs, desativação e fingerprint aceito em
 revisão. O host não mistura essa configuração com o armazenamento de estado
 dos add-ons.
 
+O limite de resultados de cada add-on que oferece busca também fica nessa
+configuração, associado à URL do manifesto. Os resultados da busca não entram
+nessa chave: quando há um provedor `state-store`, o host grava a consulta e as
+linhas em `host:search:results:v1`, respeitando a mesma fronteira opcional de
+persistência usada pelos add-ons.
+
 ## Dois formatos de add-on
 
 ### Em processo
@@ -120,9 +126,20 @@ I/O externo deve constar em `contract.http`; a v1 torna a declaração visível,
 mas não intercepta `fetch` direto.
 
 Ao instalar um manifesto sem `entrypoint`, o loader cria uma aba com título e
-descrição, sem ações de catálogo, busca ou leitura. Os servidores e clientes
-de exemplo demonstram esses recursos, mas a interface genérica para consumi-los
-diretamente após a instalação ainda está planejada.
+descrição. A interface global do host detecta recursos `search` declarados,
+consulta todos os add-ons ativos e transforma cada resposta `metas` em uma
+linha com `type`, `id`, `url`, `name` e `description`, além de `emoji` ou `image`
+quando disponíveis. A URL de conteúdo gerada pelo próprio servidor funciona
+como fallback quando a meta não fornece uma URL. Uma falha de uma origem é
+mostrada na tabela e não impede as demais respostas; o limite configurado é
+aplicado por add-on.
+
+O adaptador fica em `packages/host-app/src/search.ts` e usa `fetch` diretamente,
+sem adicionar o runtime do host ao protocolo público. O cabeçalho mantém o
+campo de pesquisa fixo: **Enter** inicia a consulta e **Esc** limpa campo e
+resultados. A tabela existe mesmo quando não há add-ons instalados. A forma
+básica `{ metas: [...] }` é verificada no host; validação completa de todos os
+recursos HTTP, catálogo e leitura continuam pendentes.
 
 ## Capacidade oficial opcional
 

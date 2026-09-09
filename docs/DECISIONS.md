@@ -372,6 +372,39 @@ O host rejeita um manifesto sem contrato. Ele compara serviços fornecidos, camp
 - HTTP de saída ainda não é mediado, logo permanece uma declaração transparente e não uma permissão tecnicamente bloqueada;
 - a mudança é incompatível para manifestos antigos: eles precisam publicar `contract` antes de serem instalados.
 
+## 21. A busca global agrega recursos HTTP declarados
+
+### Por que
+
+Servidores HTTP já podiam responder a buscas, mas uma aba informativa não dava
+à pessoa um lugar único para comparar os resultados. Fazer o host conhecer cada
+extensão resolveria a tela rapidamente, mas recriaria o acoplamento que o
+protocolo deveria evitar.
+
+### Decisão
+
+O host mantém um campo de pesquisa global e consulta, em paralelo, os add-ons
+ativos que declaram um recurso `search`. O adaptador interno normaliza cada meta
+para uma linha com `type`, `id`, `url`, `name` e `description`, preservando
+`emoji` ou `image` quando disponíveis. Cada manifesto tem um limite local de
+resultados, iniciado em dez e configurável entre um e cem. O host tolera uma
+falha isolada, mostra o erro junto das respostas válidas e deixa Enter disparar
+a busca e Esc limpar os resultados.
+
+### Consequências técnicas
+
+- `packages/host-app/src/search.ts` usa as rotas HTTP declaradas, sem importar
+  add-ons concretos e sem alterar a versão publicada do protocolo;
+- a tabela existe em todas as rotas e também quando não há provedores ativos;
+- a URL de conteúdo do recurso `text` é um fallback quando a meta não oferece
+  uma URL própria;
+- o limite é aplicado por add-on no host, depois da resposta da rede, e não
+  muda o contrato ou o servidor da extensão;
+- com um `state-store` ativo, `host:search:results:v1` guarda a última consulta
+  e suas linhas; sem esse serviço, o resultado permanece apenas em memória;
+- a validação atual garante a forma básica `{ metas: [...] }`; schemas
+  completos, catálogo e leitura continuam fora desta decisão.
+
 ## Quando revisar uma decisão
 
 Uma decisão pode mudar quando a POC produzir evidência melhor. A revisão deve atualizar, na mesma entrega:

@@ -18,7 +18,10 @@ O estado atual dos pacotes está detalhado em [`PACKAGES.md`](PACKAGES.md). As f
 | 6. Isolamento | Código não confiável pode ser limitado com segurança? | Planejado |
 | 7. Protocolo público | O contrato pode ser publicado e usado por hosts independentes? | Entregue |
 
-"Parcial" na fase 3 significa que o formato HTTP está entregue, enquanto a interface genérica de catálogo, busca e leitura, o cache, a atualização e a validação de respostas ainda não estão. A negociação SemVer e o perfil de capacidades foram entregues na fase 7.
+"Parcial" na fase 3 significa que o formato HTTP e a busca genérica estão
+entregues, enquanto catálogo, leitura, cache, atualização e a validação completa
+de respostas ainda não estão. A negociação SemVer e o perfil de capacidades
+foram entregues na fase 7.
 
 ## Verificação de 08/09/2026
 
@@ -79,6 +82,36 @@ A versão `1.0.5` renomeia a aba para **Saúde dos Add-ons**. Cada linha mostra 
 ### Como
 
 Depois de executar **Verificar agora** na rota do add-on Saúde, a lista foi conferida para os 14 servidores. Cada linha apresentou um nome distinto e seu endereço `http://localhost:<porta>`.
+
+## Verificação da busca global em 08/09/2026
+
+### Por que
+
+Os recursos de busca já existiam nos servidores HTTP, mas o host só oferecia
+abas informativas. Faltava um ponto de entrada único para consultar extensões
+ativas e comparar suas respostas.
+
+### O que
+
+A versão `1.1.0` fixa um campo de pesquisa no cabeçalho e mantém uma tabela de
+resultados no início de todas as rotas, inclusive quando não há extensões. Enter
+consulta add-ons que declaram `search`; Esc limpa o campo e a tabela. Citações
+da Web, Poemas e Wikipédia aparecem na mesma listagem com tipo, ID, URL, nome,
+descrição e emoji. Cada extensão de busca tem um limite configurável em
+Configurações. Quando Local Storage ou Session Storage está ativo, a consulta e
+as linhas são salvas pelo `state-store`.
+
+### Como
+
+Com `pnpm dev` em execução, foram instalados Citações (`5292`), Poemas (`5293`),
+Wikipédia (`5294`) e Local Storage (`5308`). A busca `life` apresentou linhas
+dos três add-ons; a falha isolada de uma origem continua visível sem apagar as
+respostas das outras. O limite de cada add-on apareceu em Configurações, a
+consulta `brasil` foi encontrada em `addons:state:host:search:results:v1` e Esc
+limpou o campo e a tabela. A busca por `life` foi repetida para confirmar as
+linhas de Citações, Poemas e Wikipédia no fluxo real. `pnpm test` passou com
+142 testes em 26 arquivos, `pnpm build:host` gerou a build de produção e a
+checagem de fronteira confirmou que o host não depende de add-ons concretos.
 
 ## Verificação da persistência do contador em 08/09/2026
 
@@ -213,12 +246,12 @@ Nem toda extensão precisa executar dentro do host. Conteúdo remoto e processam
 ### Parte pendente: compatibilidade e experiência genérica
 
 - armazenar manifestos em cache com política de atualização;
-- validar respostas HTTP além do manifesto;
-- transformar os recursos de um servidor HTTP recém-instalado em uma aba especializada, sem código prévio no host.
+- validar completamente as respostas de catálogo, texto e conteúdo além do manifesto (a busca já verifica a forma básica `{ metas }`);
+- transformar catálogo e leitura de um servidor HTTP recém-instalado em uma aba especializada, sem código prévio no host.
 
 ### Como verificar a parte entregue
 
-Execute `pnpm dev` e instale uma das URLs de manifesto das portas `5291` a `5294`. O host revisa e preserva o contrato; o consumo genérico dos recursos HTTP ainda é a próxima etapa.
+Execute `pnpm dev`, instale uma das URLs de manifesto das portas `5291` a `5294` e pesquise no campo fixo. O host revisa e preserva o contrato, aplica o limite por add-on e mostra as linhas do recurso `search`; catálogo e leitura genéricos ainda são a próxima etapa.
 
 ## Fase 4 — Composição de serviços
 
@@ -301,7 +334,7 @@ Uma extensão de teste deve falhar, travar ou tentar um acesso não autorizado s
 ## Ordem recomendada para o próximo trabalho
 
 1. Completar e testar o ciclo de unload ao desativar ou remover add-ons, incluindo recuperação quando um callback de limpeza falhar.
-2. Apresentar catálogo, busca e leitura dos recursos HTTP instalados de modo genérico, validando suas respostas.
+2. Completar catálogo e leitura dos recursos HTTP instalados de modo genérico, ampliando a validação das respostas.
 3. Adicionar edição de prioridades e melhorar as mensagens de incompatibilidade.
 4. Adicionar cache e atualização de manifestos, preservando a nova revisão quando o contrato mudar.
 5. Só então escolher o modelo de sandbox.

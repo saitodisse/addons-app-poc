@@ -8,13 +8,17 @@ interface AddonCardProps {
   onToggle: (manifestUrl: string) => void;
   onRemove: (manifestUrl: string) => void;
   stateDestination: string;
+  searchLimit: number;
+  onSearchLimitChange: (manifestUrl: string, value: number) => void;
   reviewRequired?: boolean;
   onAcceptContract?: (manifestUrl: string) => void;
 }
 
-export function AddonCard({ addon, enabled, onToggle, onRemove, stateDestination, reviewRequired = false, onAcceptContract }: AddonCardProps) {
+export function AddonCard({ addon, enabled, onToggle, onRemove, stateDestination, searchLimit, onSearchLimitChange, reviewRequired = false, onAcceptContract }: AddonCardProps) {
   const [expanded, setExpanded] = useState(false);
   const toggleAvailable = !reviewRequired && addon.status !== 'error';
+  const searchTypes = [...new Set((addon.manifest.contract.resources ?? []).filter((resource) => resource.name === 'search').flatMap((resource) => resource.types))];
+  const searchLimitInputId = `search-limit-${encodeURIComponent(addon.manifestUrl)}`;
   return (
     <div style={{
       padding: '12px 16px',
@@ -95,6 +99,25 @@ export function AddonCard({ addon, enabled, onToggle, onRemove, stateDestination
         </button>
       </div>
       </div>
+      {searchTypes.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+          <label htmlFor={searchLimitInputId} style={{ color: '#94a3b8', fontSize: 12 }}>
+            Máximo de resultados na busca ({searchTypes.join(', ')})
+          </label>
+          <input
+            id={searchLimitInputId}
+            type="number"
+            min={1}
+            max={100}
+            step={1}
+            value={searchLimit}
+            onChange={(event) => onSearchLimitChange(addon.manifestUrl, Number(event.target.value))}
+            aria-label={`Máximo de resultados de busca para ${addon.manifest.name}`}
+            style={{ width: 72, padding: '6px 8px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, background: 'rgba(0,0,0,0.22)', color: '#e2e8f0', font: 'inherit', fontSize: 12 }}
+          />
+          <span style={{ color: '#64748b', fontSize: 11 }}>O limite é aplicado à tabela principal.</span>
+        </div>
+      )}
       {addon.status === 'blocked' && <p role="status" style={{ margin: '12px 0 0', color: '#fbbf24', fontSize: 12 }}>Bloqueado até uma dependência obrigatória ficar disponível{addon.blockReason ? `: ${addon.blockReason}` : '.'}</p>}
       {reviewRequired && <p role="status" style={{ margin: '12px 0 0', color: '#fde68a', fontSize: 12 }}>O contrato mudou desde a última aceitação. Revise o JSON abaixo antes de ativar.</p>}
       {expanded && <AddonContractView manifest={addon.manifest} manifestUrl={addon.manifestUrl} stateDestination={stateDestination} />}

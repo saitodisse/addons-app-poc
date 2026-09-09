@@ -4,6 +4,24 @@ Este arquivo conta, em ordem inversa, como o projeto evoluiu. A leitura rápida 
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.1.0] - 2026-09-08
+
+### Adicionado
+
+- Campo de pesquisa fixo no topo do host, com Enter para buscar e Esc para limpar.
+- Tabela central de resultados presente em todas as rotas, inclusive sem add-ons instalados.
+- Normalização de respostas de Citações da Web, Poemas e Wikipédia em linhas com tipo, ID, URL, nome, descrição e emoji ou imagem opcionais.
+
+### Alterado
+
+- Add-ons HTTP ativos que declaram `search` agora são consultados em paralelo, com falhas isoladas mostradas na tabela.
+- Cada add-on de busca ganhou limite configurável de resultados, persistido junto da instalação.
+- A última consulta e suas linhas são persistidas pelo `state-store` ativo sob `host:search:results:v1`.
+
+### Documentação
+
+- Arquitetura, PRD, fases, decisões, glossário e READMEs foram atualizados para registrar a busca global e as pendências restantes de catálogo, leitura e validação HTTP completa.
+
 ## [1.0.7] - 2026-09-08
 
 ### Alterado

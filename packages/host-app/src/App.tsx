@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { getInteractionContractFingerprint, validateManifest } from '@addons-poc/protocol';
-import type { AddonInstance, AddonManifest } from '@addons-poc/protocol';
+import type { AddonInstance, AddonManifest, AddonStateStore } from '@addons-poc/protocol';
 import { ServiceRegistry } from './runtime/registry';
 import { ConsoleLogger } from './runtime/logger';
 import { FetchAddonLoader } from './runtime/loader';
@@ -8,18 +8,28 @@ import { Header } from './components/Header';
 import { AddonManager } from './components/AddonManager';
 import { AddonSidebar } from './components/AddonSidebar';
 import { AddonTabView } from './components/AddonTabView';
+import { SearchResultsTable } from './components/SearchResultsTable';
+import { clampSearchLimit, createFetchSearchClient, searchActiveAddons } from './search';
+import type { SearchProviderError, SearchResultRow } from './search';
 import { manifestUrlDaRota, navegar, RUTAS, rotaDoAddon, useRuta } from './router';
 
 const INSTALLATIONS_STORAGE_KEY = 'addons:host-installations:v1';
+const SEARCH_STATE_KEY = 'host:search:results:v1';
 
 interface PersistedInstallations {
   manifestUrls: string[];
   disabledManifestUrls: string[];
   acceptedContractFingerprints: Record<string, string>;
+  searchLimits: Record<string, number>;
+}
+
+interface PersistedSearchState {
+  query: string;
+  results: SearchResultRow[];
 }
 
 function readPersistedInstallations(): PersistedInstallations {
-  if (typeof window === 'undefined') return { manifestUrls: [], disabledManifestUrls: [], acceptedContractFingerprints: {} };
+  if (typeof window === 'undefined') return { manifestUrls: [], disabledManifestUrls: [], acceptedContractFingerprints: {}, searchLimits: {} };
   try {
     const saved = JSON.parse(window.localStorage.getItem(INSTALLATIONS_STORAGE_KEY) ?? '{}') as Partial<PersistedInstallations>;
     const manifestUrls = Array.isArray(saved.manifestUrls) ? saved.manifestUrls.filter((url): url is string => typeof url === 'string') : [];
@@ -29,9 +39,14 @@ function readPersistedInstallations(): PersistedInstallations {
     const acceptedContractFingerprints = saved.acceptedContractFingerprints && typeof saved.acceptedContractFingerprints === 'object'
       ? Object.fromEntries(Object.entries(saved.acceptedContractFingerprints).filter(([url, fingerprint]) => manifestUrls.includes(url) && typeof fingerprint === 'string'))
       : {};
-    return { manifestUrls: [...new Set(manifestUrls)], disabledManifestUrls: [...new Set(disabledManifestUrls)], acceptedContractFingerprints };
+    const searchLimits = saved.searchLimits && typeof saved.searchLimits === 'object'
+      ? Object.fromEntries(Object.entries(saved.searchLimits)
+        .filter(([url, value]) => manifestUrls.includes(url) && typeof value === 'number' && Number.isFinite(value))
+        .map(([url, value]) => [url, clampSearchLimit(value)]))
+      : {};
+    return { manifestUrls: [...new Set(manifestUrls)], disabledManifestUrls: [...new Set(disabledManifestUrls)], acceptedContractFingerprints, searchLimits };
   } catch {
-    return { manifestUrls: [], disabledManifestUrls: [], acceptedContractFingerprints: {} };
+    return { manifestUrls: [], disabledManifestUrls: [], acceptedContractFingerprints: {}, searchLimits: {} };
   }
 }
 
@@ -50,6 +65,19 @@ function persistInstallations(installations: PersistedInstallations): void {
   }
 }
 
+function parsePersistedSearchState(value: unknown): PersistedSearchState | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const candidate = value as Partial<PersistedSearchState>;
+  if (typeof candidate.query !== 'string' || !Array.isArray(candidate.results)) return undefined;
+  const results = candidate.results.filter((result): result is SearchResultRow => {
+    if (!result || typeof result !== 'object') return false;
+    const row = result as Partial<SearchResultRow>;
+    return [row.key, row.sourceAddonId, row.sourceAddonName, row.sourceManifestUrl, row.type, row.id, row.url, row.name, row.description]
+      .every((field) => typeof field === 'string');
+  });
+  return { query: candidate.query, results };
+}
+
 export function App() {
   const [registry] = useState(() => new ServiceRegistry());
   const [logger] = useState(() => new ConsoleLogger());
@@ -57,9 +85,19 @@ export function App() {
   const [disabledAddonUrls, setDisabledAddonUrls] = useState<string[]>([]);
   const [acceptedContractFingerprints, setAcceptedContractFingerprints] = useState<Record<string, string>>({});
   const [pendingContractUrls, setPendingContractUrls] = useState<string[]>([]);
+  const [searchLimits, setSearchLimits] = useState<Record<string, number>>({});
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResultRow[]>([]);
+  const [searchErrors, setSearchErrors] = useState<SearchProviderError[]>([]);
+  const [searchProviderCount, setSearchProviderCount] = useState(0);
+  const [searching, setSearching] = useState(false);
+  const [searchStateReady, setSearchStateReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [installationsReady, setInstallationsReady] = useState(false);
   const loadedRef = useRef(false);
+  const searchRequestRef = useRef(0);
+  const httpTextClient = useMemo(() => createFetchSearchClient(), []);
   const rota = useRuta();
 
   const loadRemoteAddon = useCallback(async (manifestUrl: string): Promise<AddonInstance> => {
@@ -130,6 +168,7 @@ export function App() {
         }
         setAddons(restored);
         setAcceptedContractFingerprints(persisted.acceptedContractFingerprints);
+        setSearchLimits(persisted.searchLimits);
         setPendingContractUrls(pending);
         setDisabledAddonUrls([...new Set([
           ...persisted.disabledManifestUrls.filter((url) => restored.some((addon) => addon.manifestUrl === url)),
@@ -151,8 +190,99 @@ export function App() {
         const fingerprint = acceptedContractFingerprints[addon.manifestUrl];
         return fingerprint ? [[addon.manifestUrl, fingerprint]] : [];
       })),
+      searchLimits: Object.fromEntries(addons.flatMap((addon) => {
+        const limit = searchLimits[addon.manifestUrl];
+        return limit ? [[addon.manifestUrl, clampSearchLimit(limit)]] : [];
+      })),
     });
-  }, [acceptedContractFingerprints, addons, disabledAddonUrls, installationsReady]);
+  }, [acceptedContractFingerprints, addons, disabledAddonUrls, installationsReady, searchLimits]);
+
+  const activeStateStoreAddon = useMemo(() => addons.find((addon) =>
+    addon.status === 'ready'
+    && !disabledAddonUrls.includes(addon.manifestUrl)
+    && addon.services.includes('state-store'),
+  ), [addons, disabledAddonUrls]);
+  const activeStateStoreKey = activeStateStoreAddon?.manifestUrl ?? null;
+  const hydratedStateStoreRef = useRef<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!installationsReady) return;
+    hydratedStateStoreRef.current = undefined;
+    const store = activeStateStoreKey ? registry.get<AddonStateStore>('state-store') : undefined;
+    if (!store) {
+      hydratedStateStoreRef.current = null;
+      setSearchStateReady(true);
+      return;
+    }
+    setSearchStateReady(false);
+    let active = true;
+    void store.get<unknown>(SEARCH_STATE_KEY).then((saved) => {
+      if (!active) return;
+      const restored = parsePersistedSearchState(saved);
+      if (restored) {
+        setSearchInput(restored.query);
+        setSearchQuery(restored.query);
+        setSearchResults(restored.results);
+        setSearchErrors([]);
+      }
+      hydratedStateStoreRef.current = activeStateStoreKey;
+      setSearchStateReady(true);
+    }).catch(() => {
+      if (!active) return;
+      hydratedStateStoreRef.current = activeStateStoreKey;
+      setSearchStateReady(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [activeStateStoreKey, installationsReady, registry]);
+
+  useEffect(() => {
+    if (!installationsReady || !searchStateReady || !activeStateStoreKey || hydratedStateStoreRef.current !== activeStateStoreKey) return;
+    const store = registry.get<AddonStateStore>('state-store');
+    void store?.set(SEARCH_STATE_KEY, { query: searchQuery, results: searchResults });
+  }, [activeStateStoreKey, installationsReady, registry, searchQuery, searchResults, searchStateReady]);
+
+  const onSearchLimitChange = useCallback((manifestUrl: string, value: number) => {
+    setSearchLimits((current) => ({ ...current, [manifestUrl]: clampSearchLimit(value) }));
+  }, []);
+
+  const clearSearch = useCallback(() => {
+    searchRequestRef.current += 1;
+    setSearchInput('');
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearchErrors([]);
+    setSearchProviderCount(0);
+    setSearching(false);
+  }, []);
+
+  const runSearch = useCallback(async (value: string) => {
+    const query = value.trim();
+    setSearchInput(value);
+    const requestId = ++searchRequestRef.current;
+    if (!query) {
+      clearSearch();
+      return;
+    }
+    setSearchQuery(query);
+    setSearching(true);
+    setSearchErrors([]);
+    try {
+      const collection = await searchActiveAddons(addons, disabledAddonUrls, query, searchLimits, httpTextClient);
+      if (requestId !== searchRequestRef.current) return;
+      setSearchResults(collection.results);
+      setSearchErrors(collection.errors);
+      setSearchProviderCount(collection.providerCount);
+    } catch (error) {
+      if (requestId !== searchRequestRef.current) return;
+      setSearchResults([]);
+      setSearchErrors([{ addonName: 'Host', message: (error as Error).message || 'A pesquisa não pôde ser concluída.' }]);
+      setSearchProviderCount(0);
+    } finally {
+      if (requestId === searchRequestRef.current) setSearching(false);
+    }
+  }, [addons, clearSearch, disabledAddonUrls, httpTextClient, searchLimits]);
 
   const logInstalledContract = (installed: AddonInstance) => {
     console.info('Contrato do add-on instalado', {
@@ -302,15 +432,32 @@ export function App() {
       color: '#e2e8f0',
       fontFamily: 'system-ui, -apple-system, sans-serif',
     }}>
-      <Header addons={addons.filter((addon) => !disabledAddonUrls.includes(addon.manifestUrl))} />
+      <Header
+        addons={addons.filter((addon) => !disabledAddonUrls.includes(addon.manifestUrl))}
+        searchValue={searchInput}
+        searchDisabled={!installationsReady || !searchStateReady}
+        searching={searching}
+        onSearchValueChange={setSearchInput}
+        onSearch={(value) => void runSearch(value)}
+        onClearSearch={clearSearch}
+      />
 
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 24px 48px' }}>
+        <SearchResultsTable
+          query={searchQuery}
+          results={searchResults}
+          errors={searchErrors}
+          loading={searching}
+          providerCount={searchProviderCount}
+        />
         {rota === RUTAS.settings ? (
           <section>
             <AddonManager
               addons={addons}
               disabledAddonUrls={disabledAddonUrls}
               pendingContractUrls={pendingContractUrls}
+              searchLimits={searchLimits}
+              onSearchLimitChange={onSearchLimitChange}
               onInspectManifest={inspectManifest}
               onInstallFromUrl={installFromUrl}
               onToggle={toggleAddon}

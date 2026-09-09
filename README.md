@@ -17,7 +17,7 @@ Essa ideia foi inspirada no protocolo de add-ons do Stremio. A inspiração est�
 O projeto demonstra dois formatos de add-on que convivem no mesmo protocolo:
 
 1. **Add-on em processo:** é um módulo JavaScript carregado pelo host a partir da URL declarada no manifesto. Durante a inicialização, ele registra os serviços que seu contrato permite.
-2. **Add-on HTTP:** é um servidor independente. Clientes de exemplo consultam catálogos, buscas e textos por rotas HTTP. O host instala seu manifesto e apresenta uma aba informativa; a navegação genérica desses recursos pela interface ainda está planejada.
+2. **Add-on HTTP:** é um servidor independente. Clientes de exemplo consultam catálogos, buscas e textos por rotas HTTP. O host instala seu manifesto e agrega as respostas do recurso `search` em uma tabela global, sem conhecer a implementação de cada extensão.
 
 O runtime e os testes também demonstram **prioridade** e **fallback**. Quando dois add-ons oferecem o mesmo serviço, o registry interno ordena as implementações e a operação de fallback tenta a próxima quando a anterior falha. Os helpers de fallback são internos à implementação do runtime; a API pública do add-on continua sendo `host.services.use(contrato)`.
 
@@ -114,6 +114,13 @@ resumos são lidos genericamente de cada manifesto, sem carregar o bundle:
 **Copiar** preenche o campo de URL e **Instalar** preenche o campo e inicia a
 revisão do contrato.
 
+No topo do host existe uma busca fixa. Pressione **Enter** para consultar todos
+os add-ons HTTP ativos que declaram `search`; pressione **Esc** para limpar o
+campo e a tabela. Cada linha normalizada mostra tipo, ID, URL, nome e descrição,
+com emoji ou imagem quando o manifesto ou a resposta oferecerem esse dado.
+Em Configurações, cada add-on de busca pode definir seu limite de resultados.
+Com um provedor `state-store` ativo, a consulta e as linhas ficam persistidas.
+
 Os quatro servidores HTTP iniciados por `pnpm dev` continuam disponíveis como exemplos independentes. Eles podem ser instalados pelas URLs `http://localhost:5291/manifest.json` a `http://localhost:5294/manifest.json`; o host não os conhece nem os inclui em sua build.
 
 ## Pacotes do projeto
@@ -163,9 +170,9 @@ ciclos obrigatórios também são bloqueados.
 
 ## Limites atuais
 
-Esta POC prova o protocolo, mas ainda não é uma plataforma pronta para produção. Cada add-on precisa publicar seu próprio manifesto e bundle ou servidor HTTP. Ainda faltam descarregamento completo ao desativar ou remover add-ons, interface genérica para recursos HTTP, edição de prioridades, cache e atualização de manifestos, sandbox e proxy de rede.
+Esta POC prova o protocolo, mas ainda não é uma plataforma pronta para produção. Cada add-on precisa publicar seu próprio manifesto e bundle ou servidor HTTP. Ainda faltam descarregamento completo ao desativar ou remover add-ons, catálogo e leitura genéricos dos recursos HTTP, validação completa das respostas, edição de prioridades, cache e atualização de manifestos, sandbox e proxy de rede.
 
-A versão `1.0.7` lista automaticamente os estados nas abas de armazenamento e limita o painel de JSON a esses provedores. A [verificação da inspeção dos estados em 08/09/2026](docs/PHASES.md#verificação-da-inspeção-dos-estados-em-08092026) registra o carregamento inicial, a abertura dos detalhes em Local e Sessão e a ocultação do painel nas demais abas. O próximo passo recomendado é completar o descarregamento, incluindo falhas nos callbacks de limpeza, e depois a experiência HTTP genérica.
+A versão `1.1.0` lista automaticamente os estados nas abas de armazenamento, limita o painel de JSON a esses provedores e oferece busca global para recursos HTTP `search`. A [verificação da inspeção dos estados em 08/09/2026](docs/PHASES.md#verificação-da-inspeção-dos-estados-em-08092026) registra o carregamento inicial, a abertura dos detalhes em Local e Sessão e a ocultação do painel nas demais abas. A [verificação da busca global](docs/PHASES.md#verificação-da-busca-global-em-08092026) registra a tabela, os limites por add-on e a persistência. O próximo passo recomendado é completar o descarregamento, incluindo falhas nos callbacks de limpeza, e depois concluir catálogo e leitura HTTP genéricos.
 
 Plugins são confiáveis e podem chamar APIs globais. O manifesto registra I/O
 externo para revisão, mas a v1 não oferece sandbox, proxy de rede, `onUnload`

@@ -8,7 +8,7 @@ O host precisa carregar add-ons por URL sem importar implementações conhecidas
 
 ## O que ele oferece
 
-O host busca e valida `manifest.json`, negocia a versão do protocolo e as capacidades, revisa o contrato, importa bundles ESM em processo e apresenta servidores HTTP. A interface é genérica: não existe catálogo embutido, alias ou dependência de `@addons/addon-*` no pacote. Em Configurações, a lista local consulta somente `name` e `description` dos manifestos para facilitar o preenchimento.
+O host busca e valida `manifest.json`, negocia a versão do protocolo e as capacidades, revisa o contrato, importa bundles ESM em processo e apresenta servidores HTTP. A interface é genérica: não existe catálogo embutido, alias ou dependência de `@addons/addon-*` no pacote. Em Configurações, a lista local consulta somente `name` e `description` dos manifestos para facilitar o preenchimento. A busca global consulta recursos HTTP `search` declarados pelos add-ons ativos e normaliza as respostas em uma tabela comum.
 
 Capacidades canônicas do host:
 
@@ -16,6 +16,14 @@ Capacidades canônicas do host:
 - `ui.tab`: aba declarativa;
 - `logs`: logs estruturados;
 - `state-store`: provedor opcional de estado serializável.
+
+O campo de busca fica fixo no cabeçalho: **Enter** dispara a consulta e **Esc**
+limpa campo e resultados. `src/search.ts` é um adaptador interno que consulta
+as rotas `/search/<type>/<query>.json`, aplica o limite configurado por add-on,
+isola falhas de uma origem e produz linhas com tipo, ID, URL, nome, descrição e
+metadados visuais opcionais. A tabela permanece visível mesmo sem extensões.
+Quando existe um `state-store` ativo, o host grava a consulta e as linhas sob a
+chave `host:search:results:v1`.
 
 O registro interno ordena provedores por prioridade e nome do add-on. Serviços obrigatórios ausentes deixam a instalação bloqueada; quando um provedor aparece, o host pode reavaliá-la. Dependências obrigatórias em ciclo também são bloqueadas.
 
@@ -49,6 +57,8 @@ Os add-ons são confiáveis nesta POC. O host valida o contrato, entradas, saíd
 
 O loader executa callbacks `onUnload` quando uma ativação falha e depois remove os serviços registrados. Uma exceção em callback pode interromper essa limpeza. Ao desativar ou remover uma instância ativa, o host remove seus serviços, mas ainda não executa os callbacks. O ciclo completo de descarregamento é o próximo trabalho no [roteiro](../../docs/PHASES.md#ordem-recomendada-para-o-próximo-trabalho).
 
-Manifestos HTTP sem `entrypoint` recebem uma aba com título e descrição. A interface genérica de catálogo, busca e leitura ainda está planejada.
+Manifestos HTTP sem `entrypoint` recebem uma aba com título e descrição. A
+busca genérica já cobre o recurso `search`; catálogo, leitura, cache e validação
+completa de respostas HTTP ainda estão planejados.
 
 Consulte a [especificação de manifesto](../../docs/MANIFEST-SPEC.md) e o [índice dos pacotes](../../docs/PACKAGES.md).
