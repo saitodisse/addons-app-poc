@@ -8,11 +8,12 @@ Mostra um serviço com vários métodos e estado opcional mediado pelo protocolo
 
 ## O que oferece
 
-O serviço expõe `increment`, `decrement`, `reset` e `getValue`. O valor e a última resposta da aba são declarados em `contract.state` e usam `state-store` quando houver provedor; o fallback local é memória. Não há chamadas HTTP.
+O serviço expõe `increment`, `decrement`, `reset` e `getValue`. O valor e a última resposta da aba são declarados em `contract.state` e usam `state-store` quando houver provedor; o fallback local é memória. Cada instância restaura o valor uma vez por provedor disponível e depois grava o novo resultado, preservando incrementos sucessivos após recarregar o host. Não há chamadas HTTP.
 
 ## Como executar e testar
 
 ```bash
+pnpm --filter @addons/addon-counter test
 pnpm --filter @addons/addon-counter serve
 ```
 

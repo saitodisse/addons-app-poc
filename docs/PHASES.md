@@ -80,6 +80,20 @@ A versão `1.0.5` renomeia a aba para **Saúde dos Add-ons**. Cada linha mostra 
 
 Depois de executar **Verificar agora** na rota do add-on Saúde, a lista foi conferida para os 14 servidores. Cada linha apresentou um nome distinto e seu endereço `http://localhost:<porta>`.
 
+## Verificação da persistência do contador em 08/09/2026
+
+### Por que
+
+O botão `+1` voltava a mostrar `1` depois que a página era recarregada. O estado estava no `localStorage`, mas a consulta seguinte ao `state-store` era tratada como uma restauração nova quando o host criava outra ponte de mediação.
+
+### O que
+
+A versão `1.0.6` torna a restauração idempotente durante a vida de cada instância do Contador. O add-on restaura o valor uma vez quando encontra um provedor, mantém o valor em memória para as próximas ações e grava cada resultado atualizado. O teste do pacote simula uma ponte nova a cada consulta para proteger esse fluxo.
+
+### Como
+
+Com `pnpm dev` em execução, a rota `#/addons/http%3A%2F%2Flocalhost%3A5303%2Fmanifest.json` foi aberta com Contador e Armazenamento local ativos. Após recarregar, o botão `+1` foi acionado e mostrou `3` a partir de um valor persistido `2`, mantendo `addons:state:counter:value` em `3`. `pnpm --filter @addons/addon-counter test` e a build do host também passaram.
+
 ## Fase 7 — Protocolo público v1
 
 **Estado: Entregue**

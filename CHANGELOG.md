@@ -4,6 +4,13 @@ Este arquivo conta, em ordem inversa, como o projeto evoluiu. A leitura rápida 
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.0.6] - 2026-09-08
+
+### Corrigido
+
+- O Contador deixou de reler o valor antigo a cada ação quando o `state-store` mediado pelo host criava uma nova ponte. O botão `+1` agora preserva incrementos sucessivos após recarregar a página.
+- O add-on ganhou um teste de regressão que simula a mediação do host e uma instrução própria de teste no README.
+
 ## [1.0.5] - 2026-09-08
 
 ### Alterado

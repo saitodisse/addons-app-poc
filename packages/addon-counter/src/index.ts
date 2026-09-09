@@ -31,14 +31,19 @@ export const manifest = defineAddonManifest({
 
 export function setup(host: HostAPI): void {
   let value = 0;
-  let restoredStore: AddonStateStore | undefined;
+  let stateRestored = false;
 
-  const sync = async () => {
+  const sync = async (): Promise<AddonStateStore | undefined> => {
     const store = host.services.use<AddonStateStore>({ id: 'state-store' });
-    if (!store || store === restoredStore) return store;
-    value = (await store.get<number>('counter:value')) ?? value;
-    restoredStore = store;
-    host.log('info', 'Estado do contador restaurado', { value });
+    if (!store) {
+      stateRestored = false;
+      return undefined;
+    }
+    if (!stateRestored) {
+      value = (await store.get<number>('counter:value')) ?? value;
+      stateRestored = true;
+      host.log('info', 'Estado do contador restaurado', { value });
+    }
     return store;
   };
 
