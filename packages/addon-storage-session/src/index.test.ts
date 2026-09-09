@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createSessionStateStore } from './index';
+import { createSessionStateStore, createTab } from './index';
+import type { HostAPI } from '@addons-poc/protocol';
 
 function fakeStorage(): Storage {
   const values = new Map<string, string>();
@@ -15,5 +16,22 @@ describe('Session Storage Add-on', () => {
     const store = createSessionStateStore(fakeStorage());
     await store.set('aggregator:history', ['poesia']);
     expect(await store.get('aggregator:history')).toEqual(['poesia']);
+  });
+
+  it('lista automaticamente os estados com detalhes do JSON', async () => {
+    const store = createSessionStateStore(fakeStorage());
+    await store.set('aggregator:history', ['poesia']);
+    const host = {
+      services: { use: () => store },
+      registerService: () => {},
+      onUnload: () => {},
+      log: () => {},
+    } as unknown as HostAPI;
+
+    const snapshot = await createTab(host).getSnapshot?.();
+
+    expect(snapshot?.items).toEqual([
+      { label: 'aggregator:history', value: 'sessionStorage · ver JSON', details: ['poesia'] },
+    ]);
   });
 });

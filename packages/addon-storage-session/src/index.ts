@@ -1,6 +1,6 @@
 import { defineAddonManifest } from '@addons-poc/protocol';
 import { BrowserStateStore } from './browser-state-store';
-import type { AddonStateStore, AddonTab, HostAPI } from '@addons-poc/protocol';
+import type { AddonStateStore, AddonTab, HostAPI, JsonValue } from '@addons-poc/protocol';
 
 export const manifest = defineAddonManifest({
   id: 'storage-session',
@@ -40,25 +40,35 @@ export function setup(host: HostAPI): void {
 
 export function createTab(host: HostAPI): AddonTab {
   const store = host.services.use<AddonStateStore>({ id: 'state-store' });
+  const listStates = async () => {
+    if (!store) return { status: 'error' as const, body: 'Serviço de armazenamento indisponível.' };
+    const keys = await store.listKeys();
+    host.log('info', 'Estados da sessão consultados', { count: keys.length });
+    const states = await Promise.all(keys.map(async (key) => ({
+      key,
+      value: await store.get<JsonValue>(key),
+    })));
+    return {
+      status: 'info' as const,
+      title: `${keys.length} estado(s) salvo(s)`,
+      body: keys.length ? 'Os estados salvos aparecem abaixo; clique em um nome para ver o JSON completo.' : 'Nenhum add-on gravou estado ainda.',
+      items: states.map(({ key, value }) => ({ label: key, value: 'sessionStorage · ver JSON', details: value ?? null })),
+    };
+  };
+
   return {
     ...manifest.contract.ui,
     actions: [
       { id: 'list', label: 'Ver estados', variant: 'secondary' },
       { id: 'clear', label: 'Limpar estados', variant: 'danger' },
     ],
+    getSnapshot: listStates,
     async run(actionId) {
-      if (!store) return { status: 'error', body: 'Serviço de armazenamento indisponível.' };
       if (actionId === 'list') {
-        const keys = await store.listKeys();
-        host.log('info', 'Estados da sessão consultados', { count: keys.length });
-        return {
-          status: 'info',
-          title: `${keys.length} estado(s) salvo(s)`,
-          body: keys.length ? 'Esses estados duram somente até fechar a aba do navegador.' : 'Nenhum add-on gravou estado ainda.',
-          items: keys.map((key) => ({ label: key, value: 'sessionStorage' })),
-        };
+        return listStates();
       }
       if (actionId === 'clear') {
+        if (!store) return { status: 'error', body: 'Serviço de armazenamento indisponível.' };
         await store.clear();
         host.log('warn', 'Estados da sessão removidos');
         return { status: 'success', body: 'Os estados deste protocolo foram removidos da sessão.' };

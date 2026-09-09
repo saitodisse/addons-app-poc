@@ -20,6 +20,8 @@ const responseColors = {
 
 export function AddonTabView({ addon }: AddonTabViewProps) {
   const tab = addon.ui;
+  const showsJsonDetails = addon.manifest.id === 'storage-local' || addon.manifest.id === 'storage-session';
+  const detailsStorage = addon.manifest.id === 'storage-session' ? 'sessionStorage' : 'localStorage';
   const [values, setValues] = useState<Record<string, string>>({});
   const [response, setResponse] = useState<AddonTabResult | null>(null);
   const [runningAction, setRunningAction] = useState<string | null>(null);
@@ -165,7 +167,7 @@ export function AddonTabView({ addon }: AddonTabViewProps) {
                 {response.items.map((item, index) => (
                   <div key={`${item.label}-${index}`} style={{ display: 'grid', gap: 2, paddingTop: index ? 8 : 0, borderTop: index ? `1px solid ${color.border}` : 'none' }}>
                     <dt style={{ fontWeight: 650 }}>
-                      {item.details === undefined ? item.label : (
+                      {item.details === undefined || !showsJsonDetails ? item.label : (
                         <button
                           type="button"
                           onClick={() => setSelectedDetail({ label: item.label, value: item.details! })}
@@ -187,23 +189,25 @@ export function AddonTabView({ addon }: AddonTabViewProps) {
 
       </div>
 
-      <aside id="json-details-card" aria-live="polite" style={{ minHeight: 220, overflow: 'hidden', border: '1px solid #334155', borderRadius: 10, background: '#020617' }}>
-        {selectedDetail ? (
-          <>
-            <header style={{ padding: '11px 14px', borderBottom: '1px solid #1e293b', background: '#0f172a' }}>
-              <span style={{ display: 'block', color: '#22c55e', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 11 }}>localStorage $ cat {selectedDetail.label}.json</span>
-              <h4 style={{ margin: '4px 0 0', overflow: 'hidden', color: '#e2e8f0', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 13, fontWeight: 600, textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedDetail.label}</h4>
-            </header>
-            <pre style={{ maxHeight: 520, margin: 0, overflow: 'auto', padding: 18, color: '#cbd5e1', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
-              <JsonHighlighter json={selectedDetail.value} space={2} />
-            </pre>
-          </>
-        ) : (
-          <p style={{ margin: 0, padding: 18, color: '#64748b', fontSize: 13, lineHeight: 1.55 }}>
-            Clique em um estado para ver seu JSON completo aqui.
-          </p>
-        )}
-      </aside>
+      {showsJsonDetails && (
+        <aside id="json-details-card" aria-live="polite" style={{ minHeight: 220, overflow: 'hidden', border: '1px solid #334155', borderRadius: 10, background: '#020617' }}>
+          {selectedDetail ? (
+            <>
+              <header style={{ padding: '11px 14px', borderBottom: '1px solid #1e293b', background: '#0f172a' }}>
+                <span style={{ display: 'block', color: '#22c55e', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 11 }}>{detailsStorage} $ cat {selectedDetail.label}.json</span>
+                <h4 style={{ margin: '4px 0 0', overflow: 'hidden', color: '#e2e8f0', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 13, fontWeight: 600, textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedDetail.label}</h4>
+              </header>
+              <pre style={{ maxHeight: 520, margin: 0, overflow: 'auto', padding: 18, color: '#cbd5e1', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+                <JsonHighlighter json={selectedDetail.value} space={2} />
+              </pre>
+            </>
+          ) : (
+            <p style={{ margin: 0, padding: 18, color: '#64748b', fontSize: 13, lineHeight: 1.55 }}>
+              Clique em um estado para ver seu JSON completo aqui.
+            </p>
+          )}
+        </aside>
+      )}
     </div>
   );
 }

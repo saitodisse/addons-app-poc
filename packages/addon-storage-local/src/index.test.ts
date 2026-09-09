@@ -28,8 +28,17 @@ describe('Local Storage Add-on', () => {
       log: () => {},
     } as unknown as HostAPI;
 
-    const result = await createTab(host).run?.('list', {});
+    const tab = createTab(host);
+    const snapshot = await tab.getSnapshot?.();
+    const result = await tab.run?.('list', {});
 
+    expect(snapshot?.items).toEqual([
+      {
+        label: 'hello:tab',
+        value: 'localStorage · ver JSON',
+        details: { values: { name: 'Ana' }, response: { status: 'info', body: 'Olá, Ana!' } },
+      },
+    ]);
     expect(result?.items).toEqual([
       {
         label: 'hello:tab',

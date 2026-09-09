@@ -4,6 +4,13 @@ Este arquivo conta, em ordem inversa, como o projeto evoluiu. A leitura rápida 
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.0.7] - 2026-09-08
+
+### Alterado
+
+- As abas de Armazenamento local e Armazenamento da sessão listam os estados automaticamente ao serem abertas.
+- O painel de JSON agora aparece somente nesses dois provedores, e o Session Storage também permite abrir o valor completo de cada estado.
+
 ## [1.0.6] - 2026-09-08
 
 ### Corrigido

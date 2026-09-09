@@ -40,29 +40,35 @@ export function setup(host: HostAPI): void {
 
 export function createTab(host: HostAPI): AddonTab {
   const store = host.services.use<AddonStateStore>({ id: 'state-store' });
+  const listStates = async () => {
+    if (!store) return { status: 'error' as const, body: 'Serviço de armazenamento indisponível.' };
+    const keys = await store.listKeys();
+    host.log('info', 'Estados locais consultados', { count: keys.length });
+    const states = await Promise.all(keys.map(async (key) => ({
+      key,
+      value: await store.get<JsonValue>(key),
+    })));
+    return {
+      status: 'info' as const,
+      title: `${keys.length} estado(s) salvo(s)`,
+      body: keys.length ? 'Os estados salvos aparecem abaixo; clique em um nome para ver o JSON completo.' : 'Nenhum add-on gravou estado ainda.',
+      items: states.map(({ key, value }) => ({ label: key, value: 'localStorage · ver JSON', details: value ?? null })),
+    };
+  };
+
   return {
     ...manifest.contract.ui,
     actions: [
       { id: 'list', label: 'Ver estados', variant: 'secondary' },
       { id: 'clear', label: 'Limpar estados', variant: 'danger' },
     ],
+    getSnapshot: listStates,
     async run(actionId) {
-      if (!store) return { status: 'error', body: 'Serviço de armazenamento indisponível.' };
       if (actionId === 'list') {
-        const keys = await store.listKeys();
-        host.log('info', 'Estados locais consultados', { count: keys.length });
-        const states = await Promise.all(keys.map(async (key) => ({
-          key,
-          value: await store.get<JsonValue>(key),
-        })));
-        return {
-          status: 'info',
-          title: `${keys.length} estado(s) salvo(s)`,
-          body: keys.length ? 'Clique no nome de um estado para ver o JSON completo salvo no localStorage.' : 'Nenhum add-on gravou estado ainda.',
-          items: states.map(({ key, value }) => ({ label: key, value: 'localStorage · ver JSON', details: value ?? null })),
-        };
+        return listStates();
       }
       if (actionId === 'clear') {
+        if (!store) return { status: 'error', body: 'Serviço de armazenamento indisponível.' };
         await store.clear();
         host.log('warn', 'Estados locais removidos');
         return { status: 'success', body: 'Os estados deste protocolo foram removidos do localStorage.' };

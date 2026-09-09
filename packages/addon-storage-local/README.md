@@ -8,7 +8,7 @@ Oferece persistência de estado como add-on substituível. O host não escolhe u
 
 ## O que oferece
 
-Implementa `get`, `set`, `remove`, `listKeys` e `clear` para valores JSON sob o namespace físico `addons:state:`. A prioridade declarada é `10`, acima do provedor de sessão. O estado de cada consumidor continua limitado pelas chaves e operações declaradas no contrato do consumidor.
+Implementa `get`, `set`, `remove`, `listKeys` e `clear` para valores JSON sob o namespace físico `addons:state:`. A prioridade declarada é `10`, acima do provedor de sessão. O estado de cada consumidor continua limitado pelas chaves e operações declaradas no contrato do consumidor. Ao abrir a aba, todos os estados são listados automaticamente; cada nome pode abrir o JSON completo no painel de detalhes.
 
 ## Como executar e testar
 

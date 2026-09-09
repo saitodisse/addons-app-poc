@@ -1,6 +1,6 @@
 # Requisitos do produto
 
-**Status: Parcial** · **Versão da POC: 1.0.6** · **Protocolo publicado: 1.0.0**
+**Status: Parcial** · **Versão da POC: 1.0.7** · **Protocolo publicado: 1.0.0**
 
 Este documento define o que a prova de conceito precisa demonstrar. Ele não descreve um produto comercial pronto; descreve as perguntas técnicas que o experimento deve responder e as evidências esperadas para cada resposta.
 

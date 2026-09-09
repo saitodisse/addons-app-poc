@@ -165,7 +165,7 @@ ciclos obrigatórios também são bloqueados.
 
 Esta POC prova o protocolo, mas ainda não é uma plataforma pronta para produção. Cada add-on precisa publicar seu próprio manifesto e bundle ou servidor HTTP. Ainda faltam descarregamento completo ao desativar ou remover add-ons, interface genérica para recursos HTTP, edição de prioridades, cache e atualização de manifestos, sandbox e proxy de rede.
 
-A versão `1.0.6` corrige a restauração do estado do Contador quando o host medeia o `state-store`. A [verificação do contador em 08/09/2026](docs/PHASES.md#verificação-da-persistência-do-contador-em-08092026) registra o teste de regressão, o fluxo manual após recarregar e a build de produção aprovados. O próximo passo recomendado é completar o descarregamento, incluindo falhas nos callbacks de limpeza, e depois a experiência HTTP genérica.
+A versão `1.0.7` lista automaticamente os estados nas abas de armazenamento e limita o painel de JSON a esses provedores. A [verificação da inspeção dos estados em 08/09/2026](docs/PHASES.md#verificação-da-inspeção-dos-estados-em-08092026) registra o carregamento inicial, a abertura dos detalhes em Local e Sessão e a ocultação do painel nas demais abas. O próximo passo recomendado é completar o descarregamento, incluindo falhas nos callbacks de limpeza, e depois a experiência HTTP genérica.
 
 Plugins são confiáveis e podem chamar APIs globais. O manifesto registra I/O
 externo para revisão, mas a v1 não oferece sandbox, proxy de rede, `onUnload`

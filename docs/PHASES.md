@@ -94,6 +94,20 @@ A versão `1.0.6` torna a restauração idempotente durante a vida de cada inst�
 
 Com `pnpm dev` em execução, a rota `#/addons/http%3A%2F%2Flocalhost%3A5303%2Fmanifest.json` foi aberta com Contador e Armazenamento local ativos. Após recarregar, o botão `+1` foi acionado e mostrou `3` a partir de um valor persistido `2`, mantendo `addons:state:counter:value` em `3`. `pnpm --filter @addons/addon-counter test` e a build do host também passaram.
 
+## Verificação da inspeção dos estados em 08/09/2026
+
+### Por que
+
+O painel de detalhes JSON aparecia em qualquer aba, embora só os provedores de armazenamento ofereçam uma lista de estados para inspecionar. A aba de sessão também não carregava seus estados automaticamente nem entregava os valores completos para o host.
+
+### O que
+
+A versão `1.0.7` limita o painel `json-details-card` aos add-ons `storage-local` e `storage-session`. As duas abas usam `getSnapshot` para listar os estados assim que são abertas, e cada item da sessão passa a transportar `details` como o armazenamento local já fazia.
+
+### Como
+
+Nas rotas `#/addons/http%3A%2F%2Flocalhost%3A5308%2Fmanifest.json` e `#/addons/http%3A%2F%2Flocalhost%3A5309%2Fmanifest.json`, os estados apareceram sem acionar **Ver estados**. Um item abriu o JSON com os cabeçalhos `localStorage` e `sessionStorage`; na rota do Contador, `document.querySelector('#json-details-card')` não encontrou painel. Os testes dos dois provedores e a build do host passaram.
+
 ## Fase 7 — Protocolo público v1
 
 **Estado: Entregue**

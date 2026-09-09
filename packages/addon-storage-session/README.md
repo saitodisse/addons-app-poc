@@ -8,7 +8,7 @@ Demonstra fallback explícito de persistência: o mesmo contrato pode ser atendi
 
 ## O que oferece
 
-Implementa `get`, `set`, `remove`, `listKeys` e `clear` no namespace `addons:state:`. A prioridade declarada é `0`, portanto o host prefere `addon-storage-local` quando os dois estão instalados. O fechamento da aba encerra a retenção.
+Implementa `get`, `set`, `remove`, `listKeys` e `clear` no namespace `addons:state:`. A prioridade declarada é `0`, portanto o host prefere `addon-storage-local` quando os dois estão instalados. O fechamento da aba encerra a retenção. Ao abrir a aba, todos os estados são listados automaticamente; cada nome pode abrir o JSON completo no painel de detalhes.
 
 ## Como executar e testar
 
