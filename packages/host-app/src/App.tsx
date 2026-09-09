@@ -291,6 +291,10 @@ export function App() {
     navegar(rotaDoAddon(manifestUrl));
   }, []);
 
+  const reviewAddonContract = useCallback((_manifestUrl: string) => {
+    navegar(RUTAS.settings);
+  }, []);
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -325,10 +329,12 @@ export function App() {
               <AddonSidebar
                 addons={addons}
                 disabledAddonUrls={disabledAddonUrls}
+                pendingContractUrls={pendingContractUrls}
                 selectedManifestUrl={selectedManifestUrl}
                 loading={loading}
                 onSelect={selectAddon}
                 onToggle={toggleAddon}
+                onReviewContract={reviewAddonContract}
               />
 
               <div style={{

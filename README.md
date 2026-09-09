@@ -163,7 +163,7 @@ ciclos obrigatórios também são bloqueados.
 
 Esta POC prova o protocolo, mas ainda não é uma plataforma pronta para produção. Cada add-on precisa publicar seu próprio manifesto e bundle ou servidor HTTP. Ainda faltam descarregamento completo ao desativar ou remover add-ons, interface genérica para recursos HTTP, edição de prioridades, cache e atualização de manifestos, sandbox e proxy de rede.
 
-A versão `1.0.2` consolida o estado atual na documentação. A [verificação de 08/09/2026](docs/PHASES.md#verificação-de-08092026) registra 136 testes aprovados e build de produção aprovada, com o escopo e os limites da conferência. O próximo passo recomendado é completar o descarregamento, incluindo falhas nos callbacks de limpeza, e depois a experiência HTTP genérica.
+A versão `1.0.3` consolida a experiência de gestão na documentação. A [verificação de 08/09/2026](docs/PHASES.md#verificação-da-interface-de-gestão-em-08092026) registra 136 testes aprovados, build de produção aprovada e a ativação de Citações e Poemas verificada no navegador. O próximo passo recomendado é completar o descarregamento, incluindo falhas nos callbacks de limpeza, e depois a experiência HTTP genérica.
 
 Plugins são confiáveis e podem chamar APIs globais. O manifesto registra I/O
 externo para revisão, mas a v1 não oferece sandbox, proxy de rede, `onUnload`

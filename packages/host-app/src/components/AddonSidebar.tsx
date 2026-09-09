@@ -3,13 +3,15 @@ import type { AddonInstance } from '@addons-poc/protocol';
 interface AddonSidebarProps {
   addons: AddonInstance[];
   disabledAddonUrls: string[];
+  pendingContractUrls: string[];
   selectedManifestUrl: string | null;
   loading: boolean;
   onSelect: (manifestUrl: string) => void;
   onToggle: (manifestUrl: string) => void;
+  onReviewContract: (manifestUrl: string) => void;
 }
 
-export function AddonSidebar({ addons, disabledAddonUrls, selectedManifestUrl, loading, onSelect, onToggle }: AddonSidebarProps) {
+export function AddonSidebar({ addons, disabledAddonUrls, pendingContractUrls, selectedManifestUrl, loading, onSelect, onToggle, onReviewContract }: AddonSidebarProps) {
   return (
     <aside aria-label="Extensões instaladas" style={{
       alignSelf: 'start',
@@ -30,7 +32,11 @@ export function AddonSidebar({ addons, disabledAddonUrls, selectedManifestUrl, l
         )}
         {addons.map((addon) => {
           const enabled = addon.status === 'ready' && !disabledAddonUrls.includes(addon.manifestUrl);
+          const requiresContractReview = pendingContractUrls.includes(addon.manifestUrl);
           const selected = enabled && selectedManifestUrl === addon.manifestUrl;
+          const actionLabel = requiresContractReview ? 'Revisar e ativar' : enabled ? 'Desativar' : 'Ativar';
+          const actionDisabled = loading || addon.status === 'error' || (!requiresContractReview && addon.status !== 'ready');
+          const itemDisabled = loading || addon.status !== 'ready';
 
           return (
             <div key={addon.manifestUrl} style={{
@@ -39,12 +45,17 @@ export function AddonSidebar({ addons, disabledAddonUrls, selectedManifestUrl, l
             }}>
               <button
                 type="button"
-                onClick={() => enabled && onSelect(addon.manifestUrl)}
-                disabled={!enabled}
+                onClick={() => {
+                  if (enabled) onSelect(addon.manifestUrl);
+                  else if (requiresContractReview) onReviewContract(addon.manifestUrl);
+                  else onToggle(addon.manifestUrl);
+                }}
+                disabled={itemDisabled}
+                aria-label={`${enabled ? 'Abrir' : actionLabel} ${addon.manifest.name}`}
                 title={addon.manifest.description}
                 style={{
                   flex: 1, minWidth: 0, padding: '6px 4px', border: 'none', background: 'transparent', textAlign: 'left',
-                  color: selected ? '#e0e7ff' : '#cbd5e1', cursor: enabled ? 'pointer' : 'default', fontSize: 12,
+                  color: selected ? '#e0e7ff' : '#cbd5e1', cursor: itemDisabled ? 'default' : 'pointer', fontSize: 12,
                 }}
               >
                 <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: selected ? 650 : 500 }}>
@@ -57,20 +68,22 @@ export function AddonSidebar({ addons, disabledAddonUrls, selectedManifestUrl, l
 
               <button
                 type="button"
-                role="switch"
-                aria-checked={enabled}
-                aria-label={`${enabled ? 'Desativar' : 'Ativar'} ${addon.manifest.name}`}
-                onClick={() => onToggle(addon.manifestUrl)}
-                disabled={loading || addon.status === 'error'}
+                role={requiresContractReview ? undefined : 'switch'}
+                aria-checked={requiresContractReview ? undefined : enabled}
+                aria-label={`${actionLabel} ${addon.manifest.name}`}
+                onClick={() => requiresContractReview ? onReviewContract(addon.manifestUrl) : onToggle(addon.manifestUrl)}
+                disabled={actionDisabled}
                 style={{
-                  position: 'relative', flex: '0 0 auto', width: 28, height: 16, padding: 0, border: 'none', borderRadius: 999,
-                  background: enabled ? '#4f46e5' : 'rgba(148,163,184,0.35)', cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.6 : 1,
+                  flex: '0 0 auto', minWidth: requiresContractReview ? 112 : 70, height: 28, padding: '0 8px',
+                  border: `1px solid ${requiresContractReview ? 'rgba(251,191,36,0.45)' : 'rgba(129,140,248,0.35)'}`,
+                  borderRadius: 6,
+                  background: requiresContractReview ? 'rgba(251,191,36,0.12)' : enabled ? 'rgba(99,102,241,0.2)' : 'rgba(148,163,184,0.16)',
+                  color: requiresContractReview ? '#fde68a' : enabled ? '#c7d2fe' : '#cbd5e1',
+                  cursor: actionDisabled ? 'not-allowed' : loading ? 'wait' : 'pointer', opacity: actionDisabled ? 0.55 : 1,
+                  fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
                 }}
               >
-                <span aria-hidden="true" style={{
-                  position: 'absolute', top: 2, left: enabled ? 14 : 2, width: 12, height: 12, borderRadius: '50%',
-                  background: '#fff', transition: 'left 0.15s ease',
-                }} />
+                {actionLabel}
               </button>
             </div>
           );

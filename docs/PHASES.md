@@ -38,6 +38,20 @@ Não houve nova verificação visual no navegador, consulta ao npm nem verifica�
 
 Para reproduzir a demonstração manual, execute `pnpm dev`, abra `http://localhost:5280` e instale `http://localhost:5301/manifest.json` em **Configurações**. Revise e aceite o contrato, abra a aba Hello e recarregue a página. O resultado esperado é a instalação permanecer disponível. Esse roteiro não foi executado nesta verificação.
 
+## Verificação da interface de gestão em 08/09/2026
+
+### Por que
+
+A lateral mostrava um interruptor sem texto e o botão de seleção da linha ficava desabilitado para add-ons inativos. Quando o contrato salvo estava desatualizado, o clique no interruptor também não informava que uma nova revisão era necessária.
+
+### O que
+
+A versão `1.0.3` torna as ações visíveis: add-ons prontos mostram `Ativar` ou `Desativar`; contratos pendentes mostram `Revisar e ativar` e encaminham para **Configurações**. A revisão de uma instalação por URL permanece aberta junto do add-on escolhido, recebe foco e alterna entre `Instalar` e `Fechar`.
+
+### Como
+
+Com `pnpm dev` em execução, a verificação abriu a rota de um add-on, conferiu os botões de Citações e Poemas, desativou e reativou cada um e simulou uma impressão digital de contrato antiga. O primeiro fluxo terminou em `Ativo`; o segundo exibiu `Revisar e ativar` e navegou para `#/settings`.
+
 ## Fase 7 — Protocolo público v1
 
 **Estado: Entregue**

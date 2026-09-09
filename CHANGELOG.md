@@ -4,6 +4,14 @@ Este arquivo conta, em ordem inversa, como o projeto evoluiu. A leitura rápida 
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.0.3] - 2026-09-08
+
+### Alterado
+
+- A lateral da demonstração passou a exibir ações nomeadas `Ativar` e `Desativar` para cada add-on, deixando a ativação de Citações e Poemas visível e acionável.
+- Add-ons cujo contrato mudou agora exibem `Revisar e ativar` e levam a pessoa às Configurações, em vez de aceitar um clique que não produziria efeito.
+- A revisão de uma instalação local aparece logo abaixo do add-on escolhido, recebe foco ao abrir e alterna entre `Instalar` e `Fechar`.
+
 ## [1.0.2] - 2026-09-08
 
 ### Documentação

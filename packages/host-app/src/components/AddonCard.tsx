@@ -14,6 +14,7 @@ interface AddonCardProps {
 
 export function AddonCard({ addon, enabled, onToggle, onRemove, stateDestination, reviewRequired = false, onAcceptContract }: AddonCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const toggleAvailable = !reviewRequired && addon.status !== 'error';
   return (
     <div style={{
       padding: '12px 16px',
@@ -62,18 +63,21 @@ export function AddonCard({ addon, enabled, onToggle, onRemove, stateDestination
           Instalado
         </button>
         <button
+          type="button"
           onClick={() => onToggle(addon.manifestUrl)}
+          disabled={!toggleAvailable}
           style={{
             padding: '6px 10px',
             border: '1px solid rgba(129,140,248,0.35)',
             borderRadius: 6,
             background: 'rgba(99,102,241,0.12)',
             color: '#a5b4fc',
-            cursor: 'pointer',
+            cursor: toggleAvailable ? 'pointer' : 'not-allowed',
             fontSize: 12,
+            opacity: toggleAvailable ? 1 : 0.55,
           }}
         >
-          {enabled ? 'Desativar' : 'Ativar'}
+          {reviewRequired ? 'Aguardando revisão' : enabled ? 'Desativar' : 'Ativar'}
         </button>
         <button
           onClick={() => onRemove(addon.manifestUrl)}
