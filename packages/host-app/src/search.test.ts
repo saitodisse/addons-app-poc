@@ -31,7 +31,7 @@ function createAddon(manifestUrl: string, id: string, type = 'quote'): AddonInst
 
 describe('searchActiveAddons', () => {
   it('normaliza metas, gera URL de conteúdo e aplica o limite por add-on', async () => {
-    const addon = createAddon('http://localhost:5292/manifest.json', 'quotes');
+    const addon = createAddon('https://example.test/quotes/manifest.json', 'quotes');
     const client: TextAddonClientPort = {
       getManifest: vi.fn(),
       catalog: vi.fn(),
@@ -44,13 +44,13 @@ describe('searchActiveAddons', () => {
 
     const collection = await searchActiveAddons([addon], [], 'citação', { [addon.manifestUrl]: 1 }, client);
 
-    expect(client.search).toHaveBeenCalledWith('http://localhost:5292/', 'quote', 'citação');
+    expect(client.search).toHaveBeenCalledWith('https://example.test/quotes/', 'quote', 'citação');
     expect(collection.errors).toEqual([]);
     expect(collection.results).toHaveLength(1);
     expect(collection.results[0]).toMatchObject({
       type: 'quote',
       id: '1',
-      url: 'http://localhost:5292/text/quote/1/content.txt',
+      url: 'https://example.test/quotes/text/quote/1/content.txt',
       name: 'Uma citação',
       description: 'Autora',
       emoji: '💬',
@@ -58,8 +58,8 @@ describe('searchActiveAddons', () => {
   });
 
   it('ignora add-ons desativados e preserva falhas isoladas', async () => {
-    const disabled = createAddon('http://localhost:5293/manifest.json', 'disabled', 'poem');
-    const broken = createAddon('http://localhost:5294/manifest.json', 'broken', 'page');
+    const disabled = createAddon('https://example.test/disabled/manifest.json', 'disabled', 'poem');
+    const broken = createAddon('https://example.test/broken/manifest.json', 'broken', 'page');
     const client: TextAddonClientPort = {
       getManifest: vi.fn(),
       catalog: vi.fn(),
@@ -76,22 +76,22 @@ describe('searchActiveAddons', () => {
   });
 
   it('mantém resultados válidos quando outro provedor falha', async () => {
-    const working = createAddon('http://localhost:5292/manifest.json', 'working');
-    const broken = createAddon('http://localhost:5293/manifest.json', 'broken', 'poem');
+    const working = createAddon('https://example.test/working/manifest.json', 'working');
+    const broken = createAddon('https://example.test/broken/manifest.json', 'broken', 'poem');
     const client: TextAddonClientPort = {
       getManifest: vi.fn(),
       catalog: vi.fn(),
       text: vi.fn(),
-      search: vi.fn((baseUrl) => baseUrl.includes('5292')
+      search: vi.fn((baseUrl) => baseUrl.includes('/working/')
         ? Promise.resolve({ metas: [{ id: '1', type: 'quote', name: 'Resultado válido' }] })
-        : Promise.reject(new Error('PoetryDB indisponível'))),
+        : Promise.reject(new Error('Provedor indisponível'))),
     };
 
     const collection = await searchActiveAddons([working, broken], [], 'termo', {}, client);
 
     expect(collection.results).toHaveLength(1);
     expect(collection.results[0].name).toBe('Resultado válido');
-    expect(collection.errors).toEqual([{ addonName: 'broken', message: 'PoetryDB indisponível' }]);
+    expect(collection.errors).toEqual([{ addonName: 'broken', message: 'Provedor indisponível' }]);
   });
 });
 

@@ -70,11 +70,11 @@ Qualquer alteração no `protocol` exige revisão de `docs/ARCHITECTURE.md`, `do
 |---|---|
 | `pnpm install` | Instalar dependências |
 | `pnpm test` | Executar todos os testes |
-| `pnpm dev` | Iniciar host e quatro add-ons HTTP |
+| `pnpm dev` | Iniciar host, um add-on HTTP e quatro add-ons em processo |
 | `pnpm kill-all` | Encerrar os processos do modo de desenvolvimento |
 | `pnpm dev:addons` | Iniciar apenas os servidores HTTP |
 | `pnpm --filter @addons/host-app dev` | Iniciar apenas o host |
-| `pnpm --filter @addons/addon-text-biblioteca serve` | Iniciar somente o add-on Biblioteca |
+| `pnpm --filter @addons/addon-text-wikipedia serve` | Iniciar somente o add-on Wikipédia |
 
 Comece pela verificação mais estreita relacionada à mudança. Antes de concluir uma alteração de protocolo, execute também `pnpm test`.
 

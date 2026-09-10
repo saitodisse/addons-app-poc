@@ -1,18 +1,9 @@
 export const LOCAL_MANIFEST_PORTS = [
-  5291,
-  5292,
-  5293,
   5294,
-  5301,
-  5302,
-  5303,
   5304,
-  5305,
   5306,
   5307,
   5308,
-  5309,
-  5310,
 ] as const;
 
 export function localManifestUrl(port: number): string {

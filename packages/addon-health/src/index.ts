@@ -8,37 +8,19 @@ import { HttpTextAddonClient } from './http-client';
  * O health-check consulta o manifesto de cada um para verificar disponibilidade.
  */
 export const HEALTH_BASE_URLS = [
-  'http://localhost:5291', // biblioteca
-  'http://localhost:5292', // citações
-  'http://localhost:5293', // poemas
   'http://localhost:5294', // wikipedia
-  'http://localhost:5301', // hello
-  'http://localhost:5302', // hello pt
-  'http://localhost:5303', // contador
   'http://localhost:5304', // markdown
-  'http://localhost:5305', // agregador
   'http://localhost:5306', // favoritos
   'http://localhost:5307', // saúde
   'http://localhost:5308', // armazenamento local
-  'http://localhost:5309', // armazenamento da sessão
-  'http://localhost:5310', // debug
 ];
 
 const HEALTH_FALLBACK_NAMES: Record<string, string> = {
-  'http://localhost:5291': 'Biblioteca de Textos',
-  'http://localhost:5292': 'Citações da Web',
-  'http://localhost:5293': 'Poemas (PoetryDB)',
   'http://localhost:5294': 'Wikipédia (resumos)',
-  'http://localhost:5301': 'Hello Add-on',
-  'http://localhost:5302': 'Hello PT Add-on',
-  'http://localhost:5303': 'Counter Add-on',
   'http://localhost:5304': 'Markdown Add-on',
-  'http://localhost:5305': 'Aggregator Add-on',
   'http://localhost:5306': 'Favorites Add-on',
   'http://localhost:5307': 'Saúde dos Add-ons',
   'http://localhost:5308': 'Local Storage Add-on',
-  'http://localhost:5309': 'Session Storage Add-on',
-  'http://localhost:5310': 'Debug Add-on',
 };
 
 export interface HealthEntry {

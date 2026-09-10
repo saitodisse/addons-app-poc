@@ -27,7 +27,7 @@ import { manifest } from './manifest.js';
 
 const server = await createAddonServer({
   manifest,
-  port: 5291,
+  port: 5294,
   handlers: { catalog, search, text, content },
 });
 
@@ -40,10 +40,10 @@ O servidor chama `validateManifest` de `@addons-poc/protocol` antes de abrir a p
 
 ```bash
 pnpm --filter @addons/addon-server test
-pnpm --filter @addons/addon-text-biblioteca serve
+pnpm --filter @addons/addon-text-wikipedia serve
 ```
 
-Os quatro consumidores estão documentados no [índice dos pacotes](../../docs/PACKAGES.md). O host conhece somente a URL do manifesto; não importa este servidor nem os handlers de um add-on específico.
+O consumidor restante está documentado no [índice dos pacotes](../../docs/PACKAGES.md). O host conhece somente a URL do manifesto; não importa este servidor nem os handlers de um add-on específico.
 
 ## Limites
 

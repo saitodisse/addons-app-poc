@@ -4,6 +4,23 @@ Este arquivo conta, em ordem inversa, como o projeto evoluiu. A leitura rápida 
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.2.0] - 2026-09-10
+
+### Adicionado
+
+- A demonstração ao vivo agora abre e fecha por um ícone de engrenagem em um modal responsivo.
+- Extensões ativas agora possuem rotas dinâmicas dedicadas de detalhe e configuração.
+- O reset de fábrica remove instalações, configurações e estados persistidos do host após confirmação explícita.
+
+### Alterado
+
+- A home passou a exibir somente a listagem principal; o detalhe da extensão não é repetido nessa tela.
+- A demonstração local foi reduzida aos add-ons mantidos: Markdown, Favoritos, Saúde, Armazenamento local e Wikipédia.
+
+### Removido
+
+- Foram retirados da demonstração os add-ons Hello, Hello PT, Contador, Agregador, Armazenamento da sessão, Debug, Biblioteca, Citações e Poemas.
+
 ## [1.1.2] - 2026-09-09
 
 ### Alterado

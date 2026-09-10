@@ -95,13 +95,13 @@ describe('FetchAddonLoader', () => {
   });
 
   it('aceita manifesto do bundle com entrypoint relativo ao projeto', async () => {
-    const remoteManifest = manifest('hello', [service('addons.hello.greeter', 'provides', '1.0.0')]);
-    const bundleManifest = { ...remoteManifest, entrypoint: '/packages/addon-hello/dist/bundle.js' };
+    const remoteManifest = manifest('markdown', [service('addons.markdown.text-formatter', 'provides', '1.0.0')]);
+    const bundleManifest = { ...remoteManifest, entrypoint: '/packages/addon-markdown/dist/bundle.js' };
     setupFetch(remoteManifest);
     const registry = new ServiceRegistry();
     const loader = new FetchAddonLoader(registry, { log() {} }, async () => moduleFor(bundleManifest));
 
-    const instance = await loader.load('http://localhost:5301/manifest.json');
+    const instance = await loader.load('http://localhost:5304/manifest.json');
 
     expect(instance.status).toBe('ready');
     expect(instance.error).toBeUndefined();

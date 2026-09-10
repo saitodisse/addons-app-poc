@@ -12,45 +12,6 @@ importers:
         specifier: 0.25.12
         version: 0.25.12
 
-  packages/addon-aggregator:
-    dependencies:
-      '@addons-poc/protocol':
-        specifier: 1.0.0
-        version: 1.0.0
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-      vitest:
-        specifier: ^3.0.0
-        version: 3.2.7
-
-  packages/addon-counter:
-    dependencies:
-      '@addons-poc/protocol':
-        specifier: 1.0.0
-        version: 1.0.0
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-      vitest:
-        specifier: ^3.0.0
-        version: 3.2.7
-
-  packages/addon-debug:
-    dependencies:
-      '@addons-poc/protocol':
-        specifier: 1.0.0
-        version: 1.0.0
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-      vitest:
-        specifier: ^3.0.0
-        version: 3.2.7
-
   packages/addon-favorites:
     dependencies:
       '@addons-poc/protocol':
@@ -76,26 +37,6 @@ importers:
       vitest:
         specifier: ^3.0.0
         version: 3.2.7
-
-  packages/addon-hello:
-    dependencies:
-      '@addons-poc/protocol':
-        specifier: 1.0.0
-        version: 1.0.0
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-
-  packages/addon-hello-pt:
-    dependencies:
-      '@addons-poc/protocol':
-        specifier: 1.0.0
-        version: 1.0.0
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
 
   packages/addon-markdown:
     dependencies:
@@ -129,58 +70,6 @@ importers:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
-      vitest:
-        specifier: ^3.0.0
-        version: 3.2.7
-
-  packages/addon-storage-session:
-    dependencies:
-      '@addons-poc/protocol':
-        specifier: 1.0.0
-        version: 1.0.0
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-      vitest:
-        specifier: ^3.0.0
-        version: 3.2.7
-
-  packages/addon-text-biblioteca:
-    dependencies:
-      '@addons-poc/protocol':
-        specifier: 1.0.0
-        version: 1.0.0
-      '@addons/addon-server':
-        specifier: workspace:*
-        version: link:../addon-server
-    devDependencies:
-      vitest:
-        specifier: ^3.0.0
-        version: 3.2.7
-
-  packages/addon-text-citacoes:
-    dependencies:
-      '@addons-poc/protocol':
-        specifier: 1.0.0
-        version: 1.0.0
-      '@addons/addon-server':
-        specifier: workspace:*
-        version: link:../addon-server
-    devDependencies:
-      vitest:
-        specifier: ^3.0.0
-        version: 3.2.7
-
-  packages/addon-text-poemas:
-    dependencies:
-      '@addons-poc/protocol':
-        specifier: 1.0.0
-        version: 1.0.0
-      '@addons/addon-server':
-        specifier: workspace:*
-        version: link:../addon-server
-    devDependencies:
       vitest:
         specifier: ^3.0.0
         version: 3.2.7

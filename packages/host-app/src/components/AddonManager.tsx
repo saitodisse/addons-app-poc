@@ -3,6 +3,7 @@ import { getInteractionContractFingerprint, getStateDestination } from '@addons-
 import type { AddonInstance, AddonManifest } from '@addons-poc/protocol';
 import { AddonCard } from './AddonCard';
 import { AddonContractView } from './AddonContractView';
+import { FactoryResetControl } from './FactoryResetControl';
 import { LOCAL_MANIFEST_SUGGESTIONS, loadLocalManifestSuggestions } from '../local-manifest-suggestions';
 import { DEFAULT_SEARCH_LIMIT } from '../search';
 
@@ -17,6 +18,7 @@ interface AddonManagerProps {
   onToggle: (manifestUrl: string) => Promise<void>;
   onRemove: (manifestUrl: string) => void;
   onAcceptContract: (manifestUrl: string) => Promise<void>;
+  onFactoryReset: () => void | Promise<void>;
   loading: boolean;
 }
 
@@ -25,7 +27,7 @@ interface PendingInstallation {
   manifest: AddonManifest;
 }
 
-export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, searchLimits, onSearchLimitChange, onInspectManifest, onInstallFromUrl, onToggle, onRemove, onAcceptContract, loading }: AddonManagerProps) {
+export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, searchLimits, onSearchLimitChange, onInspectManifest, onInstallFromUrl, onToggle, onRemove, onAcceptContract, onFactoryReset, loading }: AddonManagerProps) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pendingInstallation, setPendingInstallation] = useState<PendingInstallation | null>(null);
@@ -258,6 +260,8 @@ export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, s
           })}
         </div>
       </section>
+
+      <FactoryResetControl disabled={loading} onReset={onFactoryReset} />
 
     </div>
   );

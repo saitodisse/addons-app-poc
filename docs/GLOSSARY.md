@@ -18,7 +18,7 @@ Este glossário traduz os nomes técnicos usados no projeto. Leia a definição 
 | **Classificação de dado** | Rótulo `public`, `personal` ou `secret` de um dado declarado. Ele explica o tratamento esperado, sem colocar o valor real no manifesto. |
 | **Contrato do protocolo** | Bloco obrigatório `contract` v1 do manifesto. Explica versão, capacidades, serviços, UI, estado, HTTP e logs que um add-on declara. |
 | **Proxy de serviço** | Objeto retornado por `host.services.use(contrato)`. Expõe somente a capacidade declarada e valida as chamadas em runtime. |
-| **CORS** | Regra do navegador para requisições entre origens diferentes. Os servidores locais liberam CORS para que o host na porta `5280` consulte as portas `5291` a `5294`. |
+| **CORS** | Regra do navegador para requisições entre origens diferentes. O servidor local libera CORS para que o host na porta `5280` consulte a porta `5294`. |
 | **Domínio** | Parte que contém regras puras. O pacote público evita dependências de React, rede e armazenamento concreto. |
 | **Endpoint** | Combinação de método e rota de uma API HTTP. `GET /manifest.json` é um endpoint. |
 | **Entrypoint** | URL do bundle ESM de um add-on em processo. É usada pelo `FetchAddonLoader` com `import()`. |
@@ -40,7 +40,7 @@ Este glossário traduz os nomes técnicos usados no projeto. Leia a definição 
 | **Metas** | Lista de metadados devolvida por catálogo e busca. Cada item contém pelo menos `id`, `type` e `name`. |
 | **Linha de resultado** | Forma normalizada que a tabela do host exibe para uma meta de busca: tipo, ID, URL, nome e descrição, com emoji ou imagem opcionais. |
 | **Limite de busca** | Quantidade máxima de linhas que o host aceita de cada add-on em uma consulta. O valor é configurável por manifesto e não altera a API remota. |
-| **Porta** | Interface que descreve uma necessidade. Não confundir com porta TCP, como `5291`. |
+| **Porta** | Interface que descreve uma necessidade. Não confundir com porta TCP, como `5294`. |
 | **Prioridade** | Número que ordena implementações do mesmo serviço. Quanto maior o número, mais cedo ela será consultada. |
 | **Processamento externo** | Trabalho que um add-on delega a outra API. Os add-ons de poemas e Wikipédia transformam respostas públicas no contrato desta POC. |
 | **POC** | Prova de conceito. É um experimento para validar uma ideia, não uma promessa de prontidão para produção. |

@@ -1,6 +1,6 @@
 # Requisitos do produto
 
-**Status: Parcial** · **Versão da POC: 1.1.2** · **Protocolo publicado: 1.0.0**
+**Status: Parcial** · **Versão da POC: 1.2.0** · **Protocolo publicado: 1.0.0**
 
 Este documento define o que a prova de conceito precisa demonstrar. Ele não descreve um produto comercial pronto; descreve as perguntas técnicas que o experimento deve responder e as evidências esperadas para cada resposta.
 
@@ -94,7 +94,7 @@ Os estados significam: **Entregue** quando o comportamento está implementado no
 | F2.4 | Não deixar falha de setup derrubar o host | Entregue | Loader devolve instância em `error` quando a limpeza termina sem exceção; falha na própria limpeza está em F2.8 |
 | F2.5 | Remover registros parciais após falha de setup | Entregue | Teste do loader comprova `clearAddon` após falha de setup sem callbacks de limpeza; falha em callback está em F2.8 |
 | F2.6 | Executar callbacks de descarregamento | Parcial | Loader chama callbacks quando a ativação falha; desativar ou remover instâncias ativas ainda não os executa |
-| F2.7 | Demonstrar serviços de saudação e contador | Entregue | Pacotes `addon-hello`, `addon-hello-pt` e `addon-counter`, sem acoplamento ao host |
+| F2.7 | Demonstrar serviços de saudação e contador | Parcial | Os exemplos de saudação e contador foram removidos; o host continua desacoplado das implementações |
 | F2.8 | Concluir a limpeza mesmo se um callback falhar | Planejado | Exceção em `unloadAll` pode impedir callbacks seguintes, `clearAddon` e o retorno de uma instância em `error` |
 
 ### Prioridade, fallback e composição
@@ -112,7 +112,7 @@ Os estados significam: **Entregue** quando o comportamento está implementado no
 
 | ID | Requisito | Estado | Evidência atual |
 |---|---|---|---|
-| F4.1 | Declarar `resources`, `types` e `catalogs` dentro de `contract` | Entregue | Quatro manifestos HTTP canônicos |
+| F4.1 | Declarar `resources`, `types` e `catalogs` dentro de `contract` | Entregue | Manifesto HTTP canônico restante da Wikipédia |
 | F4.2 | Servir manifesto e recursos por rotas estáveis | Entregue | `@addons/addon-server` |
 | F4.3 | Liberar acesso do host pelo navegador | Entregue | Cabeçalhos CORS e resposta a `OPTIONS` |
 | F4.4 | Consumir catálogo, busca e opções de texto | Entregue | Clientes HTTP locais dos add-ons agregador e health |

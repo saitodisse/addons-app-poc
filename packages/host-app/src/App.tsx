@@ -6,14 +6,14 @@ import { ConsoleLogger } from './runtime/logger';
 import { FetchAddonLoader } from './runtime/loader';
 import { Header } from './components/Header';
 import { AddonManager } from './components/AddonManager';
-import { AddonSidebar } from './components/AddonSidebar';
-import { AddonTabView } from './components/AddonTabView';
+import { AddonDetailPanel } from './components/AddonDetailPanel';
+import { LiveDemoModal } from './components/LiveDemoModal';
 import { SearchResultsTable } from './components/SearchResultsTable';
 import { clampSearchLimit, createFetchSearchClient, searchActiveAddons } from './search';
 import type { SearchProviderError, SearchResultRow } from './search';
 import { manifestUrlDaRota, navegar, RUTAS, rotaDoAddon, useRuta } from './router';
+import { INSTALLATIONS_STORAGE_KEY, resetFactoryStorage } from './factory-reset';
 
-const INSTALLATIONS_STORAGE_KEY = 'addons:host-installations:v1';
 const SEARCH_STATE_KEY = 'host:search:results:v1';
 
 interface PersistedInstallations {
@@ -59,6 +59,10 @@ function normalizeManifestUrl(value: string): string {
 function persistInstallations(installations: PersistedInstallations): void {
   if (typeof window === 'undefined') return;
   try {
+    if (installations.manifestUrls.length === 0) {
+      window.localStorage.removeItem(INSTALLATIONS_STORAGE_KEY);
+      return;
+    }
     window.localStorage.setItem(INSTALLATIONS_STORAGE_KEY, JSON.stringify(installations));
   } catch {
     // Se o navegador bloquear localStorage, a instalação continua válida até esta aba ser recarregada.
@@ -95,8 +99,10 @@ export function App() {
   const [searchStateReady, setSearchStateReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [installationsReady, setInstallationsReady] = useState(false);
+  const [liveDemoOpen, setLiveDemoOpen] = useState(false);
   const loadedRef = useRef(false);
   const searchRequestRef = useRef(0);
+  const addonLifecycleRef = useRef(0);
   const httpTextClient = useMemo(() => createFetchSearchClient(), []);
   const rota = useRuta();
 
@@ -107,10 +113,15 @@ export function App() {
   const recheckDependencies = useCallback(async (manifestUrls: string[]) => {
     const urls = [...new Set(manifestUrls)];
     if (urls.length === 0) return;
+    const lifecycle = addonLifecycleRef.current;
     const refreshed = await Promise.all(urls.map(async (manifestUrl) => {
       registry.clearAddon(manifestUrl);
       return new FetchAddonLoader(registry, logger).load(manifestUrl);
     }));
+    if (lifecycle !== addonLifecycleRef.current) {
+      for (const instance of refreshed) registry.clearAddon(instance.manifestUrl);
+      return;
+    }
     setAddons((current) => current.map((addon) => refreshed.find((item) => item.manifestUrl === addon.manifestUrl) ?? addon));
   }, [logger, registry]);
 
@@ -402,6 +413,27 @@ export function App() {
     });
     void recheckDependencies(dependents);
   }, [addons, recheckDependencies, registry]);
+
+  const resetFactory = useCallback(async () => {
+    addonLifecycleRef.current += 1;
+    setLoading(true);
+    try {
+      const stateStores = registry.getAll<AddonStateStore>('state-store');
+      await Promise.allSettled(stateStores.map((store) => store.clear()));
+      for (const addon of addons) registry.clearAddon(addon.manifestUrl);
+      resetFactoryStorage();
+      setAddons([]);
+      setDisabledAddonUrls([]);
+      setAcceptedContractFingerprints({});
+      setPendingContractUrls([]);
+      setSearchLimits({});
+      clearSearch();
+      setSearchStateReady(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [addons, clearSearch, registry]);
+
   const activeAddons = addons.filter((addon) =>
     addon.status === 'ready' &&
     addon.ui &&
@@ -410,6 +442,7 @@ export function App() {
 
   const selectedManifestUrl = manifestUrlDaRota(rota);
   const selectedAddon = activeAddons.find((addon) => addon.manifestUrl === selectedManifestUrl) ?? null;
+  const isAddonRoute = rota.startsWith('/addons/');
 
   useEffect(() => {
     if (!loading && selectedManifestUrl && !selectedAddon) {
@@ -418,12 +451,21 @@ export function App() {
   }, [loading, selectedAddon, selectedManifestUrl]);
 
   const selectAddon = useCallback((manifestUrl: string) => {
+    setLiveDemoOpen(false);
     navegar(rotaDoAddon(manifestUrl));
   }, []);
 
+  const closeLiveDemo = useCallback(() => setLiveDemoOpen(false), []);
+  const toggleLiveDemo = useCallback(() => setLiveDemoOpen((open) => !open), []);
+
   const reviewAddonContract = useCallback((_manifestUrl: string) => {
+    setLiveDemoOpen(false);
     navegar(RUTAS.settings);
   }, []);
+
+  useEffect(() => {
+    if (rota !== RUTAS.inicio) setLiveDemoOpen(false);
+  }, [rota]);
 
   return (
     <div style={{
@@ -440,16 +482,21 @@ export function App() {
         onSearchValueChange={setSearchInput}
         onSearch={(value) => void runSearch(value)}
         onClearSearch={clearSearch}
+        showLiveDemo={rota === RUTAS.inicio}
+        liveDemoOpen={liveDemoOpen}
+        onToggleLiveDemo={toggleLiveDemo}
       />
 
-      <main className={rota === RUTAS.inicio ? 'host-home-main' : undefined} style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 24px 48px' }}>
-        <SearchResultsTable
-          query={searchQuery}
-          results={searchResults}
-          errors={searchErrors}
-          loading={searching}
-          providerCount={searchProviderCount}
-        />
+      <main className={rota === RUTAS.inicio ? 'host-home-main' : isAddonRoute ? 'host-addon-route-main' : undefined} style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 24px 48px' }}>
+        {!isAddonRoute && (
+          <SearchResultsTable
+            query={searchQuery}
+            results={searchResults}
+            errors={searchErrors}
+            loading={searching}
+            providerCount={searchProviderCount}
+          />
+        )}
         {rota === RUTAS.settings ? (
           <section>
             <AddonManager
@@ -463,52 +510,38 @@ export function App() {
               onToggle={toggleAddon}
               onRemove={removeAddon}
               onAcceptContract={acceptContract}
+              onFactoryReset={resetFactory}
               loading={loading}
             />
           </section>
+        ) : rota === RUTAS.inicio ? (
+          <LiveDemoModal
+            open={liveDemoOpen}
+            addons={addons}
+            disabledAddonUrls={disabledAddonUrls}
+            pendingContractUrls={pendingContractUrls}
+            selectedManifestUrl={selectedManifestUrl}
+            loading={loading}
+            onClose={closeLiveDemo}
+            onSelect={selectAddon}
+            onToggle={toggleAddon}
+            onReviewContract={reviewAddonContract}
+            searchLimits={searchLimits}
+            onSearchLimitChange={onSearchLimitChange}
+          />
         ) : (
-          <section className="host-live-sidebar" aria-label="Demonstração ao vivo">
-            <h2 style={{ fontSize: 14, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: 12 }}>
-              Demonstração ao Vivo
-            </h2>
-
-            <div className="host-live-sidebar-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, alignItems: 'start' }}>
-              <AddonSidebar
-                addons={addons}
-                disabledAddonUrls={disabledAddonUrls}
-                pendingContractUrls={pendingContractUrls}
-                selectedManifestUrl={selectedManifestUrl}
-                loading={loading}
-                onSelect={selectAddon}
-                onToggle={toggleAddon}
-                onReviewContract={reviewAddonContract}
-                searchLimits={searchLimits}
-                onSearchLimitChange={onSearchLimitChange}
-              />
-
-              <div className="host-live-sidebar-detail" style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 12,
-                padding: 14,
-                minHeight: 180,
-              }}>
-                {selectedAddon ? (
-                  <AddonTabView key={selectedAddon.manifestUrl} addon={selectedAddon} />
-                ) : loading ? (
-                  <p style={{ margin: 0, color: '#94a3b8', fontSize: 14 }}>
-                    Carregando extensões instaladas…
-                  </p>
-                ) : selectedManifestUrl ? (
-                  <p style={{ margin: 0, color: '#94a3b8', fontSize: 14 }}>
-                    Esta extensão não está ativa.
-                  </p>
-                ) : (
-                  <p style={{ margin: 0, color: '#94a3b8', fontSize: 14 }}>
-                    Selecione uma extensão ativa na barra lateral ou instale uma em Configurações.
-                  </p>
-                )}
-              </div>
+          <section className="addon-route-page" aria-label={selectedAddon ? `Detalhe da extensão ${selectedAddon.manifest.name}` : 'Detalhe da extensão'}>
+            <a href="#/" className="addon-route-back">← Voltar para a demonstração</a>
+            {selectedAddon && (
+              <header className="addon-route-header">
+                <span className="addon-route-kicker">Extensão instalada</span>
+                <h2>{selectedAddon.manifest.name}</h2>
+                <p>{selectedAddon.manifest.description}</p>
+                <code>{selectedAddon.manifestUrl}</code>
+              </header>
+            )}
+            <div className="addon-route-detail">
+              <AddonDetailPanel addon={selectedAddon} loading={loading} selectedManifestUrl={selectedManifestUrl} />
             </div>
           </section>
         )}

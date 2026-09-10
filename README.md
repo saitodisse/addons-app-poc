@@ -53,18 +53,15 @@ pnpm install
 pnpm dev
 ```
 
-O comando inicia o host em `http://localhost:5280`, quatro servidores de texto e dez add-ons em processo. Cada um publica seu próprio manifesto e bundle; o host não os serve.
+O comando inicia o host em `http://localhost:5280`, um servidor de texto e quatro add-ons em processo. Cada um publica seu próprio manifesto e bundle; o host não os serve.
 
 | Porta | Add-on | Origem do conteúdo |
 |---:|---|---|
-| `5291` | Biblioteca de Textos | Acervo embutido |
-| `5292` | Citações da Web | DummyJSON Quotes |
-| `5293` | Poemas | PoetryDB |
 | `5294` | Wikipédia | APIs da Wikipédia |
 
-Os add-ons em processo usam as portas `5301` a `5310`. Por exemplo, `http://localhost:5301/manifest.json` publica o add-on Hello. Cada add-on em processo aceita `pnpm --filter @addons/<nome> serve` para ser executado separadamente.
+Os add-ons em processo restantes usam as portas `5304`, `5306`, `5307` e `5308`. Por exemplo, `http://localhost:5304/manifest.json` publica o add-on Markdown. Cada add-on em processo aceita `pnpm --filter @addons/<nome> serve` para ser executado separadamente.
 
-A aba **Saúde dos Add-ons** consulta os 14 manifestos da demonstração, mede a latência de cada servidor e mostra o nome, o endereço e o estado de cada um.
+A aba **Saúde dos Add-ons** consulta os cinco manifestos restantes da demonstração, mede a latência de cada servidor e mostra o nome, o endereço e o estado de cada um.
 
 No WSL2, abra `http://localhost:5280` manualmente no navegador do Windows. O servidor já escuta em `0.0.0.0` e o script evita tentar abrir um navegador dentro do Linux.
 
@@ -80,7 +77,7 @@ pnpm kill-all
 |---|---|
 | `pnpm dev:host` | Inicia apenas o host |
 | `pnpm dev:addons` | Inicia apenas os add-ons HTTP |
-| `pnpm --filter @addons/addon-hello serve` | Empacota e serve apenas o add-on Hello em `5301` |
+| `pnpm --filter @addons/addon-markdown serve` | Empacota e serve apenas o add-on Markdown em `5304` |
 | `pnpm test` | Executa os testes de todos os pacotes |
 | `pnpm build:host` | Gera a build de produção do host |
 
@@ -116,15 +113,16 @@ revisão do contrato.
 
 No topo do host existe uma busca fixa. Pressione **Enter** para consultar todos
 os add-ons HTTP ativos que declaram `search`; pressione **Esc** para limpar o
-campo e a tabela. A home mantém a tabela principal em largura total e coloca a
-demonstração ao vivo em uma barra lateral direita, que se empilha em telas
-menores. Cada linha normalizada mostra tipo, ID, nome e descrição; o nome abre a
-URL do conteúdo, com emoji ou imagem quando o manifesto ou a resposta oferecerem
-esse dado. Em Configurações, cada add-on de busca pode definir seu limite de
-resultados. Com um provedor `state-store` ativo, a consulta e as linhas ficam
-persistidas.
+campo e a tabela. A home mantém somente a listagem principal; a demonstração ao
+vivo abre pelo ícone de engrenagem em um modal. Cada extensão ativa no modal
+abre uma rota dedicada com seu detalhe/configuração, no formato
+`#/addons/<manifesto-codificado>`. Cada linha normalizada mostra tipo, ID, nome e
+descrição; o nome abre a URL do conteúdo, com emoji ou imagem quando o manifesto
+ou a resposta oferecerem esse dado. Em Configurações, cada add-on de busca pode
+definir seu limite de resultados. Com um provedor `state-store` ativo, a
+consulta e as linhas ficam persistidas.
 
-Os quatro servidores HTTP iniciados por `pnpm dev` continuam disponíveis como exemplos independentes. Eles podem ser instalados pelas URLs `http://localhost:5291/manifest.json` a `http://localhost:5294/manifest.json`; o host não os conhece nem os inclui em sua build.
+O servidor HTTP iniciado por `pnpm dev` continua disponível como exemplo independente em `http://localhost:5294/manifest.json`; o host não o conhece nem o inclui em sua build.
 
 ## Pacotes do projeto
 
@@ -133,17 +131,11 @@ Os quatro servidores HTTP iniciados por `pnpm dev` continuam disponíveis como e
 | [`@addons-poc/protocol`](packages/protocol/README.md) | Contrato v1, JSON Schema, SemVer, descritores de serviço, validadores e SDK de autoria |
 | [`@addons/host-app`](packages/host-app/README.md) | Aplicativo React genérico que instala e apresenta add-ons por URL |
 | [`@addons/addon-server`](packages/addon-server/README.md) | Servidor HTTP para add-ons de texto |
-| [`@addons/addon-hello`](packages/addon-hello/README.md) | Saudação padrão |
-| [`@addons/addon-hello-pt`](packages/addon-hello-pt/README.md) | Saudação prioritária, usada para demonstrar fallback |
-| [`@addons/addon-counter`](packages/addon-counter/README.md) | Contador com estado opcional |
 | [`@addons/addon-markdown`](packages/addon-markdown/README.md) | Serviço namespaceado de Markdown |
-| [`@addons/addon-aggregator`](packages/addon-aggregator/README.md) | Busca agregada entre servidores HTTP |
 | [`@addons/addon-favorites`](packages/addon-favorites/README.md) | Serviço namespaceado de favoritos |
 | [`@addons/addon-health`](packages/addon-health/README.md) | Verificação dos servidores remotos |
 | [`@addons/addon-storage-local`](packages/addon-storage-local/README.md) | Serviço oficial opcional `state-store` no `localStorage` |
-| [`@addons/addon-storage-session`](packages/addon-storage-session/README.md) | Serviço oficial opcional `state-store` na sessão |
-| [`@addons/addon-debug`](packages/addon-debug/README.md) | Serviço namespaceado de logs estruturados |
-| [`@addons/addon-text-*`](docs/PACKAGES.md) | Biblioteca, citações, poemas e Wikipédia por HTTP |
+| [`@addons/addon-text-wikipedia`](packages/addon-text-wikipedia/README.md) | Resumos e buscas na Wikipédia por HTTP |
 
 ## Onde continuar a leitura
 
@@ -175,7 +167,7 @@ ciclos obrigatórios também são bloqueados.
 
 Esta POC prova o protocolo, mas ainda não é uma plataforma pronta para produção. Cada add-on precisa publicar seu próprio manifesto e bundle ou servidor HTTP. Ainda faltam descarregamento completo ao desativar ou remover add-ons, catálogo e leitura genéricos dos recursos HTTP, validação completa das respostas, edição de prioridades, cache e atualização de manifestos, sandbox e proxy de rede.
 
-A versão `1.1.2` mantém a busca global e os limites por add-on da versão anterior, ocupa toda a largura disponível na home, organiza a demonstração ao vivo em uma barra lateral direita responsiva e transforma o nome de cada resultado em link para o conteúdo. A [verificação da inspeção dos estados em 08/09/2026](docs/PHASES.md#verificação-da-inspeção-dos-estados-em-08092026) registra o carregamento inicial, a abertura dos detalhes em Local e Sessão e a ocultação do painel nas demais abas. A [verificação da busca global](docs/PHASES.md#verificação-da-busca-global-em-08092026) registra a tabela, os limites por add-on e a persistência. O próximo passo recomendado é completar o descarregamento, incluindo falhas nos callbacks de limpeza, e depois concluir catálogo e leitura HTTP genéricos.
+A versão `1.2.0` mantém a busca global e os limites por add-on da versão anterior, ocupa toda a largura disponível na home, abre a demonstração ao vivo em um modal acionado pelo ícone de engrenagem e transforma o nome de cada resultado em link para o conteúdo. As extensões ativas usam rotas dedicadas de detalhe no formato `#/addons/<manifesto-codificado>`. A [verificação da inspeção dos estados em 08/09/2026](docs/PHASES.md#verificação-da-inspeção-dos-estados-em-08092026) registra o carregamento inicial, a abertura dos detalhes em Local e Sessão e a ocultação do painel nas demais abas. A [verificação da busca global](docs/PHASES.md#verificação-da-busca-global-em-08092026) registra a tabela, os limites por add-on e a persistência. O próximo passo recomendado é completar o descarregamento, incluindo falhas nos callbacks de limpeza, e depois concluir catálogo e leitura HTTP genéricos.
 
 Plugins são confiáveis e podem chamar APIs globais. O manifesto registra I/O
 externo para revisão, mas a v1 não oferece sandbox, proxy de rede, `onUnload`
