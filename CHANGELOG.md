@@ -4,6 +4,14 @@ Este arquivo conta, em ordem inversa, como o projeto evoluiu. A leitura rápida 
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.3.1] - 2026-09-10
+
+### Corrigido
+
+- A busca da Wikipédia agora identifica o cliente, repete falhas transitórias
+  `429` e `5xx`, deduplica chamadas simultâneas e mantém cada página em cache
+  por 60 segundos, evitando falhas `500` após recarregar a listagem.
+
 ## [1.3.0] - 2026-09-10
 
 ### Adicionado
