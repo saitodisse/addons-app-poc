@@ -33,13 +33,18 @@ const manifest = defineAddonManifest({
   },
 });
 
+const searchPages = [];
 const handlers = {
   catalog: async (type, catalogId) => ({
     metas: [{ id: '1', type, name: `Item de ${catalogId}` }],
   }),
-  search: async (type, query) => ({
+  search: async (type, query, page) => {
+    searchPages.push(page);
+    return {
     metas: [{ id: '2', type, name: `Resultado de ${query}` }],
-  }),
+      ...(page ? { pagination: { limit: page.limit ?? 10, next: 'seguinte' } } : {}),
+    };
+  },
   text: async (type, id) => ({
     texts: [
       { id, url: `/text/${type}/${id}/content.txt`, lang: 'pt', name: 'Texto' },
@@ -82,10 +87,12 @@ describe('createAddonServer (estilo Stremio)', () => {
 
   it('serve /search/<type>/<query>.json', async () => {
     const server = await startServer();
-    const res = await fetch(`${server.url}/search/text/amor.json`);
+    const res = await fetch(`${server.url}/search/text/amor.json?limit=20&cursor=pagina-2`);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.metas[0].name).toBe('Resultado de amor');
+    expect(body.pagination).toEqual({ limit: 20, next: 'seguinte' });
+    expect(searchPages.at(-1)).toEqual({ limit: 20, cursor: 'pagina-2' });
   });
 
   it('serve /text/<type>/<id>.json com urls absolutas de conteúdo', async () => {

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { AddonInstance } from '@addons-poc/protocol';
 import { AddonSidebar } from './AddonSidebar';
 import { AddonDetailPanel } from './AddonDetailPanel';
+import type { SearchLimitValue } from '../search';
 
 interface LiveDemoModalProps {
   open: boolean;
@@ -10,12 +11,12 @@ interface LiveDemoModalProps {
   pendingContractUrls: string[];
   selectedManifestUrl: string | null;
   loading: boolean;
-  searchLimits: Record<string, number>;
+  searchLimits: Record<string, SearchLimitValue>;
   onClose: () => void;
   onSelect: (manifestUrl: string) => void;
   onToggle: (manifestUrl: string) => void;
   onReviewContract: (manifestUrl: string) => void;
-  onSearchLimitChange: (manifestUrl: string, value: number) => void;
+  onSearchLimitChange: (manifestUrl: string, value: SearchLimitValue) => void;
 }
 
 export function LiveDemoModal({ open, addons, disabledAddonUrls, pendingContractUrls, selectedManifestUrl, loading, searchLimits, onClose, onSelect, onToggle, onReviewContract, onSearchLimitChange }: LiveDemoModalProps) {

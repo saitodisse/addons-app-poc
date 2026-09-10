@@ -4,6 +4,29 @@ Este arquivo conta, em ordem inversa, como o projeto evoluiu. A leitura rápida 
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.3.0] - 2026-09-10
+
+### Adicionado
+
+- A busca global agora usa `q` e `page` na URL, permitindo restaurar e
+  compartilhar o termo e a página atual.
+- A tabela oferece **Página anterior**, página atual e **Próxima página** no
+  início e no fim da listagem.
+- A paginação por cursor foi adicionada ao protocolo, ao servidor HTTP, ao
+  cliente do host e à busca da Wikipédia.
+- O host abre o conteúdo textual de um resultado em modal e mostra o conteúdo
+  da Wikipédia diretamente na descrição quando disponível.
+
+### Alterado
+
+- A navegação troca a página inteira de resultados, sem acumular a página
+  anterior, e preserva as páginas já visitadas para voltar sem nova consulta.
+- A Wikipédia limita cada página ao máximo permitido pela API de extratos e a
+  busca total a 500 registros.
+- Descrições da listagem são truncadas em 140 caracteres e sua coluna ocupa no
+  máximo metade da largura da janela.
+- O limite de busca configurável aceita campo vazio e usa 10 como padrão.
+
 ## [1.2.0] - 2026-09-10
 
 ### Adicionado

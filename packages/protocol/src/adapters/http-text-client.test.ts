@@ -81,6 +81,20 @@ describe('HttpTextAddonClient', () => {
     expect(result.metas[0]?.name).toBe('Amor');
   });
 
+  it('envia limite e cursor de paginação na busca', async () => {
+    const payload = {
+      metas: [{ id: '3', type: 'text', name: 'Página 2' }],
+      pagination: { limit: 20, next: 'pagina-3' },
+    };
+    const mockFetch = vi.fn().mockResolvedValue(jsonResponse(payload));
+    const client = new HttpTextAddonClient(mockFetch as never);
+
+    const result = await client.search(baseUrl, 'text', 'amor', { limit: 20, cursor: 'pagina-2' });
+
+    expect(mockFetch).toHaveBeenCalledWith('http://localhost:5291/search/text/amor.json?limit=20&cursor=pagina-2');
+    expect(result.pagination).toEqual({ limit: 20, next: 'pagina-3' });
+  });
+
   it('chama o endpoint de texto (formato subtitles: lista com url)', async () => {
     const payload = {
       texts: [{ id: '1', url: 'http://localhost:5291/text/text/1/content.txt', lang: 'pt', name: 'O Corvo' }],

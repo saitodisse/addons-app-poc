@@ -98,8 +98,8 @@ resultados no início de todas as rotas, inclusive quando não há extensões. E
 consulta add-ons que declaram `search`; Esc limpa o campo e a tabela. Citações
 da Web, Poemas e Wikipédia aparecem na mesma listagem com tipo, ID, URL, nome,
 descrição e emoji. Cada extensão de busca tem um limite configurável em
-Configurações e na lateral de extensões. Quando Local Storage ou Session Storage está ativo, a consulta e
-as linhas são salvas pelo `state-store`.
+Configurações e na lateral de extensões. Quando Local Storage ou Session Storage
+está ativo, a consulta e as linhas são salvas pelo `state-store`.
 
 ### Como
 
@@ -136,6 +136,33 @@ direita; no mobile, a demonstração apareceu abaixo sem estreitar a tabela. A
 primeira linha confirmou o hyperlink no nome e a ausência do cabeçalho `URL`.
 `pnpm test` passou com 142 testes em 26 arquivos e `pnpm build:host` gerou a
 build de produção.
+
+## Verificação da paginação da Wikipédia em 10/09/2026
+
+### Por que
+
+A API de busca da Wikipédia permite muitas ocorrências, mas a API de extratos
+limita quantos artigos podem ser completados em uma resposta. Sem uma página
+com cursor, o host ficava preso à primeira resposta do provedor.
+
+### O que
+
+O protocolo público agora aceita `limit` e `cursor` na requisição e devolve
+`pagination.limit`, `pagination.total` e `pagination.next` opcional. O servidor
+comum repassa esses parâmetros; o host guarda um cursor por add-on e oferece
+**Página anterior** e **Próxima página**. Ao navegar, a tabela mostra somente a
+página atual. A Wikipédia usa `list=search` com páginas de até 20 artigos,
+completa cada página usando `exlimit=20` e impõe teto total de 500 registros.
+
+### Como
+
+`GET /search/page/Bola.json?limit=500` devolveu 20 metas, `total: 500` e
+`next: "20"`; a página seguinte não repetiu a primeira. Na home, a busca
+`Banho de floresta` exibiu o extrato na coluna **Descrição**, abriu o conteúdo
+no modal pelo link da meta e **Próxima página** substituiu as 20 linhas pela
+página seguinte. **Página anterior** restaurou a página inicial sem nova
+acumulação. Também foi confirmado que `limit=999` continua limitado a 20 por
+página.
 
 ## Verificação da persistência do contador em 08/09/2026
 

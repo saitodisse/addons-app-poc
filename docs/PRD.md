@@ -64,8 +64,10 @@ Ao iniciar o projeto, o leitor deve conseguir abrir um host vazio, instalar URLs
 Quando há add-ons HTTP de busca ativos, a mesma tela mantém um campo de
 pesquisa no topo. Enter consulta as extensões, Esc limpa a consulta e a
 listagem central reúne as respostas em linhas com tipo, ID, URL, nome e
-descrição. Um provedor de `state-store` pode preservar a consulta e os
-resultados entre recarregamentos.
+descrição. Quando uma resposta oferece `pagination.next`, a pessoa pode
+carregar a próxima página sem reiniciar a consulta. Um provedor de
+`state-store` pode preservar a consulta, as linhas e os cursores entre
+recarregamentos.
 
 ## Requisitos funcionais
 
@@ -121,7 +123,7 @@ Os estados significam: **Entregue** quando o comportamento está implementado no
 | F4.7 | Demonstrar processamento externo | Entregue | Citações, PoetryDB e Wikipédia |
 | F4.8 | Tolerar uma origem indisponível na busca agregada | Entregue | `Promise.allSettled` no agregador |
 | F4.9 | Armazenar manifesto em cache | Planejado | O cliente busca novamente |
-| F4.10 | Explorar recursos HTTP instalados pela interface genérica | Entregue | `SearchResultsTable` e `search.ts` consultam recursos `search` de add-ons ativos; limites por add-on, Enter/Esc e persistência opcional no `state-store` |
+| F4.10 | Explorar recursos HTTP instalados pela interface genérica | Entregue | `SearchResultsTable` e `search.ts` consultam recursos `search` de add-ons ativos; limites por add-on, paginação opcional com cursor, Enter/Esc e persistência no `state-store` |
 | F4.11 | Validar respostas dos recursos HTTP além do manifesto | Parcial | O host rejeita payloads de busca sem `metas`; schemas completos de catálogo, texto e conteúdo ainda estão pendentes |
 
 ### Gestão, compatibilidade e isolamento

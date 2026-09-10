@@ -1,5 +1,6 @@
 import type { AddonInstance } from '@addons-poc/protocol';
-import { DEFAULT_SEARCH_LIMIT, getSearchResources } from '../search';
+import { DEFAULT_SEARCH_LIMIT, getSearchResources, parseSearchLimitInput } from '../search';
+import type { SearchLimitValue } from '../search';
 
 interface AddonSidebarProps {
   addons: AddonInstance[];
@@ -10,8 +11,8 @@ interface AddonSidebarProps {
   onSelect: (manifestUrl: string) => void;
   onToggle: (manifestUrl: string) => void;
   onReviewContract: (manifestUrl: string) => void;
-  searchLimits: Record<string, number>;
-  onSearchLimitChange: (manifestUrl: string, value: number) => void;
+  searchLimits: Record<string, SearchLimitValue>;
+  onSearchLimitChange: (manifestUrl: string, value: SearchLimitValue) => void;
 }
 
 export function AddonSidebar({ addons, disabledAddonUrls, pendingContractUrls, selectedManifestUrl, loading, onSelect, onToggle, onReviewContract, searchLimits, onSearchLimitChange }: AddonSidebarProps) {
@@ -95,15 +96,17 @@ export function AddonSidebar({ addons, disabledAddonUrls, pendingContractUrls, s
 
               {searchTypes.length > 0 && (
                 <label htmlFor={searchLimitInputId} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 4px 3px', color: '#64748b', fontSize: 10 }}>
-                  <span style={{ flex: 1 }}>Máx. resultados ({searchTypes.join(', ')})</span>
+                  <span style={{ flex: 1 }}>Resultados/página ({searchTypes.join(', ')})</span>
                   <input
                     id={searchLimitInputId}
                     type="number"
                     min={1}
-                    max={100}
+                    max={500}
                     step={1}
                     value={searchLimits[addon.manifestUrl] ?? DEFAULT_SEARCH_LIMIT}
-                    onChange={(event) => onSearchLimitChange(addon.manifestUrl, Number(event.target.value))}
+                    onFocus={(event) => event.currentTarget.select()}
+                    onClick={(event) => event.currentTarget.select()}
+                    onChange={(event) => onSearchLimitChange(addon.manifestUrl, parseSearchLimitInput(event.target.value))}
                     disabled={loading || addon.status !== 'ready'}
                     aria-label={`Máximo de resultados de busca para ${addon.manifest.name}`}
                     style={{ width: 54, padding: '4px 5px', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, background: 'rgba(0,0,0,0.18)', color: '#cbd5e1', font: 'inherit', fontSize: 11 }}

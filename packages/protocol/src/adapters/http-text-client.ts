@@ -1,13 +1,17 @@
 import type { AddonManifest } from '../domain/manifest';
-import type { TextCatalogPayload, TextPayload, TextSearchPayload } from '../domain/text';
+import type { TextCatalogPayload, TextPageRequest, TextPayload, TextSearchPayload } from '../domain/text';
 import type { TextAddonClientPort } from '../ports/text-addon-client';
 import { validateManifest } from '../domain/validation';
 
 type FetchFn = (url: string) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>;
 
-function resourceUrl(baseUrl: string, resource: string, type: string, idOrQuery: string): string {
+function resourceUrl(baseUrl: string, resource: string, type: string, idOrQuery: string, page?: TextPageRequest): string {
   const base = baseUrl.replace(/\/+$/, '');
-  return `${base}/${resource}/${encodeURIComponent(type)}/${encodeURIComponent(idOrQuery)}.json`;
+  const params = new URLSearchParams();
+  if (page?.limit !== undefined) params.set('limit', String(page.limit));
+  if (page?.cursor) params.set('cursor', page.cursor);
+  const query = params.toString();
+  return `${base}/${resource}/${encodeURIComponent(type)}/${encodeURIComponent(idOrQuery)}.json${query ? `?${query}` : ''}`;
 }
 
 async function getJson<T>(fetchFn: FetchFn, url: string, what: string): Promise<T> {
@@ -38,18 +42,18 @@ export class HttpTextAddonClient implements TextAddonClientPort {
     return manifest;
   }
 
-  catalog(baseUrl: string, type: string, catalogId: string): Promise<TextCatalogPayload> {
+  catalog(baseUrl: string, type: string, catalogId: string, page?: TextPageRequest): Promise<TextCatalogPayload> {
     return getJson<TextCatalogPayload>(
       this.fetchFn,
-      resourceUrl(baseUrl, 'catalog', type, catalogId),
+      resourceUrl(baseUrl, 'catalog', type, catalogId, page),
       'catálogo',
     );
   }
 
-  search(baseUrl: string, type: string, query: string): Promise<TextSearchPayload> {
+  search(baseUrl: string, type: string, query: string, page?: TextPageRequest): Promise<TextSearchPayload> {
     return getJson<TextSearchPayload>(
       this.fetchFn,
-      resourceUrl(baseUrl, 'search', type, query),
+      resourceUrl(baseUrl, 'search', type, query, page),
       'busca',
     );
   }

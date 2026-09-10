@@ -104,9 +104,9 @@ dos add-ons.
 
 O limite de resultados de cada add-on que oferece busca também fica nessa
 configuração, associado à URL do manifesto. Os resultados da busca não entram
-nessa chave: quando há um provedor `state-store`, o host grava a consulta e as
-linhas em `host:search:results:v1`, respeitando a mesma fronteira opcional de
-persistência usada pelos add-ons.
+nessa chave: quando há um provedor `state-store`, o host grava a consulta, as
+linhas e os cursores em `host:search:results:v1`, respeitando a mesma fronteira
+opcional de persistência usada pelos add-ons.
 
 O mesmo limite é editável na lateral de extensões durante a demonstração; os
 dois controles atualizam a mesma configuração por URL.
@@ -128,26 +128,39 @@ validam com o protocolo público, mas não importam runtime TypeScript do host.
 I/O externo deve constar em `contract.http`; a v1 torna a declaração visível,
 mas não intercepta `fetch` direto.
 
+No perfil público de texto, `TextPageRequest` leva `limit` e `cursor`, enquanto
+`TextPagination` devolve o tamanho da página, o total conhecido e o cursor
+opaco seguinte. Esses campos são opcionais para que add-ons antigos continuem
+respondendo apenas `{ metas: [...] }`.
+
 Ao instalar um manifesto sem `entrypoint`, o loader cria uma aba com título e
 descrição. A interface global do host detecta recursos `search` declarados,
 consulta todos os add-ons ativos e transforma cada resposta `metas` em uma
 linha com `type`, `id`, `url`, `name` e `description`, além de `emoji` ou `image`
 quando disponíveis. A URL de conteúdo gerada pelo próprio servidor funciona
-como fallback quando a meta não fornece uma URL. Uma falha de uma origem é
-mostrada na tabela e não impede as demais respostas; o limite configurado é
-aplicado por add-on. Na home, a tabela ocupa toda a largura disponível. A
-demonstração ao vivo é aberta pelo ícone de engrenagem em um modal responsivo;
-selecionar uma extensão ativa navega para uma rota dinâmica de detalhe, no
-formato `#/addons/<manifesto-codificado>`, sem repetir a listagem da home.
-Para reduzir a largura da listagem, a apresentação não cria uma coluna `URL`:
-o nome da linha recebe o hyperlink para a URL preservada no modelo do resultado.
+como fallback quando a meta não fornece uma URL. Uma resposta pode trazer
+`pagination.next`; nesse caso o host preserva um cursor por provedor e oferece
+**Página anterior** e **Próxima página**, com a página atual entre os botões, no
+início e no fim da tabela. A troca substitui as linhas pela página solicitada,
+sem acumular a página anterior. O limite configurado por add-on define o tamanho
+solicitado para cada página; a ausência de `next` pelo provedor encerra a
+listagem. Uma falha de uma origem é mostrada na tabela e não impede as demais
+respostas. O termo da busca e a página são mantidos na URL por `nuqs` (`q` e
+`page`). Na home, a tabela ocupa toda a largura disponível.
+A demonstração ao vivo é aberta pelo ícone de
+engrenagem em um modal responsivo; selecionar uma extensão ativa navega para
+uma rota dinâmica de detalhe, no formato `#/addons/<manifesto-codificado>`,
+sem repetir a listagem da home. Para reduzir a largura da listagem, a
+apresentação não cria uma coluna `URL`: o nome da linha recebe o hyperlink para
+a URL preservada no modelo do resultado.
 
 O adaptador fica em `packages/host-app/src/search.ts` e usa `fetch` diretamente,
 sem adicionar o runtime do host ao protocolo público. O cabeçalho mantém o
 campo de pesquisa fixo: **Enter** inicia a consulta e **Esc** limpa campo e
 resultados. A tabela existe mesmo quando não há add-ons instalados. A forma
-básica `{ metas: [...] }` é verificada no host; validação completa de todos os
-recursos HTTP, catálogo e leitura continuam pendentes.
+básica `{ metas: [...] }` e a forma opcional de `pagination` são verificadas
+no host; validação completa de todos os recursos HTTP, catálogo e leitura
+continuam pendentes.
 
 ## Capacidade oficial opcional
 

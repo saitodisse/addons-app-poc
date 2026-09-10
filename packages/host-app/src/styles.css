@@ -92,6 +92,105 @@ main.host-home-main {
   overflow: hidden;
 }
 
+.host-search-result-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 96px 20px 24px;
+  box-sizing: border-box;
+  background: rgba(2, 6, 23, 0.82);
+}
+
+.host-search-result-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(920px, 100%);
+  max-height: calc(100vh - 120px);
+  overflow: hidden;
+  border: 1px solid rgba(129, 140, 248, 0.38);
+  border-radius: 14px;
+  background: #1e293b;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+}
+
+.host-search-result-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.76);
+}
+
+.host-search-result-kicker {
+  display: block;
+  margin-bottom: 5px;
+  color: #818cf8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.host-search-result-header h2 {
+  margin: 0 0 4px;
+  color: #f1f5f9;
+  font-size: 20px;
+}
+
+.host-search-result-header p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.host-search-result-close {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid rgba(165, 180, 252, 0.5);
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.22);
+  color: #e0e7ff;
+  cursor: pointer;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.host-search-result-body {
+  min-height: 150px;
+  overflow: auto;
+  padding: 20px;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+.host-search-result-body p {
+  margin: 0;
+  color: #fbbf24;
+}
+
+.host-search-result-body pre {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+}
+
+.host-search-results-description {
+  width: 50%;
+  max-width: 50vw;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .addon-route-page {
   width: min(920px, 100%);
   margin: 0 auto;
@@ -154,5 +253,13 @@ main.host-home-main {
 
   .host-live-modal-backdrop {
     padding: 82px 10px 10px;
+  }
+
+  .host-search-result-backdrop {
+    padding: 82px 10px 10px;
+  }
+
+  .host-search-result-modal {
+    max-height: calc(100vh - 92px);
   }
 }

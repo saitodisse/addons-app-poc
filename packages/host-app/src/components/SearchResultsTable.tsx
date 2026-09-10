@@ -1,3 +1,4 @@
+import { truncateDescription } from '../search';
 import type { SearchProviderError, SearchResultRow } from '../search';
 
 interface SearchResultsTableProps {
@@ -6,14 +7,50 @@ interface SearchResultsTableProps {
   errors: SearchProviderError[];
   loading: boolean;
   providerCount: number;
+  page: number;
+  canGoPrevious: boolean;
+  canGoNext: boolean;
+  onPreviousPage: () => void;
+  onNextPage: () => void;
+  onOpenResult: (result: SearchResultRow) => void;
 }
-export function SearchResultsTable({ query, results, errors, loading, providerCount }: SearchResultsTableProps) {
+export function SearchResultsTable({ query, results, errors, loading, providerCount, page, canGoPrevious, canGoNext, onPreviousPage, onNextPage, onOpenResult }: SearchResultsTableProps) {
   const hasVisualColumn = results.some((result) => result.emoji || result.image);
   const emptyMessage = query
     ? providerCount === 0
       ? 'Ative um add-on que declare o recurso de busca para preencher esta listagem.'
       : 'Nenhum resultado foi encontrado nos add-ons ativos.'
     : 'Os resultados da sua pesquisa aparecerão aqui.';
+  const renderPagination = (ariaLabel: string, placement: 'top' | 'bottom') => {
+    if (!query || results.length === 0) return null;
+    return (
+      <nav aria-label={ariaLabel} style={{ display: 'flex', justifyContent: placement === 'bottom' ? 'flex-end' : undefined }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <button
+            type="button"
+            onClick={onPreviousPage}
+            disabled={loading || !canGoPrevious}
+            aria-label="Página anterior"
+            style={{ padding: '6px 10px', border: '1px solid rgba(165,180,252,0.45)', borderRadius: 7, background: 'rgba(99,102,241,0.16)', color: '#c7d2fe', cursor: loading || !canGoPrevious ? 'not-allowed' : 'pointer', font: 'inherit', fontSize: 12, opacity: loading || !canGoPrevious ? 0.45 : 1 }}
+          >
+            Página anterior
+          </button>
+          <span aria-current="page" style={{ minWidth: 74, color: '#e2e8f0', fontSize: 12, fontWeight: 650, textAlign: 'center' }}>
+            {loading ? 'Carregando…' : `Página ${page}`}
+          </span>
+          <button
+            type="button"
+            onClick={onNextPage}
+            disabled={loading || !canGoNext}
+            aria-label="Próxima página"
+            style={{ padding: '6px 10px', border: '1px solid rgba(165,180,252,0.45)', borderRadius: 7, background: 'rgba(99,102,241,0.16)', color: '#c7d2fe', cursor: loading || !canGoNext ? 'not-allowed' : 'pointer', font: 'inherit', fontSize: 12, opacity: loading || !canGoNext ? 0.45 : 1 }}
+          >
+            Próxima página
+          </button>
+        </div>
+      </nav>
+    );
+  };
 
   return (
     <section aria-label="Resultados da pesquisa" style={{
@@ -30,7 +67,12 @@ export function SearchResultsTable({ query, results, errors, loading, providerCo
             {query ? `Busca por “${query}”` : 'A listagem principal dos add-ons ativos.'}
           </p>
         </div>
-        {query && <span role="status" style={{ color: loading ? '#fbbf24' : '#94a3b8', fontSize: 12 }}>{loading ? 'Pesquisando…' : `${results.length} resultado(s)`}</span>}
+        {query && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span role="status" style={{ color: loading ? '#fbbf24' : '#94a3b8', fontSize: 12 }}>{loading ? 'Pesquisando…' : `${results.length} resultado(s)`}</span>
+            {renderPagination('Paginação dos resultados', 'top')}
+          </div>
+        )}
       </div>
 
       {errors.length > 0 && (
@@ -48,7 +90,7 @@ export function SearchResultsTable({ query, results, errors, loading, providerCo
               <th scope="col" style={{ padding: '9px 10px' }}>Tipo</th>
               <th scope="col" style={{ padding: '9px 10px' }}>ID</th>
               <th scope="col" style={{ padding: '9px 10px' }}>Nome</th>
-              <th scope="col" style={{ padding: '9px 10px' }}>Descrição</th>
+              <th scope="col" className="host-search-results-description" style={{ padding: '9px 10px', width: '50%', maxWidth: '50vw' }}>Descrição</th>
             </tr>
           </thead>
           <tbody>
@@ -62,10 +104,20 @@ export function SearchResultsTable({ query, results, errors, loading, providerCo
                 <td style={{ padding: '11px 10px', whiteSpace: 'nowrap' }}><code style={{ color: '#c4b5fd' }}>{result.type}</code></td>
                 <td style={{ padding: '11px 10px', maxWidth: 180, overflowWrap: 'anywhere' }}><code style={{ color: '#e2e8f0' }}>{result.id}</code></td>
                 <td style={{ padding: '11px 10px', minWidth: 170, color: '#f1f5f9', fontWeight: 600 }}>
-                  <a href={result.url} target="_blank" rel="noreferrer" aria-label={`Abrir ${result.name}`} style={{ color: '#93c5fd', textDecoration: 'none' }}>{result.name}</a>
+                  <a
+                    href={result.url}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      onOpenResult(result);
+                    }}
+                    aria-label={`Abrir ${result.name}`}
+                    style={{ color: '#93c5fd', textDecoration: 'none' }}
+                  >
+                    {result.name}
+                  </a>
                   <span style={{ display: 'block', marginTop: 3, color: '#64748b', fontSize: 11, fontWeight: 400 }}>{result.sourceAddonName}</span>
                 </td>
-                <td style={{ padding: '11px 10px', minWidth: 190, color: '#cbd5e1', lineHeight: 1.45 }}>{result.description}</td>
+                <td className="host-search-results-description" style={{ padding: '11px 10px', width: '50%', maxWidth: '50vw', color: '#cbd5e1', lineHeight: 1.45 }}>{truncateDescription(result.description)}</td>
               </tr>
             ))}
             {results.length === 0 && (
@@ -78,6 +130,7 @@ export function SearchResultsTable({ query, results, errors, loading, providerCo
           </tbody>
         </table>
       </div>
+      {renderPagination('Paginação dos resultados no fim da lista', 'bottom')}
     </section>
   );
 }

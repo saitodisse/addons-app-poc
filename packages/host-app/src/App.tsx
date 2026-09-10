@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { getInteractionContractFingerprint, validateManifest } from '@addons-poc/protocol';
 import type { AddonInstance, AddonManifest, AddonStateStore } from '@addons-poc/protocol';
+import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { ServiceRegistry } from './runtime/registry';
 import { ConsoleLogger } from './runtime/logger';
 import { FetchAddonLoader } from './runtime/loader';
@@ -8,24 +9,31 @@ import { Header } from './components/Header';
 import { AddonManager } from './components/AddonManager';
 import { AddonDetailPanel } from './components/AddonDetailPanel';
 import { LiveDemoModal } from './components/LiveDemoModal';
+import { SearchResultModal } from './components/SearchResultModal';
 import { SearchResultsTable } from './components/SearchResultsTable';
-import { clampSearchLimit, createFetchSearchClient, searchActiveAddons } from './search';
-import type { SearchProviderError, SearchResultRow } from './search';
+import { clampSearchLimit, createFetchSearchClient, fetchSearchResultContent, hasNextSearchPage, searchPage } from './search';
+import type { SearchCollection, SearchLimitValue, SearchPageState, SearchPagination, SearchProviderError, SearchResultRow } from './search';
 import { manifestUrlDaRota, navegar, RUTAS, rotaDoAddon, useRuta } from './router';
 import { INSTALLATIONS_STORAGE_KEY, resetFactoryStorage } from './factory-reset';
 
 const SEARCH_STATE_KEY = 'host:search:results:v1';
+const SEARCH_URL_PARAMS = {
+  q: parseAsString.withDefault(''),
+  page: parseAsInteger.withDefault(1),
+};
 
 interface PersistedInstallations {
   manifestUrls: string[];
   disabledManifestUrls: string[];
   acceptedContractFingerprints: Record<string, string>;
-  searchLimits: Record<string, number>;
+  searchLimits: Record<string, SearchLimitValue>;
 }
 
 interface PersistedSearchState {
   query: string;
   results: SearchResultRow[];
+  pagination?: SearchPagination;
+  page?: number;
 }
 
 function readPersistedInstallations(): PersistedInstallations {
@@ -39,10 +47,10 @@ function readPersistedInstallations(): PersistedInstallations {
     const acceptedContractFingerprints = saved.acceptedContractFingerprints && typeof saved.acceptedContractFingerprints === 'object'
       ? Object.fromEntries(Object.entries(saved.acceptedContractFingerprints).filter(([url, fingerprint]) => manifestUrls.includes(url) && typeof fingerprint === 'string'))
       : {};
-    const searchLimits = saved.searchLimits && typeof saved.searchLimits === 'object'
+    const searchLimits: Record<string, SearchLimitValue> = saved.searchLimits && typeof saved.searchLimits === 'object'
       ? Object.fromEntries(Object.entries(saved.searchLimits)
-        .filter(([url, value]) => manifestUrls.includes(url) && typeof value === 'number' && Number.isFinite(value))
-        .map(([url, value]) => [url, clampSearchLimit(value)]))
+        .filter(([url, value]) => manifestUrls.includes(url) && (value === '' || (typeof value === 'number' && Number.isFinite(value))))
+        .map(([url, value]) => [url, value === '' ? '' : clampSearchLimit(value)])) as Record<string, SearchLimitValue>
       : {};
     return { manifestUrls: [...new Set(manifestUrls)], disabledManifestUrls: [...new Set(disabledManifestUrls)], acceptedContractFingerprints, searchLimits };
   } catch {
@@ -79,7 +87,24 @@ function parsePersistedSearchState(value: unknown): PersistedSearchState | undef
     return [row.key, row.sourceAddonId, row.sourceAddonName, row.sourceManifestUrl, row.type, row.id, row.url, row.name, row.description]
       .every((field) => typeof field === 'string');
   });
-  return { query: candidate.query, results };
+  const pagination = candidate.pagination && typeof candidate.pagination === 'object'
+    ? Object.fromEntries(Object.entries(candidate.pagination).flatMap(([key, value]) => {
+      if (!value || typeof value !== 'object') return [];
+      const page = value as Partial<SearchPageState>;
+      if (typeof page.loaded !== 'number' || !Number.isSafeInteger(page.loaded) || page.loaded < 0) return [];
+      if (page.total !== undefined && (typeof page.total !== 'number' || !Number.isSafeInteger(page.total) || page.total < 0)) return [];
+      if (page.next !== undefined && typeof page.next !== 'string') return [];
+      return [[key, {
+        loaded: page.loaded,
+        ...(page.total === undefined ? {} : { total: page.total }),
+        ...(page.next === undefined ? {} : { next: page.next }),
+      } satisfies SearchPageState]];
+    })) as SearchPagination
+    : {};
+  const page = typeof candidate.page === 'number' && Number.isSafeInteger(candidate.page) && candidate.page > 0
+    ? candidate.page
+    : 1;
+  return { query: candidate.query, results, pagination, page };
 }
 
 export function App() {
@@ -89,22 +114,60 @@ export function App() {
   const [disabledAddonUrls, setDisabledAddonUrls] = useState<string[]>([]);
   const [acceptedContractFingerprints, setAcceptedContractFingerprints] = useState<Record<string, string>>({});
   const [pendingContractUrls, setPendingContractUrls] = useState<string[]>([]);
-  const [searchLimits, setSearchLimits] = useState<Record<string, number>>({});
-  const [searchInput, setSearchInput] = useState('');
+  const [searchLimits, setSearchLimits] = useState<Record<string, SearchLimitValue>>({});
+  const [{ q: searchUrlQuery, page: searchUrlPage }, setSearchUrl] = useQueryStates(SEARCH_URL_PARAMS, { history: 'push' });
+  const currentSearchPage = Number.isSafeInteger(searchUrlPage) && searchUrlPage > 0 ? searchUrlPage : 1;
+  const [searchInput, setSearchInput] = useState(searchUrlQuery);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResultRow[]>([]);
   const [searchErrors, setSearchErrors] = useState<SearchProviderError[]>([]);
   const [searchProviderCount, setSearchProviderCount] = useState(0);
+  const [searchPagination, setSearchPagination] = useState<SearchPagination>({});
   const [searching, setSearching] = useState(false);
   const [searchStateReady, setSearchStateReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [installationsReady, setInstallationsReady] = useState(false);
   const [liveDemoOpen, setLiveDemoOpen] = useState(false);
+  const [selectedSearchResult, setSelectedSearchResult] = useState<SearchResultRow | null>(null);
+  const [searchResultContent, setSearchResultContent] = useState<string | null>(null);
+  const [searchResultContentError, setSearchResultContentError] = useState<string | null>(null);
+  const [searchResultContentLoading, setSearchResultContentLoading] = useState(false);
   const loadedRef = useRef(false);
   const searchRequestRef = useRef(0);
+  const [searchRefreshKey, setSearchRefreshKey] = useState(0);
+  const searchPagesRef = useRef(new Map<string, Map<number, SearchCollection>>());
+  const searchResultRequestRef = useRef(0);
   const addonLifecycleRef = useRef(0);
   const httpTextClient = useMemo(() => createFetchSearchClient(), []);
   const rota = useRuta();
+
+  const closeSearchResult = useCallback(() => {
+    searchResultRequestRef.current += 1;
+    setSelectedSearchResult(null);
+    setSearchResultContent(null);
+    setSearchResultContentError(null);
+    setSearchResultContentLoading(false);
+  }, []);
+
+  const openSearchResult = useCallback((result: SearchResultRow) => {
+    const requestId = ++searchResultRequestRef.current;
+    setSelectedSearchResult(result);
+    setSearchResultContent(null);
+    setSearchResultContentError(null);
+    setSearchResultContentLoading(true);
+    void fetchSearchResultContent(result.url)
+      .then((content) => {
+        if (requestId !== searchResultRequestRef.current) return;
+        setSearchResultContent(content);
+      })
+      .catch((error) => {
+        if (requestId !== searchResultRequestRef.current) return;
+        setSearchResultContentError((error as Error).message || 'A resposta não pôde ser lida.');
+      })
+      .finally(() => {
+        if (requestId === searchResultRequestRef.current) setSearchResultContentLoading(false);
+      });
+  }, []);
 
   const loadRemoteAddon = useCallback(async (manifestUrl: string): Promise<AddonInstance> => {
     return new FetchAddonLoader(registry, logger).load(manifestUrl);
@@ -203,7 +266,9 @@ export function App() {
       })),
       searchLimits: Object.fromEntries(addons.flatMap((addon) => {
         const limit = searchLimits[addon.manifestUrl];
-        return limit ? [[addon.manifestUrl, clampSearchLimit(limit)]] : [];
+        return limit === undefined
+          ? []
+          : [[addon.manifestUrl, limit === '' ? '' : clampSearchLimit(limit)]];
       })),
     });
   }, [acceptedContractFingerprints, addons, disabledAddonUrls, installationsReady, searchLimits]);
@@ -225,6 +290,12 @@ export function App() {
       setSearchStateReady(true);
       return;
     }
+    if (searchUrlQuery.trim()) {
+      hydratedStateStoreRef.current = activeStateStoreKey;
+      setSearchInput(searchUrlQuery);
+      setSearchStateReady(true);
+      return;
+    }
     setSearchStateReady(false);
     let active = true;
     void store.get<unknown>(SEARCH_STATE_KEY).then((saved) => {
@@ -235,6 +306,8 @@ export function App() {
         setSearchQuery(restored.query);
         setSearchResults(restored.results);
         setSearchErrors([]);
+        setSearchPagination(restored.pagination ?? {});
+        if (restored.query.trim()) void setSearchUrl({ q: restored.query.trim(), page: restored.page ?? 1 });
       }
       hydratedStateStoreRef.current = activeStateStoreKey;
       setSearchStateReady(true);
@@ -246,54 +319,110 @@ export function App() {
     return () => {
       active = false;
     };
-  }, [activeStateStoreKey, installationsReady, registry]);
+  }, [activeStateStoreKey, installationsReady, registry, searchUrlQuery, setSearchUrl]);
 
   useEffect(() => {
     if (!installationsReady || !searchStateReady || !activeStateStoreKey || hydratedStateStoreRef.current !== activeStateStoreKey) return;
     const store = registry.get<AddonStateStore>('state-store');
-    void store?.set(SEARCH_STATE_KEY, { query: searchQuery, results: searchResults });
-  }, [activeStateStoreKey, installationsReady, registry, searchQuery, searchResults, searchStateReady]);
+    void store?.set(SEARCH_STATE_KEY, { query: searchQuery, results: searchResults, pagination: searchPagination, page: currentSearchPage });
+  }, [activeStateStoreKey, currentSearchPage, installationsReady, registry, searchPagination, searchQuery, searchResults, searchStateReady]);
 
-  const onSearchLimitChange = useCallback((manifestUrl: string, value: number) => {
-    setSearchLimits((current) => ({ ...current, [manifestUrl]: clampSearchLimit(value) }));
+  const onSearchLimitChange = useCallback((manifestUrl: string, value: SearchLimitValue) => {
+    setSearchLimits((current) => ({ ...current, [manifestUrl]: value === '' ? '' : clampSearchLimit(value) }));
   }, []);
 
-  const clearSearch = useCallback(() => {
+  const clearSearchView = useCallback(() => {
     searchRequestRef.current += 1;
     setSearchInput('');
     setSearchQuery('');
     setSearchResults([]);
     setSearchErrors([]);
     setSearchProviderCount(0);
+    setSearchPagination({});
     setSearching(false);
-  }, []);
+    closeSearchResult();
+  }, [closeSearchResult]);
 
-  const runSearch = useCallback(async (value: string) => {
+  const clearSearch = useCallback(() => {
+    clearSearchView();
+    void setSearchUrl({ q: null, page: null });
+  }, [clearSearchView, setSearchUrl]);
+
+  useEffect(() => {
+    searchPagesRef.current.clear();
+  }, [addons, disabledAddonUrls, searchLimits]);
+
+  const loadSearchPage = useCallback((query: string, page: number) => {
+    let cachedPages = searchPagesRef.current.get(query);
+    if (!cachedPages) {
+      cachedPages = new Map<number, SearchCollection>();
+      searchPagesRef.current.set(query, cachedPages);
+    }
+    return searchPage(addons, disabledAddonUrls, query, page, searchLimits, httpTextClient, cachedPages);
+  }, [addons, disabledAddonUrls, httpTextClient, searchLimits]);
+
+  useEffect(() => {
+    if (!installationsReady || !searchStateReady) return;
+    const query = searchUrlQuery.trim();
+    if (!query) {
+      clearSearchView();
+      return;
+    }
+
+    setSearchInput(searchUrlQuery);
+    setSearchQuery(query);
+    setSearchResults([]);
+    setSearchErrors([]);
+    setSearchProviderCount(0);
+    setSearchPagination({});
+    setSearching(true);
+    const requestId = ++searchRequestRef.current;
+    void loadSearchPage(query, currentSearchPage)
+      .then(({ page, collection }) => {
+        if (requestId !== searchRequestRef.current) return;
+        setSearchResults(collection.results);
+        setSearchErrors(collection.errors);
+        setSearchProviderCount(collection.providerCount);
+        setSearchPagination(collection.pagination);
+        if (page !== currentSearchPage) void setSearchUrl({ page });
+      })
+      .catch((error) => {
+        if (requestId !== searchRequestRef.current) return;
+        setSearchResults([]);
+        setSearchErrors([{ addonName: 'Host', message: (error as Error).message || 'A pesquisa não pôde ser concluída.' }]);
+        setSearchProviderCount(0);
+        setSearchPagination({});
+      })
+      .finally(() => {
+        if (requestId === searchRequestRef.current) setSearching(false);
+      });
+  }, [clearSearchView, currentSearchPage, installationsReady, loadSearchPage, searchRefreshKey, searchStateReady, searchUrlQuery, setSearchUrl]);
+
+  const hasMoreSearchResults = hasNextSearchPage(searchPagination);
+
+  const changeSearchPage = useCallback((page: number) => {
+    if (!searchQuery || searching || page < 1) return;
+    if (page > currentSearchPage && !hasMoreSearchResults) return;
+    setSearchResults([]);
+    setSearchErrors([]);
+    setSearchPagination({});
+    void setSearchUrl({ page });
+  }, [currentSearchPage, hasMoreSearchResults, searchQuery, searching, setSearchUrl]);
+
+  const runSearch = useCallback((value: string) => {
     const query = value.trim();
     setSearchInput(value);
-    const requestId = ++searchRequestRef.current;
     if (!query) {
       clearSearch();
       return;
     }
-    setSearchQuery(query);
-    setSearching(true);
+    searchPagesRef.current.delete(query);
+    setSearchRefreshKey((key) => key + 1);
+    setSearchResults([]);
     setSearchErrors([]);
-    try {
-      const collection = await searchActiveAddons(addons, disabledAddonUrls, query, searchLimits, httpTextClient);
-      if (requestId !== searchRequestRef.current) return;
-      setSearchResults(collection.results);
-      setSearchErrors(collection.errors);
-      setSearchProviderCount(collection.providerCount);
-    } catch (error) {
-      if (requestId !== searchRequestRef.current) return;
-      setSearchResults([]);
-      setSearchErrors([{ addonName: 'Host', message: (error as Error).message || 'A pesquisa não pôde ser concluída.' }]);
-      setSearchProviderCount(0);
-    } finally {
-      if (requestId === searchRequestRef.current) setSearching(false);
-    }
-  }, [addons, clearSearch, disabledAddonUrls, httpTextClient, searchLimits]);
+    setSearchPagination({});
+    void setSearchUrl({ q: query, page: 1 });
+  }, [clearSearch, setSearchUrl]);
 
   const logInstalledContract = (installed: AddonInstance) => {
     console.info('Contrato do add-on instalado', {
@@ -467,6 +596,10 @@ export function App() {
     if (rota !== RUTAS.inicio) setLiveDemoOpen(false);
   }, [rota]);
 
+  useEffect(() => {
+    if (rota !== RUTAS.inicio) closeSearchResult();
+  }, [closeSearchResult, rota]);
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -495,6 +628,12 @@ export function App() {
             errors={searchErrors}
             loading={searching}
             providerCount={searchProviderCount}
+            page={currentSearchPage}
+            canGoPrevious={currentSearchPage > 1}
+            canGoNext={hasMoreSearchResults}
+            onPreviousPage={() => changeSearchPage(currentSearchPage - 1)}
+            onNextPage={() => changeSearchPage(currentSearchPage + 1)}
+            onOpenResult={openSearchResult}
           />
         )}
         {rota === RUTAS.settings ? (
@@ -546,6 +685,14 @@ export function App() {
           </section>
         )}
       </main>
+
+      <SearchResultModal
+        result={selectedSearchResult}
+        content={searchResultContent}
+        loading={searchResultContentLoading}
+        error={searchResultContentError}
+        onClose={closeSearchResult}
+      />
     </div>
   );
 }

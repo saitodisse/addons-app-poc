@@ -6,13 +6,14 @@ import { AddonContractView } from './AddonContractView';
 import { FactoryResetControl } from './FactoryResetControl';
 import { LOCAL_MANIFEST_SUGGESTIONS, loadLocalManifestSuggestions } from '../local-manifest-suggestions';
 import { DEFAULT_SEARCH_LIMIT } from '../search';
+import type { SearchLimitValue } from '../search';
 
 interface AddonManagerProps {
   addons: AddonInstance[];
   disabledAddonUrls: string[];
   pendingContractUrls: string[];
-  searchLimits: Record<string, number>;
-  onSearchLimitChange: (manifestUrl: string, value: number) => void;
+  searchLimits: Record<string, SearchLimitValue>;
+  onSearchLimitChange: (manifestUrl: string, value: SearchLimitValue) => void;
   onInspectManifest: (url: string) => Promise<AddonManifest>;
   onInstallFromUrl: (url: string, acceptedFingerprint: string) => Promise<string | undefined>;
   onToggle: (manifestUrl: string) => Promise<void>;
@@ -172,7 +173,7 @@ export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, s
           Add-ons instalados
         </h2>
         <p style={{ color: '#64748b', fontSize: 13, lineHeight: 1.5, margin: '0 0 12px' }}>
-          Add-ons que declaram busca permitem ajustar quantos resultados entram na listagem principal.
+          Add-ons que declaram busca permitem ajustar quantos resultados aparecem em cada página da listagem principal.
         </p>
         {addons.length === 0 ? (
           <p style={{ color: '#64748b', fontSize: 13, margin: 0 }}>Nenhum add-on instalado.</p>

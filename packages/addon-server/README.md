@@ -12,12 +12,15 @@ Um add-on remoto precisa ser hospedado sem carregar o runtime TypeScript do host
 
 | Handler | Rota | Resposta |
 | --- | --- | --- |
-| `catalog` | `GET /catalog/{type}/{catalogId}.json` | `{ metas: [...] }` |
-| `search` | `GET /search/{type}/{query}.json` | `{ metas: [...] }` |
+| `catalog` | `GET /catalog/{type}/{catalogId}.json?limit=20&cursor=...` | `{ metas: [...], pagination? }` |
+| `search` | `GET /search/{type}/{query}.json?limit=20&cursor=...` | `{ metas: [...], pagination? }` |
 | `text` | `GET /text/{type}/{id}.json` | `{ texts: [{ id, url, lang, name }] }` |
 | `content` | `GET /text/{type}/{id}/content.txt` | texto puro |
 
-Também publica `GET /manifest.json`, responde CORS para a demonstração local e converte URLs relativas de conteúdo em URLs absolutas do servidor.
+Também publica `GET /manifest.json`, responde CORS para a demonstração local,
+converte URLs relativas de conteúdo em URLs absolutas do servidor e repassa
+`limit` e `cursor` aos handlers de catálogo e busca. O cursor é opaco para o
+servidor comum: cada add-on decide como interpretá-lo.
 
 ## Como usar
 

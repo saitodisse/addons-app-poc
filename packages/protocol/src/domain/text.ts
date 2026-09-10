@@ -31,14 +31,34 @@ export interface TextMeta {
   description?: string;
 }
 
+/** Opções comuns para buscar uma página de catálogo ou de resultados. */
+export interface TextPageRequest {
+  /** Quantidade máxima de itens solicitada nesta página. */
+  limit?: number;
+  /** Cursor opaco devolvido pela página anterior. */
+  cursor?: string;
+}
+
+/** Continuação opcional de uma resposta de catálogo ou busca. */
+export interface TextPagination {
+  /** Quantidade efetivamente solicitada ou entregue na página. */
+  limit: number;
+  /** Total conhecido, quando o provedor consegue informá-lo. */
+  total?: number;
+  /** Cursor opaco para buscar a próxima página. */
+  next?: string;
+}
+
 /** Payload do recurso `catalog` (estilo Stremio: `{ metas: [...] }`). */
 export interface TextCatalogPayload {
   metas: TextMeta[];
+  pagination?: TextPagination;
 }
 
 /** Payload do recurso `search` (estilo Stremio: `{ metas: [...] }`). */
 export interface TextSearchPayload {
   metas: TextMeta[];
+  pagination?: TextPagination;
 }
 
 /** Payload do recurso `text` (estilo subtitles do Stremio: `{ texts: [...] }`). */

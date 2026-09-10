@@ -13,7 +13,7 @@ export { validateManifest, validateInteractionContract, validateTabContract } fr
 export type { ValidationResult } from './domain/validation';
 export { validateLogEvent, validatePayloadValue, validateServiceCallInput, validateServiceCallOutput, validateStateValue, validateTabResult, validateTabResultType, validateValueAgainstSchema } from './domain/runtime-validation';
 export type { RuntimeValidationResult } from './domain/runtime-validation';
-export type { TextItem, TextMeta, TextCatalogPayload, TextSearchPayload, TextPayload } from './domain/text';
+export type { TextItem, TextMeta, TextPageRequest, TextPagination, TextCatalogPayload, TextSearchPayload, TextPayload } from './domain/text';
 
 // Ports
 export type { TextAddonClientPort } from './ports/text-addon-client';

@@ -1,14 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { catalog, search, text, content } from './handlers.js';
 
-/** API falsa: simula opensearch + random + summary sem rede. */
+/** API falsa: simula busca paginada + random + summary sem rede. */
 function fakeApi() {
+  const searchCalls = [];
   return {
-    async search(query) {
-      return [
-        { title: 'Brasil', description: 'País da América do Sul', url: 'https://x/Brasil' },
-        { title: 'Brasília', description: 'Capital do Brasil', url: 'https://x/Brasília' },
-      ];
+    searchCalls,
+    async search(query, page) {
+      searchCalls.push({ query, page });
+      return {
+        results: [
+        { title: 'Brasil', description: 'Brasil\n\nConteúdo de Brasil', url: 'https://x/Brasil' },
+        { title: 'Brasília', description: 'Brasília\n\nConteúdo de Brasília', url: 'https://x/Brasília' },
+        ],
+        pagination: { limit: 20, total: 2 },
+      };
     },
     async random() {
       return ['Chuva', 'Mar'];
@@ -21,10 +27,23 @@ function fakeApi() {
 }
 
 describe('Wikipedia add-on handlers', () => {
-  it('search converte resultados em metas do tipo page', async () => {
-    const res = await search('page', 'brasil', fakeApi());
+  it('search usa o limite ampliado e coloca o conteúdo na descrição', async () => {
+    const api = fakeApi();
+    const res = await search('page', 'brasil', api);
+    expect(api.searchCalls).toEqual([{ query: 'brasil', page: undefined }]);
     expect(res.metas.map((m) => m.name)).toEqual(['Brasil', 'Brasília']);
     expect(res.metas[0].type).toBe('page');
+    expect(res.metas[0].description).toBe('Brasil\n\nConteúdo de Brasil');
+    expect(res.metas[0].description).not.toContain('content.txt');
+    expect(res.pagination).toEqual({ limit: 20, total: 2 });
+  });
+
+  it('repassa limite e cursor ao cliente externo', async () => {
+    const api = fakeApi();
+    const res = await search('page', 'brasil', { limit: 20, cursor: '20' }, api);
+
+    expect(api.searchCalls).toEqual([{ query: 'brasil', page: { limit: 20, cursor: '20' } }]);
+    expect(res.metas).toHaveLength(2);
   });
 
   it('catalog aleatorios devolve títulos aleatórios', async () => {

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { AddonInstance } from '@addons-poc/protocol';
 import { AddonContractView } from './AddonContractView';
+import { parseSearchLimitInput } from '../search';
+import type { SearchLimitValue } from '../search';
 
 interface AddonCardProps {
   addon: AddonInstance;
@@ -8,8 +10,8 @@ interface AddonCardProps {
   onToggle: (manifestUrl: string) => void;
   onRemove: (manifestUrl: string) => void;
   stateDestination: string;
-  searchLimit: number;
-  onSearchLimitChange: (manifestUrl: string, value: number) => void;
+  searchLimit: SearchLimitValue;
+  onSearchLimitChange: (manifestUrl: string, value: SearchLimitValue) => void;
   reviewRequired?: boolean;
   onAcceptContract?: (manifestUrl: string) => void;
 }
@@ -102,20 +104,22 @@ export function AddonCard({ addon, enabled, onToggle, onRemove, stateDestination
       {searchTypes.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
           <label htmlFor={searchLimitInputId} style={{ color: '#94a3b8', fontSize: 12 }}>
-            Máximo de resultados na busca ({searchTypes.join(', ')})
+            Resultados por página na busca ({searchTypes.join(', ')})
           </label>
           <input
             id={searchLimitInputId}
             type="number"
             min={1}
-            max={100}
+            max={500}
             step={1}
             value={searchLimit}
-            onChange={(event) => onSearchLimitChange(addon.manifestUrl, Number(event.target.value))}
+            onFocus={(event) => event.currentTarget.select()}
+            onClick={(event) => event.currentTarget.select()}
+            onChange={(event) => onSearchLimitChange(addon.manifestUrl, parseSearchLimitInput(event.target.value))}
             aria-label={`Máximo de resultados de busca para ${addon.manifest.name}`}
             style={{ width: 72, padding: '6px 8px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, background: 'rgba(0,0,0,0.22)', color: '#e2e8f0', font: 'inherit', fontSize: 12 }}
           />
-          <span style={{ color: '#64748b', fontSize: 11 }}>O limite é aplicado à tabela principal.</span>
+          <span style={{ color: '#64748b', fontSize: 11 }}>Vazio usa o padrão de 10.</span>
         </div>
       )}
       {addon.status === 'blocked' && <p role="status" style={{ margin: '12px 0 0', color: '#fbbf24', fontSize: 12 }}>Bloqueado até uma dependência obrigatória ficar disponível{addon.blockReason ? `: ${addon.blockReason}` : '.'}</p>}

@@ -19,18 +19,25 @@ Capacidades canônicas do host:
 
 O campo de busca fica fixo no cabeçalho: **Enter** dispara a consulta e **Esc**
 limpa campo e resultados. `src/search.ts` é um adaptador interno que consulta
-as rotas `/search/<type>/<query>.json`, aplica o limite configurado por add-on,
-isola falhas de uma origem e produz linhas com tipo, ID, URL, nome, descrição e
+as rotas `/search/<type>/<query>.json`, aplica o limite configurado por add-on
+como tamanho de página, isola falhas de uma origem e produz linhas com tipo, ID, URL, nome, descrição e
 metadados visuais opcionais. A tabela permanece visível mesmo sem extensões.
-O limite pode ser ajustado na lateral de extensões ou em Configurações.
-Quando existe um `state-store` ativo, o host grava a consulta e as linhas sob a
-chave `host:search:results:v1`.
+O tamanho da página pode ser ajustado na lateral de extensões ou em
+Configurações, entre 1 e 500 resultados. O padrão é 10, inclusive quando o
+campo fica vazio. Quando uma resposta traz `pagination.next`, o host mantém o
+cursor por provedor e mostra **Página anterior** e **Próxima página**, com a
+página atual entre os botões, no início e no fim da tabela. A troca substitui as
+linhas pela página solicitada, sem acumular a página anterior. O termo de busca
+e a página são controlados na URL por `nuqs` (`q` e `page`).
+Quando existe um `state-store` ativo, o host grava a consulta, as linhas e os
+cursores sob a chave `host:search:results:v1`.
 
 Na home, a tabela ocupa toda a largura disponível. A demonstração ao vivo abre
 por um ícone de engrenagem em um modal com a lista de extensões. Ao selecionar
 uma extensão ativa, o host navega para uma rota dinâmica de detalhe e não repete
-a listagem inicial. A coluna visual de URL não é exibida: o nome de cada
-resultado abre sua URL de conteúdo.
+a listagem inicial. A coluna visual de URL não é exibida: ao clicar no nome de
+um resultado, o host busca seu `content.txt` e o apresenta em um modal com
+carregamento e erro.
 
 O registro interno ordena provedores por prioridade e nome do add-on. Serviços obrigatórios ausentes deixam a instalação bloqueada; quando um provedor aparece, o host pode reavaliá-la. Dependências obrigatórias em ciclo também são bloqueadas.
 

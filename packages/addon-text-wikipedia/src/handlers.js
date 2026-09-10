@@ -12,17 +12,29 @@ function toMeta(title, description = '') {
   };
 }
 
-export async function catalog(type, catalogId, apiOverride = api) {
+export async function catalog(type, catalogId, page, apiOverride = api) {
+  if (page && typeof page.random === 'function') {
+    apiOverride = page;
+    page = undefined;
+  }
   if (catalogId === 'aleatorios') {
-    const titles = await apiOverride.random(10);
-    return { metas: titles.map((t) => toMeta(t)) };
+    const result = await apiOverride.random(page?.limit ?? 10, page?.cursor);
+    const titles = Array.isArray(result) ? result : result.titles;
+    const pagination = Array.isArray(result) ? undefined : result.pagination;
+    return { metas: titles.map((t) => toMeta(t)), ...(pagination ? { pagination } : {}) };
   }
   return { metas: [] };
 }
 
-export async function search(type, query, apiOverride = api) {
-  const results = await apiOverride.search(query, 10);
-  return { metas: results.map((r) => toMeta(r.title, r.description)) };
+export async function search(type, query, page, apiOverride = api) {
+  if (page && typeof page.search === 'function') {
+    apiOverride = page;
+    page = undefined;
+  }
+  const result = await apiOverride.search(query, page);
+  const results = Array.isArray(result) ? result : result.results;
+  const pagination = Array.isArray(result) ? undefined : result.pagination;
+  return { metas: results.map((r) => toMeta(r.title, r.description)), ...(pagination ? { pagination } : {}) };
 }
 
 export async function text(type, id, apiOverride = api) {

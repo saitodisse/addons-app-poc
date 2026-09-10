@@ -141,6 +141,8 @@ Os recursos de texto mantêm o envelope:
 { "texts": [{ "id": "texto-1", "url": "https://example.com/text/texto-1/content.txt", "lang": "pt-BR", "name": "Versão principal" }] }
 ```
 
-Catálogo e busca devolvem metadados. O conteúdo só é buscado quando a pessoa
-abre uma opção. O servidor é ESM puro, não conhece React e não depende do
-runtime interno do host.
+Catálogo e busca devolvem metadados. Ambos podem aceitar `limit` e `cursor` na
+query string e devolver `pagination` com `limit`, `total` opcional e `next`
+opcional. O cursor é opaco e só deve ser reutilizado na mesma consulta. O
+conteúdo só é buscado quando a pessoa abre uma opção. O servidor é ESM puro,
+não conhece React e não depende do runtime interno do host.

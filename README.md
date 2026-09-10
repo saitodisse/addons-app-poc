@@ -117,10 +117,17 @@ campo e a tabela. A home mantém somente a listagem principal; a demonstração 
 vivo abre pelo ícone de engrenagem em um modal. Cada extensão ativa no modal
 abre uma rota dedicada com seu detalhe/configuração, no formato
 `#/addons/<manifesto-codificado>`. Cada linha normalizada mostra tipo, ID, nome e
-descrição; o nome abre a URL do conteúdo, com emoji ou imagem quando o manifesto
-ou a resposta oferecerem esse dado. Em Configurações, cada add-on de busca pode
-definir seu limite de resultados. Com um provedor `state-store` ativo, a
-consulta e as linhas ficam persistidas.
+descrição; ao clicar no nome, o host abre um modal e carrega a URL do conteúdo,
+com emoji ou imagem quando o manifesto ou a resposta oferecerem esse dado. Em
+Configurações, cada add-on de busca pode definir seu limite de resultados entre
+1 e 500. O host oferece **Página anterior** e **Próxima página** quando o add-on
+devolve um cursor de continuação; ao trocar de página, a tabela é substituída
+pelos itens daquela página. O termo `q` e a página `page` ficam na URL por meio
+de `nuqs`, permitindo compartilhar e restaurar a busca. A Wikipédia usa páginas
+de até 20 artigos (limite da API de extratos) e encerra a busca em 500 registros;
+o extrato de cada artigo aparece diretamente na coluna **Descrição**.
+Com um provedor `state-store` ativo, a consulta, a página, as linhas e os
+cursores ficam persistidos.
 
 O servidor HTTP iniciado por `pnpm dev` continua disponível como exemplo independente em `http://localhost:5294/manifest.json`; o host não o conhece nem o inclui em sua build.
 

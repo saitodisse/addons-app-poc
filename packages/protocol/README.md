@@ -146,8 +146,27 @@ registros parciais e deixa a instância em `error`.
 É um servidor independente e não possui `entrypoint`. Ele publica
 `GET /manifest.json` e declara recursos como `catalog`, `search` e `text`.
 
-Catálogo e busca devolvem metadados. O conteúdo completo é buscado apenas quando
-a pessoa escolhe uma opção. Um recurso de texto usa este envelope:
+Catálogo e busca devolvem metadados e podem dividir a resposta em páginas. A
+requisição seguinte repete a rota com `limit` e o `cursor` opaco devolvido em
+`pagination.next`:
+
+```text
+GET /search/page/termo.json?limit=20&cursor=...
+```
+
+Uma resposta paginada usa este formato:
+
+```json
+{
+  "metas": [{ "id": "texto-1", "type": "page", "name": "Página" }],
+  "pagination": { "limit": 20, "total": 42, "next": "cursor-opaco" }
+}
+```
+
+`pagination` é opcional para preservar compatibilidade com add-ons antigos. O
+campo `next` ausente significa que não há outra página. O conteúdo completo é
+buscado apenas quando a pessoa escolhe uma opção. Um recurso de texto usa este
+envelope:
 
 ```json
 {

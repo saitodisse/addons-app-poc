@@ -40,6 +40,7 @@ Este glossário traduz os nomes técnicos usados no projeto. Leia a definição 
 | **Metas** | Lista de metadados devolvida por catálogo e busca. Cada item contém pelo menos `id`, `type` e `name`. |
 | **Linha de resultado** | Forma normalizada que a tabela do host exibe para uma meta de busca: tipo, ID, URL, nome e descrição, com emoji ou imagem opcionais. |
 | **Limite de busca** | Quantidade máxima de linhas que o host aceita de cada add-on em uma consulta. O valor é configurável por manifesto e não altera a API remota. |
+| **Paginação** | Divisão de uma listagem em páginas menores. `limit` escolhe o tamanho solicitado e `cursor`/`next` continua a mesma consulta sem expor a implementação do provedor. |
 | **Porta** | Interface que descreve uma necessidade. Não confundir com porta TCP, como `5294`. |
 | **Prioridade** | Número que ordena implementações do mesmo serviço. Quanto maior o número, mais cedo ela será consultada. |
 | **Processamento externo** | Trabalho que um add-on delega a outra API. Os add-ons de poemas e Wikipédia transformam respostas públicas no contrato desta POC. |

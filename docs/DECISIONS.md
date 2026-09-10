@@ -372,7 +372,7 @@ O host rejeita um manifesto sem contrato. Ele compara serviços fornecidos, camp
 - HTTP de saída ainda não é mediado, logo permanece uma declaração transparente e não uma permissão tecnicamente bloqueada;
 - a mudança é incompatível para manifestos antigos: eles precisam publicar `contract` antes de serem instalados.
 
-## 21. A busca global agrega recursos HTTP declarados
+## 21. A busca global agrega recursos HTTP declarados com paginação
 
 ### Por que
 
@@ -386,24 +386,34 @@ protocolo deveria evitar.
 O host mantém um campo de pesquisa global e consulta, em paralelo, os add-ons
 ativos que declaram um recurso `search`. O adaptador interno normaliza cada meta
 para uma linha com `type`, `id`, `url`, `name` e `description`, preservando
-`emoji` ou `image` quando disponíveis. Cada manifesto tem um limite local de
-resultados, iniciado em dez e configurável entre um e cem. O host tolera uma
-falha isolada, mostra o erro junto das respostas válidas e deixa Enter disparar
-a busca e Esc limpar os resultados.
+`emoji` ou `image` quando disponíveis. Catálogo e busca podem devolver um
+`pagination` opcional com `limit`, `total` e um cursor opaco `next`; o host
+reenvia esse cursor como `cursor` e oferece **Página anterior** e **Próxima
+página**, com a página atual entre os botões, no início e no fim da tabela. Cada
+manifesto tem um tamanho local de página, configurável entre um e quinhentos. O
+host tolera uma falha isolada, mostra o erro junto das respostas válidas e deixa
+Enter disparar a busca e Esc limpar os resultados.
 
 ### Consequências técnicas
 
+- `packages/protocol/src/domain/text.ts` expõe `TextPageRequest` e
+  `TextPagination`; os campos são opcionais e não alteram a versão publicada do
+  protocolo;
 - `packages/host-app/src/search.ts` usa as rotas HTTP declaradas, sem importar
-  add-ons concretos e sem alterar a versão publicada do protocolo;
+  add-ons concretos;
 - a tabela existe em todas as rotas e também quando não há provedores ativos;
 - a URL de conteúdo do recurso `text` é um fallback quando a meta não oferece
   uma URL própria;
-- o limite é aplicado por add-on no host, depois da resposta da rede, e pode ser
-  ajustado na lateral ou em Configurações; ele não muda o contrato ou o servidor
-  da extensão;
-- com um `state-store` ativo, `host:search:results:v1` guarda a última consulta
-  e suas linhas; sem esse serviço, o resultado permanece apenas em memória;
-- a validação atual garante a forma básica `{ metas: [...] }`; schemas
+- o tamanho da página é aplicado por add-on no host e pode ser ajustado na
+  lateral ou em Configurações; cada resposta pode manter a continuação com
+  `pagination.next`, sem impor a mesma paginação a cada servidor;
+- a resposta de página continua compatível com add-ons antigos: `pagination` é
+  opcional e a ausência de `next` encerra a listagem;
+- com um `state-store` ativo, `host:search:results:v1` guarda a última consulta,
+  suas linhas e seus cursores; sem esse serviço, o resultado permanece apenas
+  em memória;
+- a validação atual garante a forma básica `{ metas: [...] }` e valida a forma
+  opcional de `pagination`; schemas
   completos, catálogo e leitura continuam fora desta decisão.
 
 ## Quando revisar uma decisão

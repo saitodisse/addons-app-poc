@@ -22,13 +22,26 @@ function plain(res, body) {
   res.end(body);
 }
 
+function pageRequest(searchParams) {
+  const rawLimit = searchParams.get('limit');
+  const cursor = searchParams.get('cursor') ?? undefined;
+  if (rawLimit === null && cursor === undefined) return undefined;
+
+  let limit;
+  if (rawLimit !== null) {
+    limit = Number(rawLimit);
+    if (!Number.isSafeInteger(limit) || limit < 1) throw new Error('Parâmetro limit inválido');
+  }
+  return { ...(limit === undefined ? {} : { limit }), ...(cursor === undefined ? {} : { cursor }) };
+}
+
 /**
  * Monta um servidor HTTP para um add-on de texto estilo Stremio.
  *
  * Rotas servidas:
  *   GET /manifest.json                     → manifesto validado
- *   GET /catalog/<type>/<catalogId>.json   → { metas: [...] }
- *   GET /search/<type>/<query>.json        → { metas: [...] }
+ *   GET /catalog/<type>/<catalogId>.json   → { metas: [...], pagination? }
+ *   GET /search/<type>/<query>.json        → { metas: [...], pagination? }
  *   GET /text/<type>/<id>.json             → { texts: [{ id, url, lang, name }] }
  *   GET /text/<type>/<id>/content.txt      → conteúdo em texto puro
  *
@@ -38,8 +51,8 @@ function plain(res, body) {
  * @param {Record<string, unknown>} options.manifest Manifesto estilo Stremio.
  * @param {number} options.port Porta HTTP.
  * @param {{
- *   catalog(type: string, catalogId: string): Promise<{ metas: unknown[] }>,
- *   search(type: string, query: string): Promise<{ metas: unknown[] }>,
+ *   catalog(type: string, catalogId: string, page?: { limit?: number, cursor?: string }): Promise<{ metas: unknown[], pagination?: { limit: number, total?: number, next?: string } }>,
+ *   search(type: string, query: string, page?: { limit?: number, cursor?: string }): Promise<{ metas: unknown[], pagination?: { limit: number, total?: number, next?: string } }>,
  *   text(type: string, id: string): Promise<{ texts: unknown[] }>,
  *   content(type: string, id: string): Promise<string>,
  * }} options.handlers Handlers dos resources.
@@ -54,7 +67,9 @@ export async function createAddonServer(options) {
     throw new Error(`Manifest inválido: ${validation.errors.join(', ')}`);
   }
 
-  const server = createServer(async (req, res) => {    const url = (req.url ?? '/').split('?')[0] ?? '/';
+  const server = createServer(async (req, res) => {
+    const requestUrl = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+    const url = requestUrl.pathname;
 
     if (req.method === 'OPTIONS') {
       res.writeHead(204, CORS_HEADERS);
@@ -73,7 +88,7 @@ export async function createAddonServer(options) {
       let match = url.match(/^\/catalog\/([^/]+)\/([^/]+)\.json$/);
       if (match) {
         const [, type, catalogId] = match;
-        json(res, await handlers.catalog(decodeURIComponent(type), decodeURIComponent(catalogId)));
+        json(res, await handlers.catalog(decodeURIComponent(type), decodeURIComponent(catalogId), pageRequest(requestUrl.searchParams)));
         return;
       }
 
@@ -81,7 +96,7 @@ export async function createAddonServer(options) {
       match = url.match(/^\/search\/([^/]+)\/([^/]+)\.json$/);
       if (match) {
         const [, type, query] = match;
-        json(res, await handlers.search(decodeURIComponent(type), decodeURIComponent(query)));
+        json(res, await handlers.search(decodeURIComponent(type), decodeURIComponent(query), pageRequest(requestUrl.searchParams)));
         return;
       }
 
