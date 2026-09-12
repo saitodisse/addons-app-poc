@@ -1,5 +1,6 @@
 import { truncateDescription } from '../search';
 import type { SearchProviderError, SearchResultRow } from '../search';
+import { href, rotaDoResultado } from '../router';
 
 interface SearchResultsTableProps {
   query: string;
@@ -12,9 +13,8 @@ interface SearchResultsTableProps {
   canGoNext: boolean;
   onPreviousPage: () => void;
   onNextPage: () => void;
-  onOpenResult: (result: SearchResultRow) => void;
 }
-export function SearchResultsTable({ query, results, errors, loading, providerCount, page, canGoPrevious, canGoNext, onPreviousPage, onNextPage, onOpenResult }: SearchResultsTableProps) {
+export function SearchResultsTable({ query, results, errors, loading, providerCount, page, canGoPrevious, canGoNext, onPreviousPage, onNextPage }: SearchResultsTableProps) {
   const hasVisualColumn = results.some((result) => result.emoji || result.image);
   const emptyMessage = query
     ? providerCount === 0
@@ -105,11 +105,7 @@ export function SearchResultsTable({ query, results, errors, loading, providerCo
                 <td style={{ padding: '11px 10px', maxWidth: 180, overflowWrap: 'anywhere' }}><code style={{ color: '#e2e8f0' }}>{result.id}</code></td>
                 <td style={{ padding: '11px 10px', minWidth: 170, color: '#f1f5f9', fontWeight: 600 }}>
                   <a
-                    href={result.url}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      onOpenResult(result);
-                    }}
+                    href={href(rotaDoResultado(result.url))}
                     aria-label={`Abrir ${result.name}`}
                     style={{ color: '#93c5fd', textDecoration: 'none' }}
                   >

@@ -56,6 +56,10 @@ export class FetchAddonLoader {
       this.logger.log('error', `Falha ao carregar manifesto: ${(error as Error).message}`);
       return { manifest: null as unknown as AddonManifest, manifestUrl, status: 'error', error: error as Error, services: [] };
     }
+    return this.loadValidated(manifestUrl, manifest);
+  }
+
+  private async loadValidated(manifestUrl: string, manifest: AddonManifest): Promise<AddonInstance> {
     const compatibility = checkContractCompatibility(manifest.contract, {
       protocolVersion: '1.0.0',
       capabilities: HOST_CAPABILITIES,
@@ -141,7 +145,7 @@ export class FetchAddonLoader {
       visiting.add(key);
       for (const provider of Object.values(status.providers)) await loadOne(provider);
       visiting.delete(key);
-      const instance = await this.load(key);
+      const instance = await this.loadValidated(key, input.manifest);
       results.set(key, instance);
       loaded.add(key);
     };

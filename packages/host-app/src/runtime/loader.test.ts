@@ -36,7 +36,7 @@ function service(id: string, role: ServiceInteraction['role'], version: string):
 }
 
 function setupFetch(addonManifest: AddonManifest): void {
-  globalThis.fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify(addonManifest), { status: 200 }));
+  globalThis.fetch = vi.fn().mockImplementation(async () => new Response(JSON.stringify(addonManifest), { status: 200 }));
 }
 
 function moduleFor(addonManifest: AddonManifest, setup: AddonModule['setup'] = () => {}, createTab: AddonModule['createTab'] = () => ({ title: addonManifest.contract.ui.title ?? addonManifest.name, body: addonManifest.contract.ui.body ?? addonManifest.description })) {
@@ -105,5 +105,17 @@ describe('FetchAddonLoader', () => {
 
     expect(instance.status).toBe('ready');
     expect(instance.error).toBeUndefined();
+  });
+
+  it('busca cada manifesto uma única vez ao restaurar vários add-ons', async () => {
+    const addonManifest = manifest('http-addon', [service('addons.http-addon.runner', 'provides', '1.0.0')]);
+    const manifestUrl = 'https://example.test/http-addon/manifest.json';
+    setupFetch(addonManifest);
+    const loader = new FetchAddonLoader(new ServiceRegistry(), { log() {} }, async () => moduleFor(addonManifest));
+
+    const instances = await loader.loadAll([manifestUrl]);
+
+    expect(instances[0]?.status).toBe('ready');
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 });

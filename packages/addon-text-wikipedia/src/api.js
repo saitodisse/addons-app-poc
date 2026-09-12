@@ -10,16 +10,102 @@ const RETRY_BASE_DELAY_MS = 250;
 const MAX_RETRY_DELAY_MS = 5000;
 const SEARCH_CACHE_TTL_MS = 60_000;
 const WIKIPEDIA_USER_AGENT = 'addons-app-poc (https://github.com/saitodisse/addons-app-poc)';
+const WIKIPEDIA_REQUEST_HEADERS = {
+  'User-Agent': WIKIPEDIA_USER_AGENT,
+  Accept: 'application/json',
+};
+const SENSITIVE_HEADERS = new Set([
+  'authorization',
+  'cookie',
+  'set-cookie',
+  'proxy-authorization',
+  'x-api-key',
+  'x-client-ip',
+  'x-forwarded-for',
+  'x-real-ip',
+  'forwarded',
+  'cf-connecting-ip',
+  'true-client-ip',
+]);
+
+export class WikipediaApiError extends Error {
+  constructor(status, message = `API externa respondeu HTTP ${status}`) {
+    super(message);
+    this.name = 'WikipediaApiError';
+    this.status = status;
+  }
+}
+
+function headersToObject(headers) {
+  if (!headers) return {};
+  if (typeof headers.forEach === 'function') {
+    const result = {};
+    headers.forEach((value, name) => {
+      result[name] = SENSITIVE_HEADERS.has(name.toLowerCase()) ? '[redacted]' : value;
+    });
+    return result;
+  }
+  if (typeof headers.entries === 'function') {
+    return Object.fromEntries([...headers.entries()].map(([name, value]) => [
+      name,
+      SENSITIVE_HEADERS.has(name.toLowerCase()) ? '[redacted]' : value,
+    ]));
+  }
+  return Object.fromEntries(Object.entries(headers).map(([name, value]) => [
+    name,
+    SENSITIVE_HEADERS.has(name.toLowerCase()) ? '[redacted]' : value,
+  ]));
+}
+
+function errorDetails(error) {
+  return {
+    name: error instanceof Error ? error.name : 'Error',
+    message: error instanceof Error ? error.message : String(error),
+  };
+}
+
+function requestDetails(url, operation) {
+  const parsedUrl = new URL(url);
+  const request = {
+    method: 'GET',
+    url,
+    path: parsedUrl.pathname,
+    queryString: parsedUrl.search,
+    query: Object.fromEntries(parsedUrl.searchParams.entries()),
+    headers: { ...WIKIPEDIA_REQUEST_HEADERS },
+    body: null,
+  };
+  if (operation === 'summary') {
+    const encodedTitle = parsedUrl.pathname.split('/').at(-1) ?? '';
+    request.pathParameters = { title: decodeURIComponent(encodedTitle) };
+  }
+  return request;
+}
 
 export function createWikipediaApi({
-  fetchFn = (url) => fetch(url, { headers: { 'User-Agent': WIKIPEDIA_USER_AGENT } }),
+  fetchFn = (url) => fetch(url, { headers: WIKIPEDIA_REQUEST_HEADERS }),
   lang = 'pt',
   sleepFn = (delay) => new Promise((resolve) => setTimeout(resolve, delay)),
   nowFn = () => Date.now(),
+  onTraffic = () => {},
 } = {}) {
   const api = `https://${lang}.wikipedia.org`;
   const searchCache = new Map();
   const searchInFlight = new Map();
+  let requestSequence = 0;
+
+  function recordTraffic(event) {
+    try {
+      onTraffic({
+        source: 'wikipedia-api',
+        direction: 'outgoing',
+        phase: 'exchange',
+        ...event,
+      });
+    } catch (error) {
+      console.error('[wikipedia-api] observador de tráfego falhou', error);
+    }
+  }
 
   function retryDelay(response, attempt) {
     const retryAfter = response.headers?.get?.('retry-after');
@@ -36,22 +122,128 @@ export function createWikipediaApi({
     return Math.min(MAX_RETRY_DELAY_MS, RETRY_BASE_DELAY_MS * (2 ** attempt));
   }
 
-  async function getJson(url) {
+  async function readJsonResponse(response) {
+    if (typeof response.text === 'function') {
+      const bodyText = await response.text();
+      return { body: JSON.parse(bodyText), bodyText };
+    }
+    if (typeof response.json === 'function') {
+      const body = await response.json();
+      return { body, bodyText: JSON.stringify(body) };
+    }
+    throw new Error('Resposta da API externa não oferece um corpo JSON legível');
+  }
+
+  async function readResponseBody(response) {
+    if (typeof response.text === 'function') {
+      try {
+        const bodyText = await response.text();
+        try {
+          return { body: JSON.parse(bodyText), bodyText };
+        } catch {
+          return { body: bodyText, bodyText };
+        }
+      } catch {
+        return { body: undefined };
+      }
+    }
+    if (typeof response.json === 'function') {
+      try {
+        const body = await response.json();
+        return { body, bodyText: JSON.stringify(body) };
+      } catch {
+        return { body: undefined };
+      }
+    }
+    return { body: undefined };
+  }
+
+  async function getJson(url, operation, { includeDetails = false } = {}) {
+    const requestId = `wikipedia-api-${++requestSequence}`;
     for (let attempt = 0; attempt <= MAX_API_RETRIES; attempt += 1) {
+      const startedAt = nowFn();
+      const request = requestDetails(url, operation);
       let res;
       try {
         res = await fetchFn(url);
       } catch (error) {
+        const retry = attempt < MAX_API_RETRIES;
+        const retryDelayMs = retry ? Math.min(MAX_RETRY_DELAY_MS, RETRY_BASE_DELAY_MS * (2 ** attempt)) : undefined;
+        recordTraffic({
+          requestId,
+          operation,
+          attempt: attempt + 1,
+          request,
+          response: null,
+          error: errorDetails(error),
+          ...(retryDelayMs === undefined ? {} : { retry: { scheduled: true, delayMs: retryDelayMs } }),
+          durationMs: nowFn() - startedAt,
+        });
         if (attempt === MAX_API_RETRIES) throw error;
-        await sleepFn(Math.min(MAX_RETRY_DELAY_MS, RETRY_BASE_DELAY_MS * (2 ** attempt)));
+        await sleepFn(retryDelayMs);
         continue;
       }
-      if (res.ok) return res.json();
-      const retryable = res.status === 429 || res.status >= 500;
-      if (!retryable || attempt === MAX_API_RETRIES) {
-        throw new Error(`API externa respondeu HTTP ${res.status}`);
+      if (res.ok) {
+        try {
+          const { body, bodyText } = await readJsonResponse(res);
+          const response = {
+            status: res.status,
+            ok: res.ok,
+            headers: headersToObject(res.headers),
+            body,
+            bodyText,
+          };
+          const durationMs = nowFn() - startedAt;
+          const collectedAt = new Date().toISOString();
+          recordTraffic({
+            requestId,
+            operation,
+            attempt: attempt + 1,
+            request,
+            response,
+            durationMs,
+          });
+          return includeDetails ? { body, requestId, request, response, durationMs, collectedAt } : body;
+        } catch (error) {
+          recordTraffic({
+            requestId,
+            operation,
+            attempt: attempt + 1,
+            request,
+            response: {
+              status: res.status,
+              ok: res.ok,
+              headers: headersToObject(res.headers),
+              body: null,
+            },
+            error: errorDetails(error),
+            durationMs: nowFn() - startedAt,
+          });
+          throw error;
+        }
       }
-      await sleepFn(retryDelay(res, attempt));
+      const retryable = res.status === 429 || res.status >= 500;
+      const retryDelayMs = retryable && attempt < MAX_API_RETRIES ? retryDelay(res, attempt) : undefined;
+      const { body, bodyText } = await readResponseBody(res);
+      recordTraffic({
+        requestId,
+        operation,
+        attempt: attempt + 1,
+        request,
+        response: {
+          status: res.status,
+          ok: res.ok,
+          headers: headersToObject(res.headers),
+          body,
+          ...(bodyText === undefined ? {} : { bodyText }),
+        },
+        ...(retryDelayMs === undefined ? {} : { retry: { scheduled: true, delayMs: retryDelayMs } }),
+        durationMs: nowFn() - startedAt,
+      });
+      if (!retryable || attempt === MAX_API_RETRIES) {
+        throw new WikipediaApiError(res.status);
+      }
+      await sleepFn(retryDelayMs);
     }
     throw new Error('Não foi possível consultar a API externa');
   }
@@ -64,7 +256,7 @@ export function createWikipediaApi({
     const url =
       `${api}/w/api.php?action=query&titles=${encodeURIComponent(titles.join('|'))}` +
       `&prop=extracts&exlimit=${MAX_SEARCH_PAGE_SIZE}&explaintext=1&exintro=1&redirects=1&format=json&origin=*`;
-    const data = await getJson(url);
+    const data = await getJson(url, 'extracts');
     return Object.values(data?.query?.pages ?? {})
       .filter((page) => typeof page?.title === 'string' && typeof page?.extract === 'string')
       .map((page) => ({ title: page.title, extract: page.extract }));
@@ -117,7 +309,10 @@ export function createWikipediaApi({
     const url =
       `${api}/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}` +
       `&srnamespace=0&srlimit=${pageLimit}&sroffset=${offset}&srinfo=totalhits&srprop=snippet&format=json&origin=*`;
-    const data = await getJson(url);
+      const data = await getJson(url, 'search');
+
+    console.log({data})
+
     const entries = Array.isArray(data?.query?.search) ? data.query.search : [];
     const results = await addExtracts(entries
       .filter((entry) => typeof entry?.title === 'string')
@@ -166,7 +361,7 @@ export function createWikipediaApi({
       const url =
         `${api}/w/api.php?action=query&list=random&rnnamespace=0` +
         `&rnlimit=${limit}${cursor ? `&rncontinue=${encodeURIComponent(cursor)}` : ''}&format=json&origin=*`;
-      const data = await getJson(url);
+      const data = await getJson(url, 'random');
       return {
         titles: (data?.query?.random ?? []).map((r) => r.title).filter(Boolean),
         pagination: { limit, ...(data?.continue?.rncontinue ? { next: data.continue.rncontinue } : {}) },
@@ -176,7 +371,13 @@ export function createWikipediaApi({
     /** Resumo de um artigo (REST v1 page-summary). */
     async summary(title) {
       const url = `${api}/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
-      return getJson(url);
+      return getJson(url, 'summary');
+    },
+
+    /** Resumo e metadados da troca HTTP do endpoint REST de resumo. */
+    async summaryDetails(title) {
+      const url = `${api}/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+      return getJson(url, 'summary', { includeDetails: true });
     },
   };
 }

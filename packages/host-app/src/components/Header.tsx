@@ -19,7 +19,7 @@ export function Header({ addons, searchValue, searchDisabled = false, searching 
   const errorCount = addons.filter(a => a.status === 'error').length;
 
   return (
-    <header style={{
+    <header className="host-site-header" style={{
       background: 'rgba(15, 23, 42, 0.8)',
       borderBottom: '1px solid rgba(255,255,255,0.08)',
       backdropFilter: 'blur(12px)',

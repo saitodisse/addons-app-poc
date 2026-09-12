@@ -36,8 +36,11 @@ Na home, a tabela ocupa toda a largura disponível. A demonstração ao vivo abr
 por um ícone de engrenagem em um modal com a lista de extensões. Ao selecionar
 uma extensão ativa, o host navega para uma rota dinâmica de detalhe e não repete
 a listagem inicial. A coluna visual de URL não é exibida: ao clicar no nome de
-um resultado, o host busca seu `content.txt` e o apresenta em um modal com
-carregamento e erro.
+um resultado, o host navega para uma página dedicada, busca seu `content.json` e
+renderiza imagem, descrição, resumo e o link original. Os metadados, headers,
+métricas, observabilidade e o JSON completo continuam disponíveis no tráfego e
+no debug, sem ocupar a visualização principal. O `content.txt` continua
+disponível como conteúdo textual compatível e fallback para add-ons antigos.
 
 O registro interno ordena provedores por prioridade e nome do add-on. Serviços obrigatórios ausentes deixam a instalação bloqueada; quando um provedor aparece, o host pode reavaliá-la. Dependências obrigatórias em ciclo também são bloqueadas.
 
@@ -71,8 +74,11 @@ Os add-ons são confiáveis nesta POC. O host valida o contrato, entradas, saíd
 
 O loader executa callbacks `onUnload` quando uma ativação falha e depois remove os serviços registrados. Uma exceção em callback pode interromper essa limpeza. Ao desativar ou remover uma instância ativa, o host remove seus serviços, mas ainda não executa os callbacks. O ciclo completo de descarregamento é o próximo trabalho no [roteiro](../../docs/PHASES.md#ordem-recomendada-para-o-próximo-trabalho).
 
-Manifestos HTTP sem `entrypoint` recebem uma aba com título e descrição. A
-busca genérica já cobre o recurso `search`; catálogo, leitura, cache e validação
-completa de respostas HTTP ainda estão planejados.
+Manifestos HTTP sem `entrypoint` recebem uma aba com título e descrição, o
+contrato completo e, quando declaram `debug-traffic`, um único link para o
+histórico de requests e responses reais. O host continua lendo o debug em
+segundo plano e imprimindo cada resposta no console do navegador, mesmo quando
+o histórico não mudou. A busca genérica já cobre o recurso `search`; catálogo,
+leitura, cache e validação completa de respostas HTTP ainda estão planejados.
 
 Consulte a [especificação de manifesto](../../docs/MANIFEST-SPEC.md) e o [índice dos pacotes](../../docs/PACKAGES.md).

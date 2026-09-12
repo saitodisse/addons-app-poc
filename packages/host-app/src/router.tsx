@@ -29,6 +29,7 @@ export const RUTAS = {
 } as const;
 
 const ADDON_ROUTE_PREFIX = '/addons/';
+const SEARCH_RESULT_ROUTE_PREFIX = '/article/';
 
 /**
  * Cria uma rota estável para uma extensão a partir da sua identidade canônica.
@@ -47,6 +48,32 @@ export function manifestUrlDaRota(ruta: string): string | null {
 
   try {
     return decodeURIComponent(encodedManifestUrl);
+  } catch {
+    return null;
+  }
+}
+
+/** Cria uma rota dedicada para um resultado, sem perder a URL do add-on. */
+export function rotaDoResultado(contentUrl: string): string {
+  return `${SEARCH_RESULT_ROUTE_PREFIX}${encodeURIComponent(contentUrl)}`;
+}
+
+/** Identifica rotas de artigo, inclusive as incompletas para exibir erro na tela. */
+export function ehRotaDeResultado(ruta: string): boolean {
+  return ruta.startsWith(SEARCH_RESULT_ROUTE_PREFIX);
+}
+
+/** Extrai uma URL HTTP válida de uma rota de artigo. */
+export function urlDoResultadoDaRota(ruta: string): string | null {
+  if (!ehRotaDeResultado(ruta)) return null;
+
+  const encodedContentUrl = ruta.slice(SEARCH_RESULT_ROUTE_PREFIX.length);
+  if (!encodedContentUrl || encodedContentUrl.includes('/')) return null;
+
+  try {
+    const contentUrl = new URL(decodeURIComponent(encodedContentUrl));
+    if (contentUrl.protocol !== 'http:' && contentUrl.protocol !== 'https:') return null;
+    return contentUrl.href;
   } catch {
     return null;
   }

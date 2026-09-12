@@ -1,4 +1,5 @@
 import type { AddonInstance, AddonResource, TextMeta, TextPageRequest, TextPagination, TextSearchPayload } from '@addons-poc/protocol';
+import { headersToObject, logBrowserHttpExchange } from './http-observability';
 
 export const DEFAULT_SEARCH_LIMIT = 10;
 export const MIN_SEARCH_LIMIT = 1;
@@ -61,21 +62,224 @@ const TYPE_EMOJIS: Record<string, string> = {
 };
 
 async function fetchJson(url: string): Promise<unknown> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`HTTP ${response.status} em ${url}`);
-  return response.json();
+  const startedAt = Date.now();
+  const request = { method: 'GET', url, headers: { Accept: 'application/json' }, body: null };
+  let response: Response | undefined;
+  let logged = false;
+  try {
+    response = await fetch(url, { headers: { Accept: 'application/json' } });
+    const body = await response.json();
+    logBrowserHttpExchange({
+      source: 'host-search',
+      method: 'GET',
+      url,
+      request,
+      response: { status: response.status, ok: response.ok, headers: headersToObject(response.headers), body },
+      durationMs: Date.now() - startedAt,
+    });
+    logged = true;
+    if (!response.ok) throw new Error(`HTTP ${response.status} em ${url}`);
+    return body;
+  } catch (error) {
+    if (!logged) {
+      logBrowserHttpExchange({
+        source: 'host-search',
+        method: 'GET',
+        url,
+        request,
+        ...(response ? { response: { status: response.status, ok: response.ok, headers: headersToObject(response.headers) } } : {}),
+        durationMs: Date.now() - startedAt,
+        error: { name: error instanceof Error ? error.name : 'Error', message: error instanceof Error ? error.message : String(error) },
+      });
+    }
+    throw error;
+  }
 }
 
-type TextFetcher = (url: string) => Promise<Pick<Response, 'ok' | 'status' | 'text'>>;
+type TextFetcher = (url: string) => Promise<Pick<Response, 'ok' | 'status' | 'text'> & { headers?: Headers }>;
 
-/** Busca o conteúdo textual de uma linha quando o usuário abre o resultado. */
+export interface SearchResultImage {
+  source?: string;
+  width?: number;
+  height?: number;
+}
+
+export interface SearchResultLinks {
+  page?: string;
+  revisions?: string;
+  edit?: string;
+  talk?: string;
+}
+
+export interface SearchResultStructuredPayload {
+  id?: string;
+  type?: string;
+  title?: string;
+  displaytitle?: string;
+  description?: string;
+  description_source?: string;
+  extract?: string;
+  extract_html?: string;
+  pageid?: number;
+  wikibase_item?: string;
+  namespace?: { id?: number; text?: string };
+  lang?: string;
+  dir?: string;
+  revision?: string;
+  timestamp?: string;
+  tid?: string;
+  titles?: { canonical?: string; normalized?: string; display?: string };
+  content_urls?: { desktop?: SearchResultLinks; mobile?: SearchResultLinks };
+  thumbnail?: SearchResultImage;
+  originalimage?: SearchResultImage;
+  content?: {
+    text?: string;
+    charCount?: number;
+    wordCount?: number;
+    contentType?: string;
+    encoding?: string;
+  };
+  source?: {
+    name?: string;
+    provider?: string;
+    origin?: string;
+    url?: string;
+    headers?: Record<string, string>;
+    responseHeaders?: Record<string, string>;
+  };
+  observability?: {
+    requestId?: string;
+    durationMs?: number;
+    collectedAt?: string;
+  };
+  [key: string]: unknown;
+}
+
+export interface SearchResultDetails {
+  body: SearchResultStructuredPayload;
+  bodyText: string;
+  status: number;
+  ok: boolean;
+  headers: Record<string, string>;
+  durationMs: number;
+}
+
+type StructuredContentFetcher = (url: string) => Promise<Pick<Response, 'ok' | 'status' | 'text'> & { headers?: Headers }>;
+
+/** Calcula a rota paralela de metadados para uma URL content.txt. */
+export function contentJsonUrlFromContentUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.pathname.endsWith('/content.txt')) {
+      parsed.pathname = parsed.pathname.slice(0, -'content.txt'.length) + 'content.json';
+    }
+    return parsed.href;
+  } catch {
+    return url.replace(/\/content\.txt(?=$|[?#])/, '/content.json');
+  }
+}
+
+/** Busca o conteúdo estruturado que alimenta a página dedicada do resultado. */
+export async function fetchSearchResultDetails(
+  contentUrl: string,
+  fetchFn: StructuredContentFetcher = (requestUrl) => fetch(requestUrl, { headers: { Accept: 'application/json' }}),
+): Promise<SearchResultDetails> {
+  const url = contentJsonUrlFromContentUrl(contentUrl);
+  const startedAt = Date.now();
+  const request = { method: 'GET', url, headers: { Accept: 'application/json' }, body: null };
+  let response: Awaited<ReturnType<StructuredContentFetcher>> | undefined;
+  let bodyText = '';
+  let logged = false;
+
+  try {
+    response = await fetchFn(url);
+    bodyText = await response.text();
+    let body: unknown;
+    try {
+      body = JSON.parse(bodyText);
+    } catch {
+      body = bodyText;
+    }
+    const details = {
+      body: body as SearchResultStructuredPayload,
+      bodyText,
+      status: response.status,
+      ok: response.ok,
+      headers: headersToObject(response.headers),
+      durationMs: Date.now() - startedAt,
+    } satisfies SearchResultDetails;
+    logBrowserHttpExchange({
+      source: 'host-content-page',
+      method: 'GET',
+      url,
+      request,
+      response: { status: response.status, ok: response.ok, headers: details.headers, body, bodyText },
+      durationMs: details.durationMs,
+    });
+    logged = true;
+    if (!response.ok) throw new Error(`HTTP ${response.status} em ${url}`);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('A resposta estruturada do resultado é inválida.');
+    return details;
+  } catch (error) {
+    if (!logged) {
+      logBrowserHttpExchange({
+        source: 'host-content-page',
+        method: 'GET',
+        url,
+        request,
+        ...(response ? {
+          response: {
+            status: response.status,
+            ok: response.ok,
+            headers: headersToObject(response.headers),
+            ...(bodyText ? { bodyText } : {}),
+          },
+        } : {}),
+        durationMs: Date.now() - startedAt,
+        error: { name: error instanceof Error ? error.name : 'Error', message: error instanceof Error ? error.message : String(error) },
+      });
+    }
+    throw error;
+  }
+}
+
+/** Busca o texto compatível quando um add-on antigo não oferece content.json. */
 export async function fetchSearchResultContent(
   url: string,
-  fetchFn: TextFetcher = (requestUrl) => fetch(requestUrl),
+  fetchFn: TextFetcher = (requestUrl) => fetch(requestUrl, { headers: { Accept: 'text/plain' } }),
 ): Promise<string> {
-  const response = await fetchFn(url);
-  if (!response.ok) throw new Error(`HTTP ${response.status} em ${url}`);
-  return response.text();
+  const startedAt = Date.now();
+  const request = { method: 'GET', url, headers: { Accept: 'text/plain' }, body: null };
+  let response: Awaited<ReturnType<TextFetcher>> | undefined;
+  let logged = false;
+  try {
+    response = await fetchFn(url);
+    const body = await response.text();
+    logBrowserHttpExchange({
+      source: 'host-content-page-fallback',
+      method: 'GET',
+      url,
+      request,
+      response: { status: response.status, ok: response.ok, headers: headersToObject(response.headers), body },
+      durationMs: Date.now() - startedAt,
+    });
+    logged = true;
+    if (!response.ok) throw new Error(`HTTP ${response.status} em ${url}`);
+    return body;
+  } catch (error) {
+    if (!logged) {
+      logBrowserHttpExchange({
+        source: 'host-content-page-fallback',
+        method: 'GET',
+        url,
+        request,
+        ...(response ? { response: { status: response.status, ok: response.ok, headers: headersToObject(response.headers) } } : {}),
+        durationMs: Date.now() - startedAt,
+        error: { name: error instanceof Error ? error.name : 'Error', message: error instanceof Error ? error.message : String(error) },
+      });
+    }
+    throw error;
+  }
 }
 
 /** Adaptador de busca usado pelo host; os servidores continuam independentes. */

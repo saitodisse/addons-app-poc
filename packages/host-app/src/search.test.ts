@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { defineAddonManifest } from '@addons-poc/protocol';
 import type { AddonInstance, TextAddonClientPort } from '@addons-poc/protocol';
-import { clampSearchLimit, fetchSearchResultContent, parseSearchLimitInput, searchActiveAddons, searchPage, truncateDescription } from './search';
+import { clampSearchLimit, contentJsonUrlFromContentUrl, fetchSearchResultContent, fetchSearchResultDetails, parseSearchLimitInput, searchActiveAddons, searchPage, truncateDescription } from './search';
 
 function createAddon(manifestUrl: string, id: string, type = 'quote'): AddonInstance {
   const manifest = defineAddonManifest({
@@ -232,7 +232,7 @@ describe('limite e descrição da busca', () => {
   });
 });
 
-describe('fetchSearchResultContent', () => {
+describe('fetchSearchResultContent (fallback)', () => {
   it('carrega o texto da URL do resultado', async () => {
     const fetchFn = vi.fn().mockResolvedValue({
       ok: true,
@@ -244,9 +244,47 @@ describe('fetchSearchResultContent', () => {
     expect(fetchFn).toHaveBeenCalledWith('http://localhost:5294/text/page/Bola/content.txt');
   });
 
-  it('expõe falhas HTTP para o modal apresentar ao usuário', async () => {
+  it('expõe falhas HTTP para a página dedicada apresentar ao usuário', async () => {
     const fetchFn = vi.fn().mockResolvedValue({ ok: false, status: 500, text: vi.fn() });
 
     await expect(fetchSearchResultContent('http://localhost:5294/text/page/Inexistente/content.txt', fetchFn)).rejects.toThrow('HTTP 500');
+  });
+});
+
+describe('fetchSearchResultDetails', () => {
+  it('troca content.txt por content.json e preserva o JSON bruto, headers e métricas da resposta', async () => {
+    const body = {
+      title: 'Mamíferos',
+      description: 'Classe de animais.',
+      content_urls: { desktop: { page: 'https://pt.wikipedia.org/wiki/Mam%C3%ADferos' } },
+      originalimage: { source: 'https://upload.wikimedia.org/mamiferos.jpg' },
+    };
+    const bodyText = JSON.stringify(body);
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: vi.fn().mockResolvedValue(bodyText),
+      headers: new Headers({ ETag: 'W/"revision"', 'Content-Length': String(bodyText.length) }),
+    });
+
+    await expect(fetchSearchResultDetails('http://localhost:5294/text/page/Mam%C3%ADferos/content.txt', fetchFn)).resolves.toMatchObject({
+      body,
+      bodyText,
+      status: 200,
+      ok: true,
+    });
+    expect(contentJsonUrlFromContentUrl('http://localhost:5294/text/page/Mam%C3%ADferos/content.txt')).toBe('http://localhost:5294/text/page/Mam%C3%ADferos/content.json');
+    expect(fetchFn).toHaveBeenCalledWith('http://localhost:5294/text/page/Mam%C3%ADferos/content.json');
+  });
+
+  it('mantém a falha HTTP estruturada para a página dedicada apresentar o erro', async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: vi.fn().mockResolvedValue('{"error":"ARTICLE_NOT_FOUND"}'),
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+    });
+
+    await expect(fetchSearchResultDetails('http://localhost:5294/text/page/Inexistente/content.txt', fetchFn)).rejects.toThrow('HTTP 404');
   });
 });

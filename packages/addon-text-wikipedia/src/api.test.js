@@ -2,6 +2,117 @@ import { describe, expect, it, vi } from 'vitest';
 import { createWikipediaApi } from './api.js';
 
 describe('createWikipediaApi', () => {
+  it('registra a requisição enviada e a resposta completa recebida', async () => {
+    const onTraffic = vi.fn();
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      json: async () => ({ title: 'Bola', extract: 'Resumo completo' }),
+    });
+    const api = createWikipediaApi({ fetchFn, onTraffic });
+
+    await expect(api.summary('São Paulo')).resolves.toEqual({ title: 'Bola', extract: 'Resumo completo' });
+
+    expect(onTraffic).toHaveBeenCalledTimes(1);
+    expect(onTraffic).toHaveBeenCalledWith(expect.objectContaining({
+      source: 'wikipedia-api',
+      direction: 'outgoing',
+      operation: 'summary',
+      request: expect.objectContaining({
+        method: 'GET',
+        url: 'https://pt.wikipedia.org/api/rest_v1/page/summary/S%C3%A3o%20Paulo',
+        path: '/api/rest_v1/page/summary/S%C3%A3o%20Paulo',
+        queryString: '',
+        query: {},
+        pathParameters: { title: 'São Paulo' },
+        headers: { 'User-Agent': expect.any(String), Accept: 'application/json' },
+        body: null,
+      }),
+      response: expect.objectContaining({
+        status: 200,
+        ok: true,
+        headers: { 'content-type': 'application/json' },
+        body: { title: 'Bola', extract: 'Resumo completo' },
+        bodyText: '{"title":"Bola","extract":"Resumo completo"}',
+      }),
+    }));
+  });
+
+  it('redige cabeçalhos sensíveis sem esconder os demais dados da resposta', async () => {
+    const onTraffic = vi.fn();
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+        'set-cookie': 'session=nao-expor',
+        'x-client-ip': '192.0.2.10',
+      },
+      json: async () => ({ title: 'Bola' }),
+    });
+    const api = createWikipediaApi({ fetchFn, onTraffic });
+
+    await api.summary('Bola');
+
+    expect(onTraffic).toHaveBeenCalledWith(expect.objectContaining({
+      response: expect.objectContaining({
+        headers: {
+          'content-type': 'application/json',
+          'set-cookie': '[redacted]',
+          'x-client-ip': '[redacted]',
+        },
+      }),
+    }));
+  });
+
+  it('retorna detalhes da resposta para montar o conteúdo estruturado', async () => {
+    const rawBody = JSON.stringify({ title: 'Brasil', extract: 'Resumo' });
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({
+        etag: '"rev-1"',
+        'content-language': 'pt',
+        'content-length': String(rawBody.length),
+      }),
+      text: async () => rawBody,
+    });
+    const api = createWikipediaApi({ fetchFn, nowFn: () => 1000 });
+
+    await expect(api.summaryDetails('Brasil')).resolves.toMatchObject({
+      body: { title: 'Brasil', extract: 'Resumo' },
+      requestId: 'wikipedia-api-1',
+      request: { url: 'https://pt.wikipedia.org/api/rest_v1/page/summary/Brasil' },
+      response: {
+        status: 200,
+        headers: {
+          etag: '"rev-1"',
+          'content-language': 'pt',
+          'content-length': String(rawBody.length),
+        },
+        bodyText: rawBody,
+      },
+      durationMs: 0,
+      collectedAt: expect.any(String),
+    });
+  });
+
+  it('preserva status 404 da API externa', async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      headers: {},
+      json: async () => ({ title: 'Inexistente' }),
+    });
+    const api = createWikipediaApi({ fetchFn });
+
+    await expect(api.summary('Inexistente')).rejects.toMatchObject({
+      name: 'WikipediaApiError',
+      status: 404,
+    });
+  });
+
   it('repete a busca quando a Wikipédia responde 429 de forma transitória', async () => {
     const fetchFn = vi.fn()
       .mockResolvedValueOnce({

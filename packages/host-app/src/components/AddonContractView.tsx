@@ -4,7 +4,7 @@ import type { AddonManifest } from '@addons-poc/protocol';
 interface AddonContractViewProps {
   manifest: AddonManifest;
   manifestUrl: string;
-  stateDestination: string;
+  stateDestination?: string;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -33,7 +33,7 @@ export function AddonContractView({ manifest, manifestUrl, stateDestination }: A
   const outgoing = contract.http.filter((request) => request.direction === 'outgoing');
 
   return (
-    <div style={{ display: 'grid', gap: 20, marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+    <div className="host-addon-contract" style={{ display: 'grid', gap: 20, marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
       <p style={{ margin: 0, color: '#94a3b8', fontSize: 13, lineHeight: 1.5 }}>
         Contrato <code style={{ color: '#c4b5fd' }}>contract v{contract.version}</code>. O host confere serviços, campos e ações mediadas antes de ativar o add-on.
       </p>
@@ -56,7 +56,7 @@ export function AddonContractView({ manifest, manifestUrl, stateDestination }: A
 
         <Section title="Estado persistido">
           {contract.state.length ? <ItemList>{contract.state.map((state) => <li key={`state-${state.id}`}><strong style={{ color: '#e2e8f0' }}>{state.key ?? state.keyPattern}</strong> — {state.description} Operações: {state.operations.join(', ')}. Apagado por: {state.deletionTrigger}</li>)}</ItemList> : <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>Não declara estado persistido.</p>}
-          {contract.state.length > 0 && <p style={{ margin: 0, color: '#86efac', fontSize: 12, lineHeight: 1.45 }}>Destino efetivo agora: {stateDestination}</p>}
+          {contract.state.length > 0 && stateDestination && <p style={{ margin: 0, color: '#86efac', fontSize: 12, lineHeight: 1.45 }}>Destino efetivo agora: {stateDestination}</p>}
         </Section>
 
         <Section title="HTTP recebido">
@@ -64,7 +64,7 @@ export function AddonContractView({ manifest, manifestUrl, stateDestination }: A
         </Section>
 
         <Section title="HTTP enviado">
-          {outgoing.length ? <ItemList>{outgoing.map((request) => <li key={`out-${request.id}`}><code style={{ color: '#c4b5fd' }}>{request.method} {request.origin}{request.path}</code> — {request.purpose} <span style={{ color: '#fbbf24' }}>(declarado; ainda não mediado)</span></li>)}</ItemList> : <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>Não declara chamadas HTTP externas.</p>}
+          {outgoing.length ? <ItemList>{outgoing.map((request) => <li key={`out-${request.id}`}><code style={{ color: '#c4b5fd' }}>{request.method} {request.origin}{request.path}</code> — {request.purpose} <span style={{ color: '#86efac' }}>(declarado no contrato; observado quando executado)</span></li>)}</ItemList> : <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>Não declara chamadas HTTP externas.</p>}
         </Section>
       </div>
 

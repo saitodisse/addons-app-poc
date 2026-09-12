@@ -39,13 +39,16 @@ export function LiveDemoModal({ open, addons, disabledAddonUrls, pendingContract
 
   if (!open) return null;
 
+  const visibleManifestUrl = selectedManifestUrl ?? addons.find((addon) => addon.status === 'ready' && !disabledAddonUrls.includes(addon.manifestUrl))?.manifestUrl ?? null;
+  const visibleAddon = addons.find((addon) => addon.manifestUrl === visibleManifestUrl) ?? null;
+
   return (
     <div className="host-live-modal-backdrop">
       <div className="host-live-modal" role="dialog" aria-modal="true" aria-labelledby="live-demo-title">
         <header className="host-live-modal-header">
           <div>
             <h2 id="live-demo-title">Demonstração ao vivo</h2>
-            <p>Escolha uma extensão para abrir sua rota dedicada.</p>
+            <p>Os detalhes completos da extensão ativa aparecem aqui; clique em uma extensão para abrir sua rota dedicada.</p>
           </div>
           <button
             ref={closeButtonRef}
@@ -73,7 +76,7 @@ export function LiveDemoModal({ open, addons, disabledAddonUrls, pendingContract
             onSearchLimitChange={onSearchLimitChange}
           />
           <div className="host-live-modal-detail">
-            <AddonDetailPanel addon={addons.find((addon) => addon.manifestUrl === selectedManifestUrl) ?? null} loading={loading} selectedManifestUrl={selectedManifestUrl} />
+            <AddonDetailPanel addon={visibleAddon} loading={loading} selectedManifestUrl={visibleManifestUrl} />
           </div>
         </div>
       </div>

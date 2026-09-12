@@ -4,6 +4,27 @@ Este arquivo conta, em ordem inversa, como o projeto evoluiu. A leitura rápida 
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.4.0] - 2026-09-12
+
+### Adicionado
+
+- A integração com a Wikipédia agora expõe `content.json` com conteúdo
+  estruturado, metadados da página, mídia, URLs, contagens, origem, duração,
+  identificador da requisição e cabeçalhos da resposta.
+- O host registra no console do navegador e no debug do servidor as
+  informações completas trafegadas entre host, add-on e API da Wikipédia.
+- Resultados da Wikipédia agora abrem em uma página dedicada, com imagem
+  centralizada, título, descrição, resumo e link para o artigo original.
+- Respostas de artigos inexistentes passaram a retornar `404` específico, sem
+  transformar a ausência do artigo em erro `500`.
+
+### Alterado
+
+- O descriptor da Wikipédia informa os endpoints estruturados e os metadados
+  disponíveis, mantendo `content.txt` compatível com consumidores existentes.
+- A visualização principal do artigo foi reduzida ao conteúdo essencial; os
+  detalhes completos continuam disponíveis no JSON e no fluxo de debug.
+
 ## [1.3.1] - 2026-09-10
 
 ### Corrigido

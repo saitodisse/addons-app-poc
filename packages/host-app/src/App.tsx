@@ -9,12 +9,13 @@ import { Header } from './components/Header';
 import { AddonManager } from './components/AddonManager';
 import { AddonDetailPanel } from './components/AddonDetailPanel';
 import { LiveDemoModal } from './components/LiveDemoModal';
-import { SearchResultModal } from './components/SearchResultModal';
+import { SearchResultPage } from './components/SearchResultPage';
 import { SearchResultsTable } from './components/SearchResultsTable';
-import { clampSearchLimit, createFetchSearchClient, fetchSearchResultContent, hasNextSearchPage, searchPage } from './search';
+import { clampSearchLimit, createFetchSearchClient, hasNextSearchPage, searchPage } from './search';
 import type { SearchCollection, SearchLimitValue, SearchPageState, SearchPagination, SearchProviderError, SearchResultRow } from './search';
-import { manifestUrlDaRota, navegar, RUTAS, rotaDoAddon, useRuta } from './router';
+import { ehRotaDeResultado, manifestUrlDaRota, navegar, RUTAS, rotaDoAddon, urlDoResultadoDaRota, useRuta } from './router';
 import { INSTALLATIONS_STORAGE_KEY, resetFactoryStorage } from './factory-reset';
+import { headersToObject, logBrowserHttpExchange } from './http-observability';
 
 const SEARCH_STATE_KEY = 'host:search:results:v1';
 const SEARCH_URL_PARAMS = {
@@ -128,46 +129,13 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [installationsReady, setInstallationsReady] = useState(false);
   const [liveDemoOpen, setLiveDemoOpen] = useState(false);
-  const [selectedSearchResult, setSelectedSearchResult] = useState<SearchResultRow | null>(null);
-  const [searchResultContent, setSearchResultContent] = useState<string | null>(null);
-  const [searchResultContentError, setSearchResultContentError] = useState<string | null>(null);
-  const [searchResultContentLoading, setSearchResultContentLoading] = useState(false);
   const loadedRef = useRef(false);
   const searchRequestRef = useRef(0);
   const [searchRefreshKey, setSearchRefreshKey] = useState(0);
   const searchPagesRef = useRef(new Map<string, Map<number, SearchCollection>>());
-  const searchResultRequestRef = useRef(0);
   const addonLifecycleRef = useRef(0);
   const httpTextClient = useMemo(() => createFetchSearchClient(), []);
   const rota = useRuta();
-
-  const closeSearchResult = useCallback(() => {
-    searchResultRequestRef.current += 1;
-    setSelectedSearchResult(null);
-    setSearchResultContent(null);
-    setSearchResultContentError(null);
-    setSearchResultContentLoading(false);
-  }, []);
-
-  const openSearchResult = useCallback((result: SearchResultRow) => {
-    const requestId = ++searchResultRequestRef.current;
-    setSelectedSearchResult(result);
-    setSearchResultContent(null);
-    setSearchResultContentError(null);
-    setSearchResultContentLoading(true);
-    void fetchSearchResultContent(result.url)
-      .then((content) => {
-        if (requestId !== searchResultRequestRef.current) return;
-        setSearchResultContent(content);
-      })
-      .catch((error) => {
-        if (requestId !== searchResultRequestRef.current) return;
-        setSearchResultContentError((error as Error).message || 'A resposta não pôde ser lida.');
-      })
-      .finally(() => {
-        if (requestId === searchResultRequestRef.current) setSearchResultContentLoading(false);
-      });
-  }, []);
 
   const loadRemoteAddon = useCallback(async (manifestUrl: string): Promise<AddonInstance> => {
     return new FetchAddonLoader(registry, logger).load(manifestUrl);
@@ -190,12 +158,41 @@ export function App() {
 
   const inspectManifest = useCallback(async (value: string): Promise<AddonManifest> => {
     const manifestUrl = normalizeManifestUrl(value);
-    const response = await fetch(manifestUrl);
-    if (!response.ok) throw new Error(`HTTP ${response.status} ao buscar manifesto`);
-    const manifest = await response.json() as AddonManifest;
-    const validation = validateManifest(manifest);
-    if (!validation.valid) throw new Error(`Manifesto inválido: ${validation.errors.join(', ')}`);
-    return manifest;
+    const startedAt = Date.now();
+    const request = { method: 'GET', url: manifestUrl, headers: { Accept: 'application/json' }, body: null };
+    let response: Response | undefined;
+    let logged = false;
+    try {
+      response = await fetch(manifestUrl, { headers: { Accept: 'application/json' } });
+      const body = await response.json();
+      logBrowserHttpExchange({
+        source: 'host-manifest-inspection',
+        method: 'GET',
+        url: manifestUrl,
+        request,
+        response: { status: response.status, ok: response.ok, headers: headersToObject(response.headers), body },
+        durationMs: Date.now() - startedAt,
+      });
+      logged = true;
+      if (!response.ok) throw new Error(`HTTP ${response.status} ao buscar manifesto`);
+      const manifest = body as AddonManifest;
+      const validation = validateManifest(manifest);
+      if (!validation.valid) throw new Error(`Manifesto inválido: ${validation.errors.join(', ')}`);
+      return manifest;
+    } catch (error) {
+      if (!logged) {
+        logBrowserHttpExchange({
+          source: 'host-manifest-inspection',
+          method: 'GET',
+          url: manifestUrl,
+          request,
+          ...(response ? { response: { status: response.status, ok: response.ok, headers: headersToObject(response.headers) } } : {}),
+          durationMs: Date.now() - startedAt,
+          error: { name: error instanceof Error ? error.name : 'Error', message: error instanceof Error ? error.message : String(error) },
+        });
+      }
+      throw error;
+    }
   }, []);
 
   useEffect(() => {
@@ -340,8 +337,7 @@ export function App() {
     setSearchProviderCount(0);
     setSearchPagination({});
     setSearching(false);
-    closeSearchResult();
-  }, [closeSearchResult]);
+  }, []);
 
   const clearSearch = useCallback(() => {
     clearSearchView();
@@ -572,6 +568,11 @@ export function App() {
   const selectedManifestUrl = manifestUrlDaRota(rota);
   const selectedAddon = activeAddons.find((addon) => addon.manifestUrl === selectedManifestUrl) ?? null;
   const isAddonRoute = rota.startsWith('/addons/');
+  const isSearchResultRoute = ehRotaDeResultado(rota);
+  const searchResultContentUrl = urlDoResultadoDaRota(rota);
+  const selectedSearchResult = searchResultContentUrl
+    ? searchResults.find((result) => result.url === searchResultContentUrl) ?? null
+    : null;
 
   useEffect(() => {
     if (!loading && selectedManifestUrl && !selectedAddon) {
@@ -596,10 +597,6 @@ export function App() {
     if (rota !== RUTAS.inicio) setLiveDemoOpen(false);
   }, [rota]);
 
-  useEffect(() => {
-    if (rota !== RUTAS.inicio) closeSearchResult();
-  }, [closeSearchResult, rota]);
-
   return (
     <div style={{
       minHeight: '100vh',
@@ -620,8 +617,8 @@ export function App() {
         onToggleLiveDemo={toggleLiveDemo}
       />
 
-      <main className={rota === RUTAS.inicio ? 'host-home-main' : isAddonRoute ? 'host-addon-route-main' : undefined} style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 24px 48px' }}>
-        {!isAddonRoute && (
+      <main className={rota === RUTAS.inicio ? 'host-home-main' : isSearchResultRoute ? 'host-search-result-page-main' : isAddonRoute ? 'host-addon-route-main' : undefined} style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 24px 48px' }}>
+        {!isAddonRoute && !isSearchResultRoute && (
           <SearchResultsTable
             query={searchQuery}
             results={searchResults}
@@ -633,7 +630,6 @@ export function App() {
             canGoNext={hasMoreSearchResults}
             onPreviousPage={() => changeSearchPage(currentSearchPage - 1)}
             onNextPage={() => changeSearchPage(currentSearchPage + 1)}
-            onOpenResult={openSearchResult}
           />
         )}
         {rota === RUTAS.settings ? (
@@ -668,6 +664,8 @@ export function App() {
             searchLimits={searchLimits}
             onSearchLimitChange={onSearchLimitChange}
           />
+        ) : isSearchResultRoute ? (
+          <SearchResultPage contentUrl={searchResultContentUrl} result={selectedSearchResult} />
         ) : (
           <section className="addon-route-page" aria-label={selectedAddon ? `Detalhe da extensão ${selectedAddon.manifest.name}` : 'Detalhe da extensão'}>
             <a href="#/" className="addon-route-back">← Voltar para a demonstração</a>
@@ -686,13 +684,6 @@ export function App() {
         )}
       </main>
 
-      <SearchResultModal
-        result={selectedSearchResult}
-        content={searchResultContent}
-        loading={searchResultContentLoading}
-        error={searchResultContentError}
-        onClose={closeSearchResult}
-      />
     </div>
   );
 }
