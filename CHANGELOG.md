@@ -4,6 +4,12 @@ Este arquivo conta, em ordem inversa, como o projeto evoluiu. A leitura rápida 
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.5.0] - 2026-09-13
+
+### Alterado
+
+- O campo de busca global agora habilita o autocomplete nativo e o histórico do navegador.
+
 ## [1.4.0] - 2026-09-12
 
 ### Adicionado

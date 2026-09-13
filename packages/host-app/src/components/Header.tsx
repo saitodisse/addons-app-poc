@@ -55,7 +55,9 @@ export function Header({ addons, searchValue, searchDisabled = false, searching 
           <div style={{ position: 'relative' }}>
             <input
               id="global-addon-search"
+              name="global-addon-search"
               type="search"
+              autoComplete="on"
               value={searchValue}
               onChange={(event) => {
                 const value = event.target.value;
