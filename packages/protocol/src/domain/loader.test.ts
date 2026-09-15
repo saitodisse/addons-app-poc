@@ -8,8 +8,8 @@ const mockInteractions = {
   version: '1.0.0' as const,
   protocol: { version: '1.0.0' as const, range: '^1.0.0' },
   capabilities: { required: [], optional: ['registry.services', 'ui.tab', 'logs', 'state-store'] },
-  services: [{ id: 'addons.hello.greeter', role: 'provides' as const, version: '1.0.0', name: 'Greeter', description: 'Cria saudações.', methods: [{ id: 'greet', description: 'Saúda um nome.' }] }],
-  ui: { title: 'Hello', body: 'Uma saudação.', fields: [], actions: [] },
+  services: [{ id: 'addons.hello.greeter', role: 'provides' as const, version: '1.0.0', name: 'Greeter', description: 'Creates greetings.', methods: [{ id: 'greet', description: 'Greets a name.' }] }],
+  ui: { title: 'Hello', body: 'A greeting.', fields: [], actions: [] },
   state: [],
   http: [],
   logs: [],
@@ -22,18 +22,18 @@ const mockManifest = defineAddonManifest({
   description: 'Test add-on',
   author: 'Test',
   license: 'MIT',
-  ui: { title: 'Hello', body: 'Uma saudação.' },
+  ui: { title: 'Hello', body: 'A greeting.' },
   entrypoint: 'https://example.com/bundle.js',
-  services: [{ id: 'addons.hello.greeter', version: '1.0.0', name: 'Greeter', description: 'Saudação' }],
+  services: [{ id: 'addons.hello.greeter', version: '1.0.0', name: 'Greeter', description: 'Greeting' }],
   contract: mockInteractions,
 });
 
 const mockAddonModule = {
   manifest: mockManifest,
   setup: vi.fn((host: { registerService: (id: string, instance: unknown) => void }) => {
-    host.registerService('addons.hello.greeter', { greet: (name: string) => `Olá, ${name}!` });
+    host.registerService('addons.hello.greeter', { greet: (name: string) => `Hello, ${name}!` });
   }),
-  createTab: vi.fn(() => ({ title: 'Hello', body: 'Uma saudação.' })),
+  createTab: vi.fn(() => ({ title: 'Hello', body: 'A greeting.' })),
 };
 
 describe('FetchAddonLoader', () => {
@@ -67,7 +67,7 @@ describe('FetchAddonLoader', () => {
     // Verify the service was registered in the registry
     expect(registry.has('addons.hello.greeter')).toBe(true);
     const greeter = registry.get<{ greet: (name: string) => string }>('addons.hello.greeter');
-    expect(greeter?.greet('Mundo')).toBe('Olá, Mundo!');
+    expect(greeter?.greet('World')).toBe('Hello, World!');
 
     vi.unstubAllGlobals();
   });

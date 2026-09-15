@@ -4,22 +4,22 @@ import { createTabStatePersistence } from '@addons-poc/protocol';
 import { HttpTextAddonClient } from './http-client';
 
 /**
- * Servidores da demonstração conhecidos (URL = identidade, como no Stremio).
- * O health-check consulta o manifesto de cada um para verificar disponibilidade.
+ * Known demo servers (URL = identity, as in Stremio).
+ * The health check fetches each manifest to verify availability.
  */
 export const HEALTH_BASE_URLS = [
   'http://localhost:5294', // wikipedia
   'http://localhost:5304', // markdown
-  'http://localhost:5306', // favoritos
-  'http://localhost:5307', // saúde
-  'http://localhost:5308', // armazenamento local
+  'http://localhost:5306', // favorites
+  'http://localhost:5307', // health
+  'http://localhost:5308', // local storage
 ];
 
 const HEALTH_FALLBACK_NAMES: Record<string, string> = {
-  'http://localhost:5294': 'Wikipédia (resumos)',
+  'http://localhost:5294': 'Wikipedia (summaries)',
   'http://localhost:5304': 'Markdown Add-on',
   'http://localhost:5306': 'Favorites Add-on',
-  'http://localhost:5307': 'Saúde dos Add-ons',
+  'http://localhost:5307': 'Add-on Health',
   'http://localhost:5308': 'Local Storage Add-on',
 };
 
@@ -36,11 +36,11 @@ export interface HealthCheckService {
 }
 
 /**
- * Serviço de saúde (health-check): verifica a disponibilidade de cada servidor
- * da demonstração buscando o manifesto e medindo a latência.
+ * Health service: verifies the availability of each demo server by fetching
+ * its manifest and measuring latency.
  *
- * Implementa o padrão de degradação: falhas individuais viram `ok: false`
- * sem lançar erro. O cliente HTTP é injetável para testes.
+ * Uses the degradation pattern: individual failures become `ok: false`
+ * without throwing. The HTTP client is injectable for tests.
  */
 export class HealthChecker implements HealthCheckService {
   constructor(
@@ -70,55 +70,55 @@ export class HealthChecker implements HealthCheckService {
 export const manifest = defineAddonManifest({
   id: 'health',
   version: '1.0.0',
-  name: 'Saúde dos Add-ons',
-  description: 'Verifica disponibilidade e latência dos servidores da demonstração',
-  author: 'Equipe AC',
+  name: 'Add-on Health',
+  description: 'Checks the availability and latency of demo servers',
+  author: 'AC Team',
   license: 'MIT',
   ui: {
-    title: '💚 Saúde dos Add-ons',
-    body: 'Verifique disponibilidade e latência de todos os servidores da demonstração.',
+    title: '💚 Add-on Health',
+    body: 'Check the availability and latency of all demo servers.',
   },
   entrypoint: '/packages/addon-health/dist/bundle.js',
   services: [
-    { id: 'addons.health.health-check', version: '1.0.0', name: 'Saúde dos Add-ons', description: 'Status de disponibilidade dos add-ons da demonstração' },
+    { id: 'addons.health.health-check', version: '1.0.0', name: 'Add-on Health', description: 'Availability status of demo add-ons' },
   ],
   contract: {
     version: '1.0.0',
     protocol: { version: '1.0.0', range: '^1.0.0' },
     capabilities: { required: [], optional: ['registry.services', 'ui.tab', 'logs', 'state-store'] },
-    services: [{ id: 'addons.health.health-check', role: 'provides', version: '1.0.0', description: 'Mede disponibilidade e latência dos servidores da demonstração.', methods: [{ id: 'checkAll', description: 'Consulta todos os manifestos configurados.', returns: { description: 'Estado de cada servidor.', schema: { type: 'array', description: 'Disponibilidade e latência.', classification: 'public' } } }] }, { id: 'state-store', role: 'consumes', version: '1.0.0', description: 'Guarda a última resposta da aba quando há armazenamento.', required: false, methods: [{ id: 'get', description: 'Lê a aba salva.' }, { id: 'set', description: 'Grava a aba.' }] }],
-    ui: { fields: [], actions: [{ id: 'check', label: 'Verificar agora', description: 'Verifica todos os servidores da demonstração.', returns: { description: 'Resultado da verificação.', schema: { type: 'array', description: 'Disponibilidade dos servidores.', classification: 'public' } } }] },
-    state: [{ id: 'tab', description: 'Última resposta da verificação.', key: 'health:tab', operations: ['read', 'write'], value: { description: 'Estado visual da aba.', schema: { type: 'object', description: 'Resposta da verificação.', classification: 'public' } }, retention: 'Enquanto o provedor de armazenamento escolhido pelo host conservar o estado.', deletionTrigger: 'Limpeza do provedor ou dados do navegador.', fallback: 'memory' }],
-    http: HEALTH_BASE_URLS.map((origin, index) => ({ id: `manifest-${index + 1}`, direction: 'outgoing', method: 'GET', origin, path: '/manifest.json', purpose: 'Confere se o servidor responde e mede a latência.', returns: { description: 'Manifesto do servidor.', schema: { type: 'object', description: 'Manifesto remoto.', classification: 'public' } } })),
-    logs: [{ id: 'lifecycle', level: 'info', message: 'Add-on health configurado com sucesso', description: 'Confirma a ativação do add-on.' }],
+    services: [{ id: 'addons.health.health-check', role: 'provides', version: '1.0.0', description: 'Measures the availability and latency of demo servers.', methods: [{ id: 'checkAll', description: 'Fetches all configured manifests.', returns: { description: 'State of each server.', schema: { type: 'array', description: 'Availability and latency.', classification: 'public' } } }] }, { id: 'state-store', role: 'consumes', version: '1.0.0', description: 'Stores the tab’s last response when storage is available.', required: false, methods: [{ id: 'get', description: 'Reads the saved tab.' }, { id: 'set', description: 'Writes the tab.' }] }],
+    ui: { fields: [], actions: [{ id: 'check', label: 'Check now', description: 'Checks all demo servers.', returns: { description: 'Check result.', schema: { type: 'array', description: 'Server availability.', classification: 'public' } } }] },
+    state: [{ id: 'tab', description: 'Last check response.', key: 'health:tab', operations: ['read', 'write'], value: { description: 'Tab visual state.', schema: { type: 'object', description: 'Check response.', classification: 'public' } }, retention: 'While the storage provider selected by the host retains the state.', deletionTrigger: 'Provider cleanup or browser data removal.', fallback: 'memory' }],
+    http: HEALTH_BASE_URLS.map((origin, index) => ({ id: `manifest-${index + 1}`, direction: 'outgoing', method: 'GET', origin, path: '/manifest.json', purpose: 'Checks that the server responds and measures latency.', returns: { description: 'Server manifest.', schema: { type: 'object', description: 'Remote manifest.', classification: 'public' } } })),
+    logs: [{ id: 'lifecycle', level: 'info', message: 'Health add-on configured successfully', description: 'Confirms add-on activation.' }],
   },
 });
 
 export function setup(host: HostAPI): void {
   const checker = new HealthChecker(new HttpTextAddonClient(), HEALTH_BASE_URLS);
   host.registerService('addons.health.health-check', checker);
-  host.log('info', 'Add-on health configurado com sucesso');
+  host.log('info', 'Health add-on configured successfully');
 }
 
 export function createTab(host: HostAPI): AddonTab {
   const healthCheck = host.services.use<HealthCheckService>({ id: 'addons.health.health-check' });
   return {
     ...manifest.contract.ui,
-    actions: [{ id: 'check', label: 'Verificar agora' }],
+    actions: [{ id: 'check', label: 'Check now' }],
     persistence: createTabStatePersistence(host, 'health:tab'),
     async run(actionId) {
-      if (actionId !== 'check') return { status: 'error', body: 'Ação desconhecida.' };
-      if (!healthCheck) return { status: 'error', body: 'Serviço de saúde indisponível.' };
+      if (actionId !== 'check') return { status: 'error', body: 'Unknown action.' };
+      if (!healthCheck) return { status: 'error', body: 'Health service unavailable.' };
       const entries = await healthCheck.checkAll();
       const online = entries.filter((entry) => entry.ok).length;
-      host.log('info', 'Verificação de saúde concluída', { online, total: entries.length });
+      host.log('info', 'Health check completed', { online, total: entries.length });
       return {
         status: online === entries.length ? 'success' : 'info',
         title: `${online}/${entries.length} online`,
-        body: 'Resultado da última verificação.',
+        body: 'Result of the last check.',
         items: entries.map((entry) => ({
           label: entry.name,
-          value: `${entry.baseUrl} · ${entry.ok ? `Online · ${entry.latencyMs} ms` : `Indisponível · ${entry.error ?? 'erro desconhecido'}`}`,
+          value: `${entry.baseUrl} · ${entry.ok ? `Online · ${entry.latencyMs} ms` : `Unavailable · ${entry.error ?? 'unknown error'}`}`,
         })),
       };
     },

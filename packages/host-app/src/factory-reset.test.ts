@@ -26,14 +26,14 @@ class MemoryStorage {
 }
 
 describe('resetPersistedHostState', () => {
-  it('remove as configurações e estados do host nos dois armazenamentos', () => {
+  it('removes host settings and state from both storages', () => {
     const localStorage = new MemoryStorage();
     const sessionStorage = new MemoryStorage();
     for (const storage of [localStorage, sessionStorage]) {
       storage.setItem(INSTALLATIONS_STORAGE_KEY, '{}');
       storage.setItem(`${STATE_STORAGE_PREFIX}host:search:results:v1`, '{}');
       storage.setItem(`${STATE_STORAGE_PREFIX}favorites:list`, '[]');
-      storage.setItem('outro-aplicativo', 'preservar');
+      storage.setItem('other-application', 'preserve');
     }
 
     resetPersistedHostState(localStorage, sessionStorage);
@@ -41,11 +41,11 @@ describe('resetPersistedHostState', () => {
     expect(localStorage.getItem(INSTALLATIONS_STORAGE_KEY)).toBeNull();
     expect(localStorage.getItem(`${STATE_STORAGE_PREFIX}favorites:list`)).toBeNull();
     expect(sessionStorage.getItem(`${STATE_STORAGE_PREFIX}host:search:results:v1`)).toBeNull();
-    expect(localStorage.getItem('outro-aplicativo')).toBe('preservar');
-    expect(sessionStorage.getItem('outro-aplicativo')).toBe('preservar');
+    expect(localStorage.getItem('other-application')).toBe('preserve');
+    expect(sessionStorage.getItem('other-application')).toBe('preserve');
   });
 
-  it('aceita armazenamento ausente', () => {
+  it('accepts missing storage', () => {
     expect(() => resetPersistedHostState(null, undefined)).not.toThrow();
   });
 });

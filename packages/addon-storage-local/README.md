@@ -1,20 +1,20 @@
 # `@addons/addon-storage-local`
 
-Provedor de `state-store` `1.0.0` usando `localStorage`.
+`state-store` provider `1.0.0` using `localStorage`.
 
-## Por que existe
+## Why it exists
 
-Oferece persistência de estado como add-on substituível. O host não escolhe um storage embutido; ele seleciona provedores pelo contrato e pela prioridade.
+It provides state persistence as a replaceable add-on. The host does not choose embedded storage; it selects providers through the contract and priority.
 
-## O que oferece
+## What it offers
 
-Implementa `get`, `set`, `remove`, `listKeys` e `clear` para valores JSON sob o namespace físico `addons:state:`. A prioridade declarada é `10`, acima do provedor de sessão. O estado de cada consumidor continua limitado pelas chaves e operações declaradas no contrato do consumidor. Ao abrir a aba, todos os estados são listados automaticamente; cada nome pode abrir o JSON completo no painel de detalhes.
+It implements `get`, `set`, `remove`, `listKeys`, and `clear` for JSON values under the physical `addons:state:` namespace. Its declared priority is `10`, above the session provider. Each consumer's state remains limited by the keys and operations declared in the consumer contract. When the tab opens, all states are listed automatically; each name can open the complete JSON in the details panel.
 
-## Como executar e testar
+## How to run and test
 
 ```bash
 pnpm --filter @addons/addon-storage-local test
 pnpm --filter @addons/addon-storage-local serve
 ```
 
-O manifesto fica em `http://localhost:5308/manifest.json`. A implementação do adaptador está em [`src/browser-state-store.ts`](src/browser-state-store.ts).
+The manifest is at `http://localhost:5308/manifest.json`. The adapter implementation is in [`src/browser-state-store.ts`](src/browser-state-store.ts).

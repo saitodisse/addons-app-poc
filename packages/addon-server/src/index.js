@@ -40,43 +40,48 @@ function headersToObject(headers) {
 function pageRequest(searchParams) {
   const rawLimit = searchParams.get('limit');
   const cursor = searchParams.get('cursor') ?? undefined;
-  if (rawLimit === null && cursor === undefined) return undefined;
+  const lang = searchParams.get('lang') ?? undefined;
+  if (rawLimit === null && cursor === undefined && lang === undefined) return undefined;
 
   let limit;
   if (rawLimit !== null) {
     limit = Number(rawLimit);
-    if (!Number.isSafeInteger(limit) || limit < 1) throw new Error('Parâmetro limit inválido');
+    if (!Number.isSafeInteger(limit) || limit < 1) throw new Error('Invalid limit parameter');
   }
-  return { ...(limit === undefined ? {} : { limit }), ...(cursor === undefined ? {} : { cursor }) };
+  return {
+    ...(limit === undefined ? {} : { limit }),
+    ...(cursor === undefined ? {} : { cursor }),
+    ...(lang === undefined ? {} : { lang }),
+  };
 }
 
 /**
- * Monta um servidor HTTP para um add-on de texto estilo Stremio.
+ * Builds an HTTP server for a Stremio-style text add-on.
  *
- * Rotas servidas:
- *   GET /manifest.json                     → manifesto validado
+ * Served routes:
+ *   GET /manifest.json                     → validated manifest
  *   GET /catalog/<type>/<catalogId>.json   → { metas: [...], pagination? }
  *   GET /search/<type>/<query>.json        → { metas: [...], pagination? }
  *   GET /text/<type>/<id>.json             → { texts: [{ id, url, lang, name }] }
- *   GET /text/<type>/<id>/content.txt      → conteúdo em texto puro
- *   GET /text/<type>/<id>/content.json     → conteúdo estruturado e metadados
- *   GET /debug/traffic.json                → histórico local de requisições e respostas
+ *   GET /text/<type>/<id>/content.txt      → plain text content
+ *   GET /text/<type>/<id>/content.json     → structured content and metadata
+ *   GET /debug/traffic.json                → local request and response history
  *
- * A identidade do add-on é a URL do manifesto (mesma regra do Stremio).
+ * The add-on identity is the manifest URL (the same rule used by Stremio).
  *
  * @param {object} options
- * @param {Record<string, unknown>} options.manifest Manifesto estilo Stremio.
- * @param {number} options.port Porta HTTP.
+ * @param {Record<string, unknown>} options.manifest Stremio-style manifest.
+ * @param {number} options.port HTTP port.
  * @param {{
- *   catalog(type: string, catalogId: string, page?: { limit?: number, cursor?: string }): Promise<{ metas: unknown[], pagination?: { limit: number, total?: number, next?: string } }>,
- *   search(type: string, query: string, page?: { limit?: number, cursor?: string }): Promise<{ metas: unknown[], pagination?: { limit: number, total?: number, next?: string } }>,
- *   text(type: string, id: string): Promise<{ texts: unknown[] }>,
- *   content(type: string, id: string): Promise<string>,
- *   contentJson?(type: string, id: string): Promise<unknown | { body: unknown, headers?: Record<string, string> }>,
+ *   catalog(type: string, catalogId: string, page?: { limit?: number, cursor?: string, lang?: string }): Promise<{ metas: unknown[], pagination?: { limit: number, total?: number, next?: string } }>,
+ *   search(type: string, query: string, page?: { limit?: number, cursor?: string, lang?: string }): Promise<{ metas: unknown[], pagination?: { limit: number, total?: number, next?: string } }>,
+ *   text(type: string, id: string, options?: { lang?: string }): Promise<{ texts: unknown[] }>,
+ *   content(type: string, id: string, options?: { lang?: string }): Promise<string>,
+ *   contentJson?(type: string, id: string, options?: { lang?: string }): Promise<unknown | { body: unknown, headers?: Record<string, string> }>,
  *   debugTraffic?(): unknown | Promise<unknown>,
- * }} options.handlers Handlers dos resources.
- * @param {string} [options.name] Nome para logs.
- * @param {(event: Record<string, unknown>) => void} [options.onTraffic] Observador local de tráfego.
+ * }} options.handlers Resource handlers.
+ * @param {string} [options.name] Name used in logs.
+ * @param {(event: Record<string, unknown>) => void} [options.onTraffic] Local traffic observer.
  * @returns {Promise<{ url: string, manifestUrl: string, close(): Promise<void> }>}
  */
 export async function createAddonServer(options) {
@@ -84,7 +89,7 @@ export async function createAddonServer(options) {
 
   const validation = validateProtocolManifest(manifest);
   if (!validation.valid) {
-    throw new Error(`Manifest inválido: ${validation.errors.join(', ')}`);
+    throw new Error(`Invalid manifest: ${validation.errors.join(', ')}`);
   }
 
   let requestSequence = 0;
@@ -107,7 +112,7 @@ export async function createAddonServer(options) {
           ...event,
         });
       } catch (error) {
-        console.error(`[${name ?? manifest.id}] não foi possível registrar tráfego`, error);
+        console.error(`[${name ?? manifest.id}] could not record traffic`, error);
       }
     };
 
@@ -157,16 +162,16 @@ export async function createAddonServer(options) {
     }
 
     try {
-      // Manifesto
+      // Manifest
       if (url === '/manifest.json') {
         respondJson(manifest);
         return;
       }
 
-      // Histórico local para o terminal de observabilidade do host.
+      // Local history for the host observability terminal.
       if (url === DEBUG_TRAFFIC_PATH) {
         if (typeof handlers.debugTraffic !== 'function') {
-          respondText('Add-on: observabilidade não habilitada', 404);
+          respondText('Add-on: observability is not enabled', 404);
           return;
         }
         respondJson(await handlers.debugTraffic());
@@ -193,7 +198,7 @@ export async function createAddonServer(options) {
       match = url.match(/^\/text\/([^/]+)\/([^/]+)\/content\.txt$/);
       if (match) {
         const [, type, id] = match;
-        respondText(await handlers.content(decodeURIComponent(type), decodeURIComponent(id)));
+        respondText(await handlers.content(decodeURIComponent(type), decodeURIComponent(id), { lang: requestUrl.searchParams.get('lang') ?? undefined }));
         return;
       }
 
@@ -202,10 +207,10 @@ export async function createAddonServer(options) {
       if (match) {
         const [, type, id] = match;
         if (typeof handlers.contentJson !== 'function') {
-          respondJson({ error: 'NOT_IMPLEMENTED', message: 'Este add-on não publica conteúdo estruturado.' }, 404);
+          respondJson({ error: 'NOT_IMPLEMENTED', message: 'This add-on does not publish structured content.' }, 404);
           return;
         }
-        const result = await handlers.contentJson(decodeURIComponent(type), decodeURIComponent(id));
+        const result = await handlers.contentJson(decodeURIComponent(type), decodeURIComponent(id), { lang: requestUrl.searchParams.get('lang') ?? undefined });
         if (result && typeof result === 'object' && Object.prototype.hasOwnProperty.call(result, 'body')) {
           respondJson(result.body, 200, result.headers);
         } else {
@@ -218,9 +223,9 @@ export async function createAddonServer(options) {
       match = url.match(/^\/text\/([^/]+)\/([^/]+)\.json$/);
       if (match) {
         const [, type, id] = match;
-        const payload = await handlers.text(decodeURIComponent(type), decodeURIComponent(id));
-        // URLs relativas de conteúdo viram URLs absolutas deste servidor
-        // (mesmo comportamento do Stremio com os arquivos de legenda).
+        const payload = await handlers.text(decodeURIComponent(type), decodeURIComponent(id), { lang: requestUrl.searchParams.get('lang') ?? undefined });
+        // Relative content URLs become absolute URLs for this server
+        // (the same behavior Stremio uses for subtitle files).
         const texts = (payload.texts ?? []).map((item) => {
           const t = item;
           for (const field of ['url', 'contentJsonUrl']) {
@@ -234,7 +239,7 @@ export async function createAddonServer(options) {
         return;
       }
 
-      respondText('Add-on: rota não encontrada', 404);
+      respondText('Add-on: route not found', 404);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       const status = Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599
@@ -243,7 +248,7 @@ export async function createAddonServer(options) {
       if (status === 404 && url.endsWith('.json')) {
         respondJson({ error: error?.code ?? 'NOT_FOUND', message, status }, status);
       } else {
-        respondText(status === 404 ? message : `Erro interno: ${message}`, status);
+        respondText(status === 404 ? message : `Internal error: ${message}`, status);
       }
     }
   });
@@ -256,7 +261,7 @@ export async function createAddonServer(options) {
     });
   });
 
-  // Porta efetiva (importante quando port = 0, o Node escolhe uma livre).
+  // Effective port (important when port = 0 and Node chooses a free port).
   const address = server.address();
   const effectivePort = typeof address === 'object' && address ? address.port : port;
   const base = `http://localhost:${effectivePort}`;

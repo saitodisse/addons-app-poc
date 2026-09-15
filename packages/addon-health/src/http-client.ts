@@ -2,7 +2,7 @@ import type { AddonManifest, TextAddonClientPort, TextCatalogPayload, TextPageRe
 
 export class HttpTextAddonClient implements TextAddonClientPort {
   constructor(private fetchFn: (url: string) => Promise<Response> = (url) => fetch(url)) {}
-  private async json<T>(url: string): Promise<T> { const response = await this.fetchFn(url); if (!response.ok) throw new Error(`HTTP ${response.status} em ${url}`); return response.json() as Promise<T>; }
+  private async json<T>(url: string): Promise<T> { const response = await this.fetchFn(url); if (!response.ok) throw new Error(`HTTP ${response.status} at ${url}`); return response.json() as Promise<T>; }
   async getManifest(base: string): Promise<AddonManifest> { return this.json(`${base.replace(/\/+$/, '')}/manifest.json`); }
   private resourceUrl(base: string, resource: string, type: string, idOrQuery: string, page?: TextPageRequest): string {
     const params = new URLSearchParams();

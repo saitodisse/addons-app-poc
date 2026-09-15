@@ -1,6 +1,6 @@
 import type { AddonStateStore } from '../domain/state';
 
-/** Adaptador compartilhado pelos add-ons de localStorage e sessionStorage. */
+/** Adapter shared by the localStorage and sessionStorage add-ons. */
 export class BrowserStateStore implements AddonStateStore {
   constructor(
     private storage: Storage | null,
@@ -22,7 +22,7 @@ export class BrowserStateStore implements AddonStateStore {
     try {
       this.storage.setItem(this.fullKey(key), JSON.stringify(value));
     } catch {
-      // Armazenamento bloqueado, cheio ou dado não serializável: o add-on segue em memória.
+      // Blocked, full, or non-serializable storage: the add-on continues in memory.
     }
   }
 
@@ -30,7 +30,7 @@ export class BrowserStateStore implements AddonStateStore {
     try {
       this.storage?.removeItem(this.fullKey(key));
     } catch {
-      // Remoção é opcional; não deve quebrar a extensão consumidora.
+      // Removal is optional and must not break the consuming add-on.
     }
   }
 

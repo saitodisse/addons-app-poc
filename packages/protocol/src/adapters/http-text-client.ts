@@ -10,6 +10,7 @@ function resourceUrl(baseUrl: string, resource: string, type: string, idOrQuery:
   const params = new URLSearchParams();
   if (page?.limit !== undefined) params.set('limit', String(page.limit));
   if (page?.cursor) params.set('cursor', page.cursor);
+  if (page?.lang) params.set('lang', page.lang);
   const query = params.toString();
   return `${base}/${resource}/${encodeURIComponent(type)}/${encodeURIComponent(idOrQuery)}.json${query ? `?${query}` : ''}`;
 }
@@ -17,27 +18,27 @@ function resourceUrl(baseUrl: string, resource: string, type: string, idOrQuery:
 async function getJson<T>(fetchFn: FetchFn, url: string, what: string): Promise<T> {
   const response = await fetchFn(url);
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status} ao buscar ${what} em ${url}`);
+    throw new Error(`HTTP ${response.status} while fetching ${what} from ${url}`);
   }
   return (await response.json()) as T;
 }
 
 /**
- * Cliente HTTP para add-ons de texto estilo Stremio.
+ * HTTP client for Stremio-style text add-ons.
  *
- * Monta as URLs dos resources (`/catalog/<type>/<id>.json`,
- * `/search/<type>/<query>.json`, `/text/<type>/<id>.json`) e busca os payloads
- * JSON. O `fetchFn` é injetável para testes (mesmo padrão do FetchAddonLoader).
+ * Builds resource URLs (`/catalog/<type>/<id>.json`,
+ * `/search/<type>/<query>.json`, `/text/<type>/<id>.json`) and fetches JSON
+ * payloads. `fetchFn` is injectable for tests (the same pattern as FetchAddonLoader).
  */
 export class HttpTextAddonClient implements TextAddonClientPort {
   constructor(private fetchFn: FetchFn = (url) => fetch(url)) {}
 
   async getManifest(baseUrl: string): Promise<AddonManifest> {
     const base = baseUrl.replace(/\/+$/, '');
-    const manifest = await getJson<AddonManifest>(this.fetchFn, `${base}/manifest.json`, 'manifesto');
+    const manifest = await getJson<AddonManifest>(this.fetchFn, `${base}/manifest.json`, 'manifest');
     const validation = validateManifest(manifest);
     if (!validation.valid) {
-      throw new Error(`Manifest inválido: ${validation.errors.join(', ')}`);
+      throw new Error(`Invalid manifest: ${validation.errors.join(', ')}`);
     }
     return manifest;
   }
@@ -46,7 +47,7 @@ export class HttpTextAddonClient implements TextAddonClientPort {
     return getJson<TextCatalogPayload>(
       this.fetchFn,
       resourceUrl(baseUrl, 'catalog', type, catalogId, page),
-      'catálogo',
+      'catalog',
     );
   }
 
@@ -54,15 +55,15 @@ export class HttpTextAddonClient implements TextAddonClientPort {
     return getJson<TextSearchPayload>(
       this.fetchFn,
       resourceUrl(baseUrl, 'search', type, query, page),
-      'busca',
+      'search',
     );
   }
 
-  text(baseUrl: string, type: string, id: string): Promise<TextPayload> {
+  text(baseUrl: string, type: string, id: string, page?: TextPageRequest): Promise<TextPayload> {
     return getJson<TextPayload>(
       this.fetchFn,
-      resourceUrl(baseUrl, 'text', type, id),
-      'texto',
+      resourceUrl(baseUrl, 'text', type, id, page),
+      'text',
     );
   }
 }

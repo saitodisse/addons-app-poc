@@ -1,9 +1,9 @@
 const DEFAULT_MAX_ENTRIES = 100;
 
 /**
- * Histórico pequeno e serializável para inspeção local do tráfego HTTP.
- * O limite evita que um servidor de desenvolvimento cresça sem fim, mas cada
- * entrada retida mantém o corpo completo que foi enviado ou recebido.
+ * Small serializable history for local HTTP traffic inspection.
+ * The limit keeps a development server from growing indefinitely, while each
+ * retained entry keeps the complete body that was sent or received.
  */
 export function createTrafficRecorder({ maxEntries = DEFAULT_MAX_ENTRIES, onRecord } = {}) {
   const limit = Number.isSafeInteger(maxEntries) && maxEntries > 0 ? maxEntries : DEFAULT_MAX_ENTRIES;
@@ -24,7 +24,7 @@ export function createTrafficRecorder({ maxEntries = DEFAULT_MAX_ENTRIES, onReco
       try {
         onRecord?.(entry);
       } catch (error) {
-        console.error('[addon-server] observador de tráfego falhou', error);
+        console.error('[addon-server] traffic observer failed', error);
       }
       return entry;
     },

@@ -1,63 +1,71 @@
 # `@addons/host-app`
 
-Runtime e interface do host para a POC de add-ons.
+Host runtime and interface for the add-on POC.
 
-## Por que este pacote existe
+## Why this package exists
 
-O host precisa carregar add-ons por URL sem importar implementações conhecidas. A separação deixa o protocolo público estável e mantém decisões de execução — loader, registro, estados e adaptadores — dentro do aplicativo.
+The host must load add-ons by URL without importing known implementations. The separation keeps the public protocol stable and keeps execution decisions—loader, registry, state, and adapters—inside the application.
 
-## O que ele oferece
+## What it offers
 
-O host busca e valida `manifest.json`, negocia a versão do protocolo e as capacidades, revisa o contrato, importa bundles ESM em processo e apresenta servidores HTTP. A interface é genérica: não existe catálogo embutido, alias ou dependência de `@addons/addon-*` no pacote. Em Configurações, a lista local consulta somente `name` e `description` dos manifestos para facilitar o preenchimento. A busca global consulta recursos HTTP `search` declarados pelos add-ons ativos e normaliza as respostas em uma tabela comum.
+The host fetches and validates `manifest.json`, negotiates protocol version and
+capabilities, reviews the contract, imports in-process ESM bundles, and presents
+HTTP servers. The interface is generic: the package has no embedded catalog,
+alias, or dependency on `@addons/addon-*`. In Settings, the local list queries
+only `name` and `description` from manifests to make filling the form easier.
+Global search queries `search` HTTP resources declared by active add-ons and
+normalizes responses into one table.
 
-Capacidades canônicas do host:
+Canonical host capabilities:
 
-- `registry.services`: registro mediado de serviços;
-- `ui.tab`: aba declarativa;
-- `logs`: logs estruturados;
-- `state-store`: provedor opcional de estado serializável.
+- `registry.services`: mediated service registry;
+- `ui.tab`: declarative tab;
+- `logs`: structured logs;
+- `state-store`: optional serializable-state provider.
 
-O campo de busca fica fixo no cabeçalho: **Enter** dispara a consulta e **Esc**
-limpa campo e resultados. `src/search.ts` é um adaptador interno que consulta
-as rotas `/search/<type>/<query>.json`, aplica o limite configurado por add-on
-como tamanho de página, isola falhas de uma origem e produz linhas com tipo, ID, URL, nome, descrição e
-metadados visuais opcionais. A tabela permanece visível mesmo sem extensões.
-O tamanho da página pode ser ajustado na lateral de extensões ou em
-Configurações, entre 1 e 500 resultados. O padrão é 10, inclusive quando o
-campo fica vazio. Quando uma resposta traz `pagination.next`, o host mantém o
-cursor por provedor e mostra **Página anterior** e **Próxima página**, com a
-página atual entre os botões, no início e no fim da tabela. A troca substitui as
-linhas pela página solicitada, sem acumular a página anterior. O termo de busca
-e a página são controlados na URL por `nuqs` (`q` e `page`).
-Quando existe um `state-store` ativo, o host grava a consulta, as linhas e os
-cursores sob a chave `host:search:results:v1`.
+The search field stays fixed in the header: **Enter** starts the query and
+**Esc** clears the field and results. `src/search.ts` is an internal adapter
+that queries `/search/<type>/<query>.json`, applies the per-add-on configured
+limit as page size, isolates source failures, and produces rows with type, ID,
+URL, name, description, and optional visual metadata. The table remains visible
+even without extensions. Page size can be adjusted in the extension sidebar or
+Settings, between 1 and 500 results. The default is 10, including when the
+field is empty. Resources that declare `languages` also show a language selector
+per add-on; the choice is persisted by manifest URL, sent as `lang`, and carried
+by content links. When a response includes `pagination.next`, the host keeps a
+cursor per provider and shows **Previous page** and **Next page**, with the
+current page between the buttons at the beginning and end of the table. Changing
+pages replaces rows with the requested page instead of accumulating the previous
+page. The search term and page are controlled in the URL through `nuqs` (`q` and
+`page`). When an active `state-store` exists, the host stores the query, rows, and
+cursors under `host:search:results:v1`.
 
-Na home, a tabela ocupa toda a largura disponível. A demonstração ao vivo abre
-por um ícone de engrenagem em um modal com a lista de extensões. Ao selecionar
-uma extensão ativa, o host navega para uma rota dinâmica de detalhe e não repete
-a listagem inicial. A coluna visual de URL não é exibida: ao clicar no nome de
-um resultado, o host navega para uma página dedicada, busca seu `content.json` e
-renderiza imagem, descrição, resumo e o link original. Os metadados, headers,
-métricas, observabilidade e o JSON completo continuam disponíveis no tráfego e
-no debug, sem ocupar a visualização principal. O `content.txt` continua
-disponível como conteúdo textual compatível e fallback para add-ons antigos.
+On the home page, the table uses all available width. The live demo opens from a
+gear icon in a modal with the extension list. When an active extension is
+selected, the host navigates to a dynamic detail route and does not repeat the
+initial listing. The visual URL column is hidden: clicking a result name
+navigates to a dedicated page, fetches its `content.json`, and renders the image,
+description, summary, and original link. Metadata, headers, metrics,
+observability, and complete JSON remain available in traffic and debug output
+without taking over the main view. `content.txt` remains available as compatible
+text content and a fallback for older add-ons.
 
-O registro interno ordena provedores por prioridade e nome do add-on. Serviços obrigatórios ausentes deixam a instalação bloqueada; quando um provedor aparece, o host pode reavaliá-la. Dependências obrigatórias em ciclo também são bloqueadas.
+The internal registry orders providers by priority and add-on name. Missing required services leave an installation blocked; when a provider appears, the host can reevaluate it. Required dependency cycles are also blocked.
 
-## Como funciona
+## How it works
 
-O runtime está em [`src/runtime`](src/runtime):
+The runtime is in [`src/runtime`](src/runtime):
 
-- [`loader.ts`](src/runtime/loader.ts) implementa `FetchAddonLoader`, valida o manifesto antes do `import()` e confere se o contrato do bundle é idêntico ao contrato revisado. A URL pública do manifesto é a fonte do `entrypoint`; por isso um bundle local também pode exportar um caminho relativo de build sem invalidar a instalação;
-- [`registry.ts`](src/runtime/registry.ts) mantém as implementações e suas prioridades;
-- [`dependency-graph.ts`](src/runtime/dependency-graph.ts) ordena provedores e identifica ciclos;
-- [`logger.ts`](src/runtime/logger.ts) concentra a saída de logs do host.
+- [`loader.ts`](src/runtime/loader.ts) implements `FetchAddonLoader`, validates the manifest before `import()`, and checks that the bundle contract matches the reviewed contract. The public manifest URL is the source of `entrypoint`, so a local bundle may export a relative build path without invalidating the installation;
+- [`registry.ts`](src/runtime/registry.ts) keeps implementations and their priorities;
+- [`dependency-graph.ts`](src/runtime/dependency-graph.ts) orders providers and detects cycles;
+- [`logger.ts`](src/runtime/logger.ts) centralizes host log output.
 
-O pacote depende diretamente apenas de `@addons-poc/protocol` e das bibliotecas da própria interface. Add-ons não importam este pacote.
+The package depends directly only on `@addons-poc/protocol` and the interface's own libraries. Add-ons do not import this package.
 
-## Desenvolvimento
+## Development
 
-Na raiz do repositório:
+From the repository root:
 
 ```bash
 pnpm --filter @addons/host-app dev
@@ -66,19 +74,27 @@ pnpm build:host
 pnpm check:host-boundary
 ```
 
-O servidor local do host usa a porta `5280`. `pnpm dev` inicia o host e os quatro servidores HTTP da demonstração; add-ons em processo são servidos por `scripts/serve-inprocess-addon.mjs` e descobertos pela URL de seu manifesto.
+The local host server uses port `5280`. `pnpm dev` starts the host and the four HTTP demonstration servers; in-process add-ons are served by `scripts/serve-inprocess-addon.mjs` and discovered through their manifest URLs.
 
-## Limites
+## Limits
 
-Os add-ons são confiáveis nesta POC. O host valida o contrato, entradas, saídas, estado, ações e logs declarados, mas não promete sandbox, bloqueio de APIs globais ou proxy de rede. I/O externo deve aparecer em `contract.http` e passar por revisão.
+Add-ons are trusted in this POC. The host validates declared contracts, inputs,
+outputs, state, actions, and logs but does not promise sandboxing, global API
+blocking, or a network proxy. External I/O must appear in `contract.http` and
+pass review.
 
-O loader executa callbacks `onUnload` quando uma ativação falha e depois remove os serviços registrados. Uma exceção em callback pode interromper essa limpeza. Ao desativar ou remover uma instância ativa, o host remove seus serviços, mas ainda não executa os callbacks. O ciclo completo de descarregamento é o próximo trabalho no [roteiro](../../docs/PHASES.md#ordem-recomendada-para-o-próximo-trabalho).
+The loader runs `onUnload` callbacks when activation fails and then removes
+registered services. A callback exception can interrupt that cleanup. When
+disabling or removing an active instance, the host removes its services but does
+not yet run the callbacks. The complete unload cycle is the next task in the
+[roadmap](../../docs/PHASES.md#recommended-order-for-the-next-work).
 
-Manifestos HTTP sem `entrypoint` recebem uma aba com título e descrição, o
-contrato completo e, quando declaram `debug-traffic`, um único link para o
-histórico de requests e responses reais. O host continua lendo o debug em
-segundo plano e imprimindo cada resposta no console do navegador, mesmo quando
-o histórico não mudou. A busca genérica já cobre o recurso `search`; catálogo,
-leitura, cache e validação completa de respostas HTTP ainda estão planejados.
+HTTP manifests without `entrypoint` receive a tab with title and description,
+the complete contract, and, when they declare `debug-traffic`, one link to the
+history of real requests and responses. The host continues reading debug data in
+the background and printing every response in the browser console even when the
+history has not changed. Generic search already covers the `search` resource;
+catalog, reading, caching, and complete HTTP response validation are still
+planned.
 
-Consulte a [especificação de manifesto](../../docs/MANIFEST-SPEC.md) e o [índice dos pacotes](../../docs/PACKAGES.md).
+See the [manifest specification](../../docs/MANIFEST-SPEC.md) and the [package index](../../docs/PACKAGES.md).

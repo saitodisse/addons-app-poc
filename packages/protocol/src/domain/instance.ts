@@ -8,7 +8,7 @@ export interface AddonInstance {
   manifestUrl: string;
   status: AddonStatus;
   error?: Error;
-  /** Explicação estável para uma dependência obrigatória ainda ausente. */
+  /** Stable explanation for a required dependency that is still missing. */
   blockReason?: string;
   services: string[];
   ui?: AddonTab;

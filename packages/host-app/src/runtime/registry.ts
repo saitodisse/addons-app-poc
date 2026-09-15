@@ -13,7 +13,7 @@ interface ServiceEntry<T = unknown> {
   descriptor?: ServiceInteraction;
 }
 
-/** Registro interno do host. O protocolo só descreve como consumidores o acessam. */
+/** Internal host registry. The protocol only describes how consumers access it. */
 export class ServiceRegistry {
   private entries = new Map<string, ServiceEntry[]>();
 
@@ -36,7 +36,7 @@ export class ServiceRegistry {
     return (this.entries.get(serviceId)?.length ?? 0) > 0;
   }
 
-  /** Snapshot usado para negociar consumidores antes de importar bundles. */
+  /** Snapshot used to negotiate consumers before importing bundles. */
   describe(): ReadonlyMap<string, RegisteredServiceDescriptor> {
     const result = new Map<string, RegisteredServiceDescriptor>();
     for (const [serviceId, entries] of this.entries) {

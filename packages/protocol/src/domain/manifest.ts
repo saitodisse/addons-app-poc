@@ -12,22 +12,24 @@ export interface ServiceRegistration {
 }
 
 /**
- * Recurso declarado no manifesto (estilo Stremio/Torrentio).
+ * Resource declared in the manifest (Stremio/Torrentio style).
  *
- * Assim como o Torrentio declara `{ name: 'stream', types: ['movie', 'series'] }`,
- * um add-on de texto declara recursos como `catalog`, `search` e `text`.
+ * Just as Torrentio declares `{ name: 'stream', types: ['movie', 'series'] }`,
+ * a text add-on declares resources such as `catalog`, `search`, and `text`.
  */
 export type AddonResourceName = 'catalog' | 'search' | 'text' | 'meta' | 'subtitles' | 'stream';
 
 export interface AddonResource {
   name: AddonResourceName;
-  /** Tipos de conteúdo que este recurso atende (ex.: 'text', 'quote'). */
+  /** Content types served by this resource (for example, 'text' or 'quote'). */
   types: string[];
-  /** Prefixos de id aceitos (ex.: 'tt' para IMDb, como o Torrentio). */
+  /** Accepted ID prefixes (for example, 'tt' for IMDb, as in Torrentio). */
   idPrefixes?: string[];
+  /** Languages accepted by the resource when it offers language selection. */
+  languages?: string[];
 }
 
-/** Catálogo anunciado no manifesto (estilo Stremio). */
+/** Catalog announced in the manifest (Stremio style). */
 export interface AddonCatalog {
   type: string;
   id: string;
@@ -42,9 +44,9 @@ export interface AddonManifest {
   author: string;
   icon?: string;
   license: string;
-  /** Contrato obrigatório e verificável de todas as interações declaradas. */
+  /** Required and verifiable contract for all declared interactions. */
   contract: AddonInteractionContract;
-  /** Formato em processo: bundle ESM + setup. */
+  /** In-process format: ESM bundle + setup. */
   entrypoint?: string;
 }
 
@@ -70,7 +72,7 @@ function withoutUndefined<T>(value: T): T {
   return value;
 }
 
-/** Normaliza autoria e devolve somente o formato público, sem campos legados. */
+/** Normalizes metadata and returns only the public format, without legacy fields. */
 export function defineAddonManifest(input: AddonManifestInput): AddonManifest {
   const provided = new Map((input.services ?? []).map((service) => [service.id, service]));
   const contract = input.contract;

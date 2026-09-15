@@ -1,20 +1,20 @@
 # `@addons/addon-favorites`
 
-Add-on em processo que fornece `addons.favorites` `1.0.0`.
+An in-process add-on that provides `addons.favorites` `1.0.0`.
 
-## Por que existe
+## Why it exists
 
-Mantém favoritos como regra de domínio do próprio add-on, sem transformar favoritos em serviço global do protocolo.
+It keeps favorites as a domain rule owned by the add-on instead of turning favorites into a global protocol service.
 
-## O que oferece
+## What it offers
 
-O serviço expõe `list`, `add({ title, url? })` e `remove(id)`. A coleção e o estado visual são declarados em `contract.state`. O provedor `state-store` é opcional; na ausência dele, o add-on usa um armazenamento em memória.
+The service exposes `list`, `add({ title, url? })`, and `remove(id)`. The collection and visual state are declared in `contract.state`. The `state-store` provider is optional; without it, the add-on uses an in-memory store.
 
-## Como executar e testar
+## How to run and test
 
 ```bash
 pnpm --filter @addons/addon-favorites test
 pnpm --filter @addons/addon-favorites serve
 ```
 
-O manifesto fica em `http://localhost:5306/manifest.json`. A mediação de estado passa por `host.services.use`; os helpers de favoritos estão em [`src/bookmarks.ts`](src/bookmarks.ts) e [`src/memory-bookmark-store.ts`](src/memory-bookmark-store.ts).
+The manifest is at `http://localhost:5306/manifest.json`. State mediation goes through `host.services.use`; the favorites helpers are in [`src/bookmarks.ts`](src/bookmarks.ts) and [`src/memory-bookmark-store.ts`](src/memory-bookmark-store.ts).

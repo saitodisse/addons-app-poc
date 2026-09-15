@@ -20,8 +20,8 @@ export interface SearchProvider {
 }
 
 export interface HttpFetcher {
-  /** Busca um recurso por HTTP/API e retorna o corpo como texto. */
+  /** Fetches a resource over HTTP/API and returns its body as text. */
   fetchText(url: string): Promise<string>;
-  /** Busca um recurso e retorna os dados parseados como JSON. */
+  /** Fetches a resource and returns its data parsed as JSON. */
   fetchJson<T = unknown>(url: string): Promise<T>;
 }

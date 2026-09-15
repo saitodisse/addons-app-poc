@@ -14,9 +14,9 @@ function fakeStorage(): Storage {
 }
 
 describe('BrowserStateStore', () => {
-  it('isola, lista e remove apenas as chaves do protocolo', async () => {
+  it('isolates, lists, and removes only protocol keys', async () => {
     const storage = fakeStorage();
-    storage.setItem('externo', 'preservado');
+    storage.setItem('external', 'preserved');
     const store = new BrowserStateStore(storage);
 
     await store.set('hello:tab', { name: 'Ana' });
@@ -25,6 +25,6 @@ describe('BrowserStateStore', () => {
 
     await store.clear();
     expect(await store.get('hello:tab')).toBeUndefined();
-    expect(storage.getItem('externo')).toBe('preservado');
+    expect(storage.getItem('external')).toBe('preserved');
   });
 });

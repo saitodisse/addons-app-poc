@@ -78,9 +78,9 @@ function sanitizeExtractHtml(value: string): string {
 function LoadingState({ title }: { title: string }) {
   return (
     <div className="host-article-state" role="status">
-      <span className="host-article-kicker">Página dedicada</span>
+      <span className="host-article-kicker">Dedicated page</span>
       <h1>{title}</h1>
-      <p>Carregando o conteúdo estruturado e os metadados do artigo…</p>
+      <p>Loading structured content and article metadata…</p>
     </div>
   );
 }
@@ -100,7 +100,7 @@ export function SearchResultPage({ contentUrl, result }: SearchResultPageProps) 
 
     if (!contentUrl) {
       setLoading(false);
-      setError('A rota do artigo não contém uma URL HTTP válida.');
+      setError('The article route does not contain a valid HTTP URL.');
       return () => {
         active = false;
       };
@@ -128,7 +128,7 @@ export function SearchResultPage({ contentUrl, result }: SearchResultPageProps) 
   }, [contentUrl]);
 
   const data = details?.body;
-  const title = plainTextValue(data?.displaytitle) ?? plainTextValue(data?.title) ?? plainTextValue(data?.id) ?? result?.name ?? 'Artigo';
+  const title = plainTextValue(data?.displaytitle) ?? plainTextValue(data?.title) ?? plainTextValue(data?.id) ?? result?.name ?? 'Article';
   const description = textValue(data?.description) ?? result?.description;
   const extract = textValue(data?.extract);
   const extractHtml = textValue(data?.extract_html);
@@ -136,7 +136,7 @@ export function SearchResultPage({ contentUrl, result }: SearchResultPageProps) 
   const originalImage = imageUrl(data?.originalimage);
   const thumbnail = imageUrl(data?.thumbnail);
   const heroImage = originalImage ?? thumbnail;
-  const heroImageLabel = originalImage ? 'Imagem original' : 'Miniatura';
+  const heroImageLabel = originalImage ? 'Original image' : 'Thumbnail';
   const desktopLinks: SearchResultLinks | undefined = data?.content_urls?.desktop;
   const mobileLinks: SearchResultLinks | undefined = data?.content_urls?.mobile;
   const originalArticleUrl = httpUrl(desktopLinks?.page) ?? httpUrl(mobileLinks?.page);
@@ -154,17 +154,17 @@ export function SearchResultPage({ contentUrl, result }: SearchResultPageProps) 
   }, [details, title]);
 
   return (
-    <section className="host-article-page" aria-label={`Artigo ${title}`} aria-busy={loading} lang={language} dir={direction}>
-      <a href="#/" className="host-article-back">← Voltar para os resultados</a>
+    <section className="host-article-page" aria-label={`Article ${title}`} aria-busy={loading} lang={language} dir={direction}>
+      <a href="#/" className="host-article-back">← Back to results</a>
 
       {loading && <LoadingState title={result?.name ?? title} />}
 
       {!loading && error && (
         <div className="host-article-state" role="alert">
-          <span className="host-article-kicker">Não foi possível abrir o artigo</span>
-          <h1>{result?.name ?? 'Resultado da pesquisa'}</h1>
+          <span className="host-article-kicker">Could not open the article</span>
+          <h1>{result?.name ?? 'Search result'}</h1>
           <p>{error}</p>
-          {contentUrl && <code className="host-article-request-url">URL estruturada: {contentUrl.replace(/\/content\.txt(?=$|[?#])/, '/content.json')}</code>}
+          {contentUrl && <code className="host-article-request-url">Structured URL: {contentUrl.replace(/\/content\.txt(?=$|[?#])/, '/content.json')}</code>}
         </div>
       )}
 
@@ -178,19 +178,19 @@ export function SearchResultPage({ contentUrl, result }: SearchResultPageProps) 
           )}
 
           <header className="host-article-header">
-            <span className="host-article-kicker">Artigo da Wikipédia</span>
+            <span className="host-article-kicker">Wikipedia article</span>
             <h1>{title}</h1>
             {description && <p className="host-article-description">{description}</p>}
             {originalArticleUrl && (
               <a className="host-article-original-link" href={originalArticleUrl} target="_blank" rel="noreferrer">
-                Abrir artigo original na Wikipédia ↗
+                Open original Wikipedia article ↗
               </a>
             )}
           </header>
 
           {(sanitizedExtractHtml || extract) && (
             <section className="host-article-section" aria-labelledby="host-article-summary-title">
-              <h2 id="host-article-summary-title">Resumo</h2>
+              <h2 id="host-article-summary-title">Summary</h2>
               {sanitizedExtractHtml
                 ? <div className="host-article-extract" dangerouslySetInnerHTML={{ __html: sanitizedExtractHtml }} />
                 : <p className="host-article-extract">{extract}</p>}
@@ -202,15 +202,15 @@ export function SearchResultPage({ contentUrl, result }: SearchResultPageProps) 
       {hasFallbackContent && (
         <article className="host-article-card">
           <header className="host-article-header">
-            <span className="host-article-kicker">Conteúdo compatível</span>
+            <span className="host-article-kicker">Compatible content</span>
             <h1>{result?.name ?? title}</h1>
             {description && <p className="host-article-description">{description}</p>}
             <a className="host-article-original-link" href={contentUrl ?? '#'} target="_blank" rel="noreferrer">
-              Abrir conteúdo do add-on ↗
+              Open add-on content ↗
             </a>
           </header>
           <section className="host-article-section" aria-labelledby="host-article-fallback-title">
-            <h2 id="host-article-fallback-title">Conteúdo</h2>
+            <h2 id="host-article-fallback-title">Content</h2>
             <pre className="host-article-fallback-content">{fallbackContent}</pre>
           </section>
         </article>

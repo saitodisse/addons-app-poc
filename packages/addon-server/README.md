@@ -1,42 +1,44 @@
 # `@addons/addon-server`
 
-Servidor HTTP ESM para add-ons de recursos de texto.
+ESM HTTP server for text-resource add-ons.
 
-## Por que este pacote existe
+## Why this package exists
 
-Um add-on remoto precisa ser hospedado sem carregar o runtime TypeScript do host. Este pacote concentra apenas o servidor HTTP e a validação do manifesto pelo protocolo público.
+A remote add-on must be hostable without loading the host's TypeScript runtime. This package contains only the HTTP server and manifest validation through the public protocol.
 
-## O que ele oferece
+## What it offers
 
-`createAddonServer` recebe um manifesto v1, uma porta e quatro handlers principais, além de handlers opcionais:
+`createAddonServer` receives a v1 manifest, a port, and four primary handlers, plus optional handlers:
 
-| Handler | Rota | Resposta |
+| Handler | Route | Response |
 | --- | --- | --- |
-| `catalog` | `GET /catalog/{type}/{catalogId}.json?limit=20&cursor=...` | `{ metas: [...], pagination? }` |
-| `search` | `GET /search/{type}/{query}.json?limit=20&cursor=...` | `{ metas: [...], pagination? }` |
-| `text` | `GET /text/{type}/{id}.json` | `{ texts: [{ id, url, lang, name }] }` |
-| `content` | `GET /text/{type}/{id}/content.txt` | texto puro |
-| `contentJson` (opcional) | `GET /text/{type}/{id}/content.json` | objeto estruturado; pode retornar `{ body, headers }` |
-| `debugTraffic` (opcional) | `GET /debug/traffic.json` | histórico local de requests e responses |
+| `catalog` | `GET /catalog/{type}/{catalogId}.json?limit=20&cursor=...&lang=...` | `{ metas: [...], pagination? }` |
+| `search` | `GET /search/{type}/{query}.json?limit=20&cursor=...&lang=...` | `{ metas: [...], pagination? }` |
+| `text` | `GET /text/{type}/{id}.json?lang=...` | `{ texts: [{ id, url, lang, name }] }` |
+| `content` | `GET /text/{type}/{id}/content.txt?lang=...` | plain text |
+| `contentJson` (optional) | `GET /text/{type}/{id}/content.json?lang=...` | structured object; may return `{ body, headers }` |
+| `debugTraffic` (optional) | `GET /debug/traffic.json` | local request and response history |
 
-Também publica `GET /manifest.json`, responde CORS para a demonstração local,
-converte URLs relativas de conteúdo em URLs absolutas do servidor e repassa
-`limit` e `cursor` aos handlers de catálogo e busca. O cursor é opaco para o
-servidor comum: cada add-on decide como interpretá-lo.
+It also publishes `GET /manifest.json`, enables CORS for the local demonstration,
+turns relative content URLs into absolute server URLs, and forwards `limit`,
+`cursor`, and the optional `lang` parameter to handlers. The cursor and
+language are opaque to the shared server: each add-on decides how to interpret
+them. An add-on that offers languages should announce them in
+`contract.resources[].languages`.
 
-`contentJson` é uma extensão paralela: não altera o texto puro de `content`.
-Quando o handler retorna `{ body, headers }`, o servidor serializa `body` como
-JSON, preserva os headers adicionais e calcula `Content-Length` para o corpo
-entregue.
+`contentJson` is a parallel extension and does not change plain `content` text.
+When a handler returns `{ body, headers }`, the server serializes `body` as JSON,
+preserves additional headers, and calculates `Content-Length` for the delivered
+body.
 
-Quando `handlers.debugTraffic` é fornecido, o servidor também publica um
-histórico local. `onTraffic` recebe cada request de entrada e response de
-saída, incluindo URL, headers, status, duração e corpo completo. A rota de
-debug não registra a própria leitura para não criar um ciclo de observabilidade.
-Cabeçalhos de autenticação, sessão, chave de API e IP são redigidos antes do
-registro; os demais campos continuam disponíveis.
+When `handlers.debugTraffic` is provided, the server also publishes local
+history. `onTraffic` receives every incoming request and outgoing response,
+including URL, headers, status, duration, and complete body. The debug route does
+not record its own read, avoiding an observability cycle. Authentication,
+session, API-key, and IP headers are redacted before recording; other fields
+remain available.
 
-## Como usar
+## How to use
 
 ```js
 import { createAddonServer } from '@addons/addon-server';
@@ -51,20 +53,23 @@ const server = await createAddonServer({
 console.log(server.manifestUrl);
 ```
 
-O servidor chama `validateManifest` de `@addons-poc/protocol` antes de abrir a porta. O manifesto deve declarar `contract.resources`, as interações HTTP de entrada e todo I/O externo em `contract.http`. O pacote usa JavaScript ESM e não tem dependências externas de runtime além do protocolo público.
+The server calls `validateManifest` from `@addons-poc/protocol` before opening
+the port. The manifest must declare `contract.resources`, incoming HTTP
+interactions, and all external I/O in `contract.http`. The package uses ESM
+JavaScript and has no external runtime dependencies beyond the public protocol.
 
-## Desenvolvimento
+## Development
 
 ```bash
 pnpm --filter @addons/addon-server test
 pnpm --filter @addons/addon-text-wikipedia serve
 ```
 
-O consumidor restante está documentado no [índice dos pacotes](../../docs/PACKAGES.md). O host conhece somente a URL do manifesto; não importa este servidor nem os handlers de um add-on específico.
+The remaining consumer is documented in the [package index](../../docs/PACKAGES.md). The host knows only the manifest URL; it does not import this server or the handlers of a specific add-on.
 
-## Limites
+## Limits
 
-Este servidor não é sandbox. O callback `onTraffic` só observa as requisições
-que o servidor recebe e as respostas que entrega; cada handler precisa registrar
-as chamadas de rede externas que fizer. O add-on é confiável para a POC e deve
-declarar seus destinos externos no manifesto para revisão humana.
+This server is not a sandbox. The `onTraffic` callback only observes requests
+received by the server and responses it delivers; each handler must record the
+external network calls it makes. The add-on is trusted for this POC and should
+declare its external destinations in the manifest for human review.

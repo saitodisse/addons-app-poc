@@ -1,31 +1,31 @@
 /**
- * Favoritos/lectura: dominio puro del servicio `bookmarks`.
+ * Favorites/reading: pure domain for the `bookmarks` service.
  *
- * Definido como en Fase 2 — interfaces tipadas que los add-ons implementan
- * explícitamente con `withFallback` cuando hay varias implementaciones.
+ * Defined as in Phase 2: typed interfaces that add-ons explicitly implement
+ * with `withFallback` when there are multiple implementations.
  */
 
-/** Un marcador guardado por el servicio de favoritos. */
+/** A bookmark saved by the favorites service. */
 export interface Bookmark {
   id: string;
   title: string;
-  /** Origen opcional (URL del contenido leído). */
+  /** Optional source (URL of the content read). */
   url?: string;
-  /** Marca de tiempo de creación (ms). */
+  /** Creation timestamp (ms). */
   createdAt: number;
 }
 
-/** Puerto de almacenamiento persistente de marcadores. */
+/** Persistent bookmark storage port. */
 export interface BookmarkStore {
-  /** Devuelve todos los marcadores (orden de más reciente a más antiguo). */
+  /** Returns all bookmarks, newest first. */
   list(): Promise<Bookmark[]>;
-  /** Guarda un marcador; asigna id y createdAt si faltan. */
+  /** Saves a bookmark; assigns id and createdAt when absent. */
   save(bookmark: Omit<Bookmark, 'id' | 'createdAt'> & Partial<Pick<Bookmark, 'id' | 'createdAt'>>): Promise<Bookmark>;
-  /** Elimina un marcador por id; devuelve true si existía. */
+  /** Removes a bookmark by ID; returns true if it existed. */
   remove(id: string): Promise<boolean>;
 }
 
-/** Contrato del servicio `favorites` que registra `addon-favorites`. */
+/** Contract for the `favorites` service registered by `addon-favorites`. */
 export interface FavoritesService {
   list(): Promise<Bookmark[]>;
   add(title: string, url?: string): Promise<Bookmark>;

@@ -20,10 +20,10 @@ export function AddonDetailPanel({ addon, loading, selectedManifestUrl }: AddonD
     );
   }
   if (loading) {
-    return <p style={{ margin: 0, color: '#94a3b8', fontSize: 14 }}>Carregando extensão instalada…</p>;
+    return <p style={{ margin: 0, color: '#94a3b8', fontSize: 14 }}>Loading installed add-on…</p>;
   }
   if (selectedManifestUrl) {
-    return <p style={{ margin: 0, color: '#94a3b8', fontSize: 14 }}>Esta extensão não está ativa.</p>;
+    return <p style={{ margin: 0, color: '#94a3b8', fontSize: 14 }}>This add-on is not active.</p>;
   }
-  return <p style={{ margin: 0, color: '#94a3b8', fontSize: 14 }}>Selecione uma extensão ativa na lista.</p>;
+  return <p style={{ margin: 0, color: '#94a3b8', fontSize: 14 }}>Select an active add-on from the list.</p>;
 }

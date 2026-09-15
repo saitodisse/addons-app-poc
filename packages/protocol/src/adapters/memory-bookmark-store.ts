@@ -1,8 +1,8 @@
 import type { Bookmark, BookmarkStore } from '../domain/bookmarks';
 
 /**
- * Implementación en memoria de BookmarkStore (pure, sin I/O).
- * Útil para pruebas y como fallback cuando no hay localStorage (entorno Node).
+ * In-memory implementation of BookmarkStore (pure, without I/O).
+ * Useful for tests and as a fallback when localStorage is unavailable (Node).
  */
 export class MemoryBookmarkStore implements BookmarkStore {
   private items = new Map<string, Bookmark>();

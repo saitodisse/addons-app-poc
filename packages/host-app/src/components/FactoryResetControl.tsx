@@ -44,17 +44,17 @@ export function FactoryResetControl({ disabled = false, onReset }: FactoryResetC
       setConfirmed(false);
       setCompleted(true);
     } catch (resetError) {
-      setError((resetError as Error).message || 'Não foi possível concluir o reset de fábrica.');
+      setError((resetError as Error).message || 'Could not complete the factory reset.');
     } finally {
       setResetting(false);
     }
   };
 
   return (
-    <section aria-label="Reset de fábrica" style={{ marginTop: 8, padding: 16, border: '1px solid rgba(239,68,68,0.28)', borderRadius: 10, background: 'rgba(127,29,29,0.12)' }}>
-      <h2 style={{ margin: '0 0 6px', color: '#fecaca', fontSize: 14 }}>Reset de fábrica</h2>
+    <section aria-label="Factory reset" style={{ marginTop: 8, padding: 16, border: '1px solid rgba(239,68,68,0.28)', borderRadius: 10, background: 'rgba(127,29,29,0.12)' }}>
+      <h2 style={{ margin: '0 0 6px', color: '#fecaca', fontSize: 14 }}>Factory reset</h2>
       <p style={{ margin: '0 0 12px', color: '#cbd5e1', fontSize: 13, lineHeight: 1.5 }}>
-        Remove as extensões instaladas, as configurações do host e os estados salvos pelo protocolo neste navegador.
+        Removes installed add-ons, host settings, and protocol state saved in this browser.
       </p>
       <button
         type="button"
@@ -66,17 +66,17 @@ export function FactoryResetControl({ disabled = false, onReset }: FactoryResetC
         disabled={disabled || resetting}
         style={{ padding: '9px 12px', border: '1px solid rgba(248,113,113,0.48)', borderRadius: 7, background: 'rgba(239,68,68,0.16)', color: '#fecaca', cursor: disabled || resetting ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700, opacity: disabled || resetting ? 0.55 : 1 }}
       >
-        Resetar de fábrica
+        Factory reset
       </button>
-      {completed && <p role="status" style={{ margin: '10px 0 0', color: '#86efac', fontSize: 12 }}>Host restaurado ao estado inicial. Nenhuma extensão está instalada.</p>}
+      {completed && <p role="status" style={{ margin: '10px 0 0', color: '#86efac', fontSize: 12 }}>Host restored to its initial state. No add-ons are installed.</p>}
       {error && <p role="alert" style={{ margin: '10px 0 0', color: '#fca5a5', fontSize: 12 }}>{error}</p>}
 
       {open && (
         <div role="dialog" aria-modal="true" aria-labelledby="factory-reset-title" aria-describedby="factory-reset-description" style={{ position: 'fixed', inset: 0, zIndex: 20, display: 'grid', placeItems: 'center', padding: 20, background: 'rgba(2,6,23,0.78)' }}>
           <div style={{ width: 'min(100%, 520px)', padding: 20, border: '1px solid rgba(248,113,113,0.42)', borderRadius: 12, background: '#1e293b', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
-            <h2 id="factory-reset-title" style={{ margin: '0 0 8px', color: '#f8fafc', fontSize: 20 }}>Confirmar reset de fábrica</h2>
+            <h2 id="factory-reset-title" style={{ margin: '0 0 8px', color: '#f8fafc', fontSize: 20 }}>Confirm factory reset</h2>
             <p id="factory-reset-description" style={{ margin: '0 0 16px', color: '#cbd5e1', fontSize: 13, lineHeight: 1.55 }}>
-              Esta ação remove todas as extensões instaladas, contratos aceitos, limites de busca e estados do protocolo. Depois, as extensões poderão ser instaladas novamente pelas suas URLs.
+              This action removes all installed add-ons, accepted contracts, search limits, and protocol state. Add-ons can be installed again from their URLs afterward.
             </p>
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, color: '#f1f5f9', fontSize: 13, lineHeight: 1.45 }}>
               <input
@@ -87,11 +87,11 @@ export function FactoryResetControl({ disabled = false, onReset }: FactoryResetC
                 disabled={resetting}
                 style={{ marginTop: 2, accentColor: '#ef4444' }}
               />
-              <span>Entendo que os dados locais do host e todas as extensões instaladas serão removidos.</span>
+              <span>I understand that the host's local data and all installed add-ons will be removed.</span>
             </label>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
-              <button type="button" onClick={close} disabled={resetting} style={{ padding: '9px 12px', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 7, background: 'rgba(255,255,255,0.04)', color: '#cbd5e1', cursor: resetting ? 'not-allowed' : 'pointer', fontSize: 12 }}>Cancelar</button>
-              <button type="button" onClick={() => void reset()} disabled={!confirmed || resetting} style={{ padding: '9px 12px', border: 'none', borderRadius: 7, background: confirmed && !resetting ? '#dc2626' : 'rgba(127,29,29,0.5)', color: '#fff', cursor: !confirmed || resetting ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700 }}>{resetting ? 'Resetando…' : 'Confirmar reset'}</button>
+              <button type="button" onClick={close} disabled={resetting} style={{ padding: '9px 12px', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 7, background: 'rgba(255,255,255,0.04)', color: '#cbd5e1', cursor: resetting ? 'not-allowed' : 'pointer', fontSize: 12 }}>Cancel</button>
+              <button type="button" onClick={() => void reset()} disabled={!confirmed || resetting} style={{ padding: '9px 12px', border: 'none', borderRadius: 7, background: confirmed && !resetting ? '#dc2626' : 'rgba(127,29,29,0.5)', color: '#fff', cursor: !confirmed || resetting ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700 }}>{resetting ? 'Resetting…' : 'Confirm reset'}</button>
             </div>
           </div>
         </div>

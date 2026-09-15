@@ -8,30 +8,30 @@ export const manifest = defineAddonManifest({
   id: 'favorites',
   version: '1.0.0',
   name: 'Favorites Add-on',
-  description: 'Favoritos que persistem somente quando um add-on de armazenamento está ativo',
-  author: 'Equipe AC',
+  description: 'Favorites that persist only when a storage add-on is active',
+  author: 'AC Team',
   license: 'MIT',
   ui: {
-    title: '⭐ Favoritos',
-    body: 'Guarde, consulte e remova favoritos usando o armazenamento do host.',
+    title: '⭐ Favorites',
+    body: 'Save, browse, and remove favorites using host storage.',
   },
   entrypoint: '/packages/addon-favorites/dist/bundle.js',
   services: [
-    { id: 'addons.favorites', version: '1.0.0', name: 'Favorites', description: 'Lista/adiciona/remove favoritos' },
+    { id: 'addons.favorites', version: '1.0.0', name: 'Favorites', description: 'Lists/adds/removes favorites' },
   ],
   contract: {
     version: '1.0.0',
     protocol: { version: '1.0.0', range: '^1.0.0' },
     capabilities: { required: [], optional: ['registry.services', 'ui.tab', 'logs', 'state-store'] },
-    services: [{ id: 'addons.favorites', role: 'provides', version: '1.0.0', description: 'Lista, inclui e remove favoritos.', methods: [{ id: 'list', description: 'Lista favoritos.', returns: { description: 'Lista de favoritos.', schema: { type: 'array', description: 'Favoritos salvos.', classification: 'personal' } } }, { id: 'add', description: 'Inclui um favorito.', receives: { description: 'Título e URL opcional.', schema: { type: 'object', description: 'Dados do favorito.', classification: 'personal', properties: { title: { type: 'string', description: 'Título do favorito.', classification: 'personal' }, url: { type: 'string', description: 'URL opcional.', classification: 'personal', format: 'uri' } }, required: ['title'] } }, returns: { description: 'Favorito criado.', schema: { type: 'object', description: 'Favorito salvo.', classification: 'personal' } } }, { id: 'remove', description: 'Remove um favorito pelo ID.', receives: { description: 'ID do favorito.', schema: { type: 'string', description: 'Identificador do favorito.', classification: 'personal' } }, returns: { description: 'Indica se houve remoção.', schema: { type: 'boolean', description: 'Resultado da remoção.', classification: 'public' } } }] }, { id: 'state-store', role: 'consumes', version: '1.0.0', description: 'Persiste favoritos quando disponível.', required: false, methods: [{ id: 'get', description: 'Lê favoritos.' }, { id: 'set', description: 'Grava favoritos.' }] }],
-    ui: { fields: [{ id: 'title', label: 'Título', description: 'Nome do favorito.', required: true, schema: { type: 'string', description: 'Título informado.', classification: 'personal' } }, { id: 'url', label: 'URL', description: 'Endereço opcional associado ao favorito.', schema: { type: 'string', description: 'URL informada.', classification: 'personal', format: 'uri' } }, { id: 'id', label: 'ID para remover', description: 'Identificador do favorito a remover.', required: true, schema: { type: 'string', description: 'ID informado.', classification: 'personal' } }], actions: [{ id: 'add', label: 'Adicionar', description: 'Salva um favorito.', receives: ['title', 'url'], returns: { description: 'Favorito salvo.', schema: { type: 'object', description: 'Resposta da inclusão.', classification: 'personal' } } }, { id: 'list', label: 'Listar', description: 'Mostra favoritos salvos.', returns: { description: 'Lista de favoritos.', schema: { type: 'array', description: 'Favoritos.', classification: 'personal' } } }, { id: 'remove', label: 'Remover', description: 'Remove o favorito pelo ID.', receives: ['id'], returns: { description: 'Resultado da remoção.', schema: { type: 'object', description: 'Resposta da remoção.', classification: 'public' } } }] },
-    state: [{ id: 'list', description: 'Lista de favoritos criados pela pessoa.', key: 'favorites:list', operations: ['read', 'write', 'remove'], value: { description: 'Favoritos salvos.', schema: { type: 'array', description: 'Favoritos.', classification: 'personal' } }, retention: 'Enquanto o provedor de armazenamento escolhido pelo host conservar o estado.', deletionTrigger: 'Remoção individual, limpeza do provedor ou dados do navegador.', fallback: 'memory' }, { id: 'tab', description: 'Campos e última resposta da aba.', key: 'favorites:tab', operations: ['read', 'write'], value: { description: 'Estado visual da aba.', schema: { type: 'object', description: 'Campos e resposta.', classification: 'personal' } }, retention: 'Enquanto o provedor conservar o estado.', deletionTrigger: 'Limpeza do provedor ou dados do navegador.', fallback: 'memory' }],
+    services: [{ id: 'addons.favorites', role: 'provides', version: '1.0.0', description: 'Lists, adds, and removes favorites.', methods: [{ id: 'list', description: 'Lists favorites.', returns: { description: 'Favorite list.', schema: { type: 'array', description: 'Saved favorites.', classification: 'personal' } } }, { id: 'add', description: 'Adds a favorite.', receives: { description: 'Title and optional URL.', schema: { type: 'object', description: 'Favorite data.', classification: 'personal', properties: { title: { type: 'string', description: 'Favorite title.', classification: 'personal' }, url: { type: 'string', description: 'Optional URL.', classification: 'personal', format: 'uri' } }, required: ['title'] } }, returns: { description: 'Created favorite.', schema: { type: 'object', description: 'Saved favorite.', classification: 'personal' } } }, { id: 'remove', description: 'Removes a favorite by ID.', receives: { description: 'Favorite ID.', schema: { type: 'string', description: 'Favorite identifier.', classification: 'personal' } }, returns: { description: 'Indicates whether removal occurred.', schema: { type: 'boolean', description: 'Removal result.', classification: 'public' } } }] }, { id: 'state-store', role: 'consumes', version: '1.0.0', description: 'Persists favorites when available.', required: false, methods: [{ id: 'get', description: 'Reads favorites.' }, { id: 'set', description: 'Writes favorites.' }] }],
+    ui: { fields: [{ id: 'title', label: 'Title', description: 'Favorite name.', required: true, schema: { type: 'string', description: 'Provided title.', classification: 'personal' } }, { id: 'url', label: 'URL', description: 'Optional address associated with the favorite.', schema: { type: 'string', description: 'Provided URL.', classification: 'personal', format: 'uri' } }, { id: 'id', label: 'ID to remove', description: 'Identifier of the favorite to remove.', required: true, schema: { type: 'string', description: 'Provided ID.', classification: 'personal' } }], actions: [{ id: 'add', label: 'Add', description: 'Saves a favorite.', receives: ['title', 'url'], returns: { description: 'Saved favorite.', schema: { type: 'object', description: 'Add response.', classification: 'personal' } } }, { id: 'list', label: 'List', description: 'Shows saved favorites.', returns: { description: 'Favorite list.', schema: { type: 'array', description: 'Favorites.', classification: 'personal' } } }, { id: 'remove', label: 'Remove', description: 'Removes the favorite by ID.', receives: ['id'], returns: { description: 'Removal result.', schema: { type: 'object', description: 'Removal response.', classification: 'public' } } }] },
+    state: [{ id: 'list', description: 'List of favorites created by the person.', key: 'favorites:list', operations: ['read', 'write', 'remove'], value: { description: 'Saved favorites.', schema: { type: 'array', description: 'Favorites.', classification: 'personal' } }, retention: 'While the storage provider selected by the host retains the state.', deletionTrigger: 'Individual removal, provider cleanup, or browser data removal.', fallback: 'memory' }, { id: 'tab', description: 'Fields and the tab’s last response.', key: 'favorites:tab', operations: ['read', 'write'], value: { description: 'Tab visual state.', schema: { type: 'object', description: 'Fields and response.', classification: 'personal' } }, retention: 'While the provider retains the state.', deletionTrigger: 'Provider cleanup or browser data removal.', fallback: 'memory' }],
     http: [],
-    logs: [{ id: 'lifecycle', level: 'info', message: 'Add-on favorites configurado com sucesso', description: 'Confirma a ativação do add-on.' }],
+    logs: [{ id: 'lifecycle', level: 'info', message: 'Favorites add-on configured successfully', description: 'Confirms add-on activation.' }],
   },
 });
 
-/** Serviço de favoritos: consome BookmarkStore (com degradação a memória). */
+/** Favorite service: consumes BookmarkStore with in-memory degradation. */
 export function createFavoritesService(store: BookmarkStore = new MemoryBookmarkStore()) {
   return {
     list: () => store.list(),
@@ -40,7 +40,7 @@ export function createFavoritesService(store: BookmarkStore = new MemoryBookmark
   };
 }
 
-/** Favoritos que migram da memória para o add-on de armazenamento quando ele estiver ativo. */
+/** Favorites that migrate from memory to the storage add-on when it is active. */
 export function createOptionalStateFavoritesService(host: Pick<HostAPI, 'services'>) {
   let transientItems: Bookmark[] = [];
   let nextId = 1;
@@ -84,7 +84,7 @@ export function createOptionalStateFavoritesService(host: Pick<HostAPI, 'service
 
 export function setup(host: HostAPI): void {
   host.registerService('addons.favorites', createOptionalStateFavoritesService(host));
-  host.log('info', 'Add-on favorites configurado com sucesso');
+  host.log('info', 'Favorites add-on configured successfully');
 }
 
 export function createTab(host: HostAPI): AddonTab {
@@ -92,49 +92,49 @@ export function createTab(host: HostAPI): AddonTab {
   return {
     ...manifest.contract.ui,
     fields: [
-      { id: 'title', label: 'Título', placeholder: 'Nome do favorito', required: true },
-      { id: 'url', label: 'URL', type: 'url', placeholder: 'https://exemplo.com' },
-      { id: 'id', label: 'ID para remover', placeholder: 'Copie o ID exibido na lista', required: true },
+      { id: 'title', label: 'Title', placeholder: 'Favorite name', required: true },
+      { id: 'url', label: 'URL', type: 'url', placeholder: 'https://example.com' },
+      { id: 'id', label: 'ID to remove', placeholder: 'Copy the ID shown in the list', required: true },
     ],
     actions: [
-      { id: 'add', label: 'Adicionar' },
-      { id: 'list', label: 'Listar', variant: 'secondary' },
-      { id: 'remove', label: 'Remover', variant: 'danger' },
+      { id: 'add', label: 'Add' },
+      { id: 'list', label: 'List', variant: 'secondary' },
+      { id: 'remove', label: 'Remove', variant: 'danger' },
     ],
     persistence: createTabStatePersistence(host, 'favorites:tab'),
     async run(actionId, values) {
-      if (!favorites) return { status: 'error', body: 'Serviço de favoritos indisponível.' };
+      if (!favorites) return { status: 'error', body: 'Favorites service unavailable.' };
       if (actionId === 'add') {
         const title = values.title?.trim();
         if (!title) {
-          host.log('warn', 'Favorito recusado: título ausente');
-          return { status: 'error', body: 'Digite um título para o favorito.' };
+          host.log('warn', 'Favorite rejected: missing title');
+          return { status: 'error', body: 'Enter a title for the favorite.' };
         }
         const favorite = await favorites.add({ title, url: values.url?.trim() || undefined });
-        host.log('info', 'Favorito adicionado', { id: favorite.id, title: favorite.title });
-        return { status: 'success', title: 'Favorito salvo', body: favorite.title, items: [{ label: 'ID', value: favorite.id }] };
+        host.log('info', 'Favorite added', { id: favorite.id, title: favorite.title });
+        return { status: 'success', title: 'Favorite saved', body: favorite.title, items: [{ label: 'ID', value: favorite.id }] };
       }
       if (actionId === 'remove') {
         const id = values.id?.trim();
         if (!id) {
-          host.log('warn', 'Remoção de favorito recusada: ID ausente');
-          return { status: 'error', body: 'Informe o ID do favorito que deve ser removido.' };
+          host.log('warn', 'Favorite removal rejected: missing ID');
+          return { status: 'error', body: 'Enter the ID of the favorite to remove.' };
         }
         const removed = await favorites.remove(id);
-        host.log(removed ? 'info' : 'warn', 'Remoção de favorito concluída', { id, removed });
-        return { status: removed ? 'success' : 'error', body: removed ? 'Favorito removido.' : 'Favorito não encontrado.' };
+        host.log(removed ? 'info' : 'warn', 'Favorite removal completed', { id, removed });
+        return { status: removed ? 'success' : 'error', body: removed ? 'Favorite removed.' : 'Favorite not found.' };
       }
       if (actionId === 'list') {
         const list = await favorites.list();
-        host.log('info', 'Lista de favoritos consultada', { count: list.length });
+        host.log('info', 'Favorite list retrieved', { count: list.length });
         return {
           status: 'info',
-          title: `${list.length} favorito(s)`,
-          body: list.length ? 'Use o ID para remover um item.' : 'Nenhum favorito salvo.',
+          title: `${list.length} favorite(s)`,
+          body: list.length ? 'Use the ID to remove an item.' : 'No favorites saved.',
           items: list.map((item) => ({ label: item.title, value: `${item.id}${item.url ? ` · ${item.url}` : ''}` })),
         };
       }
-      return { status: 'error', body: 'Ação desconhecida.' };
+      return { status: 'error', body: 'Unknown action.' };
     },
   };
 }

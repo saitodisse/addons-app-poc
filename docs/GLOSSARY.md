@@ -1,58 +1,59 @@
-# Glossário
+# Glossary
 
-Este glossário traduz os nomes técnicos usados no projeto. Leia a definição curta primeiro; a segunda frase aprofunda quando necessário.
+This glossary explains the technical names used in the project. Read the short definition first; the second sentence goes deeper when necessary.
 
-| Termo | Definição progressiva |
+| Term | Progressive definition |
 |---|---|
-| **Adaptador** | Código interno do host que conecta uma regra a uma tecnologia concreta. Adaptadores não fazem parte do pacote público. |
-| **Add-on** | Extensão independente que oferece uma capacidade ao host. Pode ser um módulo executado no host ou um servidor consultado por HTTP. |
-| **AddonInstance** | Registro do resultado de um carregamento. Contém manifesto, URL de identidade, estado, erro opcional e serviços anunciados como carregados. |
-| **AddonLoader** | Runtime interno do host que transforma a URL de um manifesto em uma `AddonInstance`. |
-| **AddonTab** | Descrição executável da aba de um add-on ativo. Contém título, corpo, campos, ações e a função que produz uma resposta. |
-| **state-store** | Serviço oficial opcional que guarda um valor serializável por chave. `storage-local` e `storage-session` o oferecem; sem ele, o add-on mantém somente o estado atual em memória. |
-| **API** | Contrato usado por dois componentes para conversar. Neste projeto, pode ser uma interface TypeScript ou um conjunto de rotas HTTP. |
-| **Bundle** | Arquivo JavaScript pronto para execução. O loader importa o bundle ESM indicado por `entrypoint`. |
-| **Busca global** | Campo fixo do host que consulta recursos HTTP `search` de todos os add-ons ativos. A resposta é agregada na tabela central sem código específico para cada extensão. |
-| **Catálogo** | Coleção navegável anunciada por um add-on HTTP. A rota de catálogo devolve itens no campo `metas`. |
-| **Composição de serviços** | Construção de um serviço a partir de outros serviços do registro. Favoritos, por exemplo, consulta `state-store` sem importar o host. |
-| **Classificação de dado** | Rótulo `public`, `personal` ou `secret` de um dado declarado. Ele explica o tratamento esperado, sem colocar o valor real no manifesto. |
-| **Contrato do protocolo** | Bloco obrigatório `contract` v1 do manifesto. Explica versão, capacidades, serviços, UI, estado, HTTP e logs que um add-on declara. |
-| **Proxy de serviço** | Objeto retornado por `host.services.use(contrato)`. Expõe somente a capacidade declarada e valida as chamadas em runtime. |
-| **CORS** | Regra do navegador para requisições entre origens diferentes. O servidor local libera CORS para que o host na porta `5280` consulte a porta `5294`. |
-| **Domínio** | Parte que contém regras puras. O pacote público evita dependências de React, rede e armazenamento concreto. |
-| **Endpoint** | Combinação de método e rota de uma API HTTP. `GET /manifest.json` é um endpoint. |
-| **Entrypoint** | URL do bundle ESM de um add-on em processo. É usada pelo `FetchAddonLoader` com `import()`. |
-| **ESM** | Formato moderno de módulos JavaScript, abreviação de ECMAScript Modules. Usa `import` e `export`. |
-| **Fallback** | Tentativa explícita de uma alternativa após uma falha. O runtime percorre serviços pela ordem de prioridade; os helpers que fazem isso são internos e não são exportados pelo protocolo público. |
-| **Formato HTTP** | Add-on executado como servidor independente. Declara rotas e schemas em `contract.http`. |
-| **Formato em processo** | Add-on executado no mesmo processo JavaScript do host. Declara serviços em `contract`, aponta um `entrypoint` e exporta `manifest`, `setup` e `createTab`. |
-| **Handler** | Função que responde a uma operação do servidor. O `addon-server` recebe handlers de catálogo, busca, texto e conteúdo. |
-| **Host** | Aplicativo anfitrião que ativa add-ons e usa seus serviços. O `@addons/host-app` atual não contém nem importa implementações de add-on. |
-| **HostAPI** | Pequena API entregue ao add-on durante o `setup`: `services`, `registerService`, `onUnload` e `log`. |
-| **Identidade** | Valor usado para dizer se duas referências apontam para o mesmo add-on. Neste protocolo, é a URL completa do manifesto. |
-| **Instalação persistida** | Configuração local do host com URLs instaladas e extensões desativadas. Ela permite reconstruir o conjunto de add-ons após recarregar, sem persistir automaticamente o estado de cada add-on. |
-| **Impressão digital do contrato** | Identificador local calculado a partir do contrato aceito. Ele detecta mudanças na mesma URL, mas não é assinatura nem prova de autoria. |
-| **Lazy loading** | Carregamento feito apenas quando necessário. O host baixa o texto completo somente depois que o usuário abre um resultado. |
-| **Manifesto** | Documento que apresenta um add-on antes de seu uso. Declara metadados e capacidades em formato compatível com JSON. |
-| **Resposta de aba** | Resultado declarativo de uma ação do add-on, com estado, texto e itens opcionais que o host exibe. Um item pode trazer `details`, o JSON completo que o host revela somente ao clicar nele. |
-| **Revisão de contrato** | Estado em que uma instalação permanece desativada até a pessoa aceitar a nova declaração de interação encontrada na mesma URL. |
-| **Persistência de aba** | Ponte declarada pela própria aba com `load` e `save`. Ela permite ao host restaurar campos e respostas sem saber o significado dos dados. |
-| **Metas** | Lista de metadados devolvida por catálogo e busca. Cada item contém pelo menos `id`, `type` e `name`. |
-| **Linha de resultado** | Forma normalizada que a tabela do host exibe para uma meta de busca: tipo, ID, URL, nome e descrição, com emoji ou imagem opcionais. |
-| **Limite de busca** | Quantidade máxima de linhas que o host aceita de cada add-on em uma consulta. O valor é configurável por manifesto e não altera a API remota. |
-| **Paginação** | Divisão de uma listagem em páginas menores. `limit` escolhe o tamanho solicitado e `cursor`/`next` continua a mesma consulta sem expor a implementação do provedor. |
-| **Porta** | Interface que descreve uma necessidade. Não confundir com porta TCP, como `5294`. |
-| **Prioridade** | Número que ordena implementações do mesmo serviço. Quanto maior o número, mais cedo ela será consultada. |
-| **Processamento externo** | Trabalho que um add-on delega a outra API. Os add-ons de poemas e Wikipédia transformam respostas públicas no contrato desta POC. |
-| **POC** | Prova de conceito. É um experimento para validar uma ideia, não uma promessa de prontidão para produção. |
-| **Recurso** | Capacidade declarada por um add-on HTTP, como `catalog`, `search` ou `text`. Cada recurso corresponde a uma família de rotas. |
-| **Registry** | Registro interno do host. É o ponto de encontro entre quem oferece e quem usa serviços; não é exportado pelo protocolo público. |
-| **Sandbox** | Ambiente isolado que limita o que um código pode acessar. Ainda não existe para os add-ons em processo desta POC. |
-| **SemVer** | Convenção de versão no formato principal, secundária e correção, como `2.4.1`. Provedores publicam `X.Y.Z`; consumidores também podem pedir faixas simples `^X.Y.Z` ou `~X.Y.Z`. |
-| **Descritor de serviço** | Declaração em `contract.services` com identificador namespaceado, papel, versão, métodos e schemas. |
-| **Serviço** | Capacidade oferecida por um add-on ou pelo host. `addons.hello.greeter` e `state-store` são exemplos. |
-| **Setup** | Função que ativa um add-on em processo. Recebe `HostAPI` e normalmente registra uma ou mais implementações. |
-| **Texts** | Lista de opções de conteúdo devolvida pelo recurso `text`. Cada item informa `id`, `url`, `lang` e `name`. |
-| **Validação** | Verificação estrutural feita antes do consumo. Ela reduz entradas inválidas, mas não prova segurança, disponibilidade ou veracidade. |
+| **Adapter** | Host-internal code that connects a rule to a concrete technology. Adapters are not part of the public package. |
+| **Add-on** | An independent extension that provides a capability to the host. It may be a module executed by the host or a server queried over HTTP. |
+| **AddonInstance** | A record of a load result. It contains the manifest, identity URL, state, optional error, and services reported as loaded. |
+| **AddonLoader** | Host-internal runtime that turns a manifest URL into an `AddonInstance`. |
+| **AddonTab** | Executable description of an active add-on's tab. It contains a title, body, fields, actions, and the function that produces a response. |
+| **state-store** | Optional official service that stores a serializable value by key. `storage-local` and `storage-session` provide it; without it, an add-on keeps only its current state in memory. |
+| **API** | A contract used by two components to communicate. In this project, it may be a TypeScript interface or a set of HTTP routes. |
+| **Bundle** | JavaScript file ready for execution. The loader imports the ESM bundle indicated by `entrypoint`. |
+| **Global search** | Fixed host field that queries `search` HTTP resources from all active add-ons. The response is combined in the central table without add-on-specific code. |
+| **Catalog** | Browsable collection announced by an HTTP add-on. The catalog route returns items in the `metas` field. |
+| **Service composition** | Building a service from other services in the registry. Favorites, for example, query `state-store` without importing the host. |
+| **Data classification** | A `public`, `personal`, or `secret` label for declared data. It explains the expected handling without placing the real value in the manifest. |
+| **Protocol contract** | The required `contract` v1 block in a manifest. It explains the version, capabilities, services, UI, state, HTTP, and logs an add-on declares. |
+| **Service proxy** | Object returned by `host.services.use(contract)`. It exposes only the declared capability and validates calls at runtime. |
+| **CORS** | Browser rule for requests between different origins. The local server enables CORS so the host on port `5280` can query port `5294`. |
+| **Domain** | The area containing pure rules. The public package avoids dependencies on React, the network, and concrete storage. |
+| **Endpoint** | Combination of an HTTP method and route. `GET /manifest.json` is an endpoint. |
+| **Entrypoint** | URL of an in-process add-on's ESM bundle. `FetchAddonLoader` uses it with `import()`. |
+| **ESM** | Modern JavaScript module format, short for ECMAScript Modules. It uses `import` and `export`. |
+| **Fallback** | Explicit attempt at an alternative after a failure. The runtime walks through services by priority; the helpers that do this are internal and are not exported by the public protocol. |
+| **HTTP format** | An add-on executed as an independent server. It declares routes and schemas in `contract.http`. |
+| **In-process format** | An add-on executed in the same JavaScript process as the host. It declares services in `contract`, points to an `entrypoint`, and exports `manifest`, `setup`, and `createTab`. |
+| **Handler** | Function that responds to a server operation. `addon-server` receives catalog, search, text, and content handlers. |
+| **Host** | Application that activates add-ons and uses their services. The current `@addons/host-app` contains no add-on implementation and imports none. |
+| **HostAPI** | Small API delivered to an add-on during `setup`: `services`, `registerService`, `onUnload`, and `log`. |
+| **Identity** | Value used to tell whether two references point to the same add-on. In this protocol, it is the complete manifest URL. |
+| **Persisted installation** | Local host configuration with installed URLs and disabled extensions. It allows the add-on set to be rebuilt after reloading without automatically persisting each add-on's state. |
+| **Contract fingerprint** | Local identifier calculated from the accepted contract. It detects changes at the same URL but is not a signature or proof of authorship. |
+| **Lazy loading** | Loading performed only when needed. The host downloads full text only after a user opens a result. |
+| **Manifest** | Document that presents an add-on before use. It declares metadata and capabilities in a JSON-compatible format. |
+| **Tab response** | Declarative result of an add-on action, with state, text, and optional items displayed by the host. An item may include `details`, the full JSON that the host reveals only after a click. |
+| **Contract review** | State in which an installation remains disabled until the person accepts a new interaction declaration found at the same URL. |
+| **Tab persistence** | Bridge declared by the tab itself with `load` and `save`. It lets the host restore fields and responses without knowing what the data means. |
+| **Metas** | List of metadata returned by a catalog or search. Each item contains at least `id`, `type`, and `name`. |
+| **Result row** | Normalized form displayed by the host table for a search meta: type, ID, URL, name, and description, with optional emoji or image. |
+| **Search limit** | Maximum number of rows the host accepts from each add-on in a query. The value is configurable per manifest and does not change the remote API. |
+| **Resource language** | Code declared in `resources[].languages` that states which languages an HTTP resource accepts. The host sends the choice in `lang` and lets the add-on decide how to query its source. |
+| **Pagination** | Splitting a listing into smaller pages. `limit` selects the requested size, and `cursor`/`next` continues the same query without exposing the provider's implementation. |
+| **Port** | Interface that describes a need. Do not confuse it with a TCP port such as `5294`. |
+| **Priority** | Number that orders implementations of the same service. The higher the number, the earlier it is queried. |
+| **External processing** | Work an add-on delegates to another API. The Poems and Wikipedia add-ons transform public responses into this POC's contract. |
+| **POC** | Proof of concept. An experiment used to validate an idea, not a promise of production readiness. |
+| **Resource** | Capability declared by an HTTP add-on, such as `catalog`, `search`, or `text`. Each resource corresponds to a family of routes. |
+| **Registry** | Host-internal registry. It is the meeting point between service providers and consumers; it is not exported by the public protocol. |
+| **Sandbox** | Isolated environment that limits what code can access. The in-process add-ons in this POC do not have one yet. |
+| **SemVer** | Versioning convention using major, minor, and patch parts, such as `2.4.1`. Providers publish `X.Y.Z`; consumers may also request simple ranges such as `^X.Y.Z` or `~X.Y.Z`. |
+| **Service descriptor** | Declaration in `contract.services` with a namespaced identifier, role, version, methods, and schemas. |
+| **Service** | Capability provided by an add-on or the host. `addons.hello.greeter` and `state-store` are examples. |
+| **Setup** | Function that activates an in-process add-on. It receives `HostAPI` and normally registers one or more implementations. |
+| **Texts** | List of content options returned by the `text` resource. Each item states `id`, `url`, `lang`, and `name`. |
+| **Validation** | Structural check performed before consumption. It reduces invalid inputs but does not prove security, availability, or truthfulness. |
 
-O mapa operacional de todos os pacotes está em [`PACKAGES.md`](PACKAGES.md).
+The operational map of all packages is in [`PACKAGES.md`](PACKAGES.md).

@@ -22,7 +22,7 @@ class HostAPIImpl implements HostAPI {
     if (!this.registered.includes(serviceId)) this.registered.push(serviceId);
     const declaration = this.manifest.contract.services.find((service) => service.id === serviceId);
     if (declaration?.priority !== undefined && priority !== undefined && declaration.priority !== priority) {
-      throw new Error(`Prioridade divergente para ${serviceId}: manifesto ${declaration.priority}, registro ${priority}`);
+      throw new Error(`Mismatched priority for ${serviceId}: manifest ${declaration.priority}, registry ${priority}`);
     }
     this.registry.register(serviceId, instance, this.addonId, priority, declaration);
   }
@@ -31,7 +31,7 @@ class HostAPIImpl implements HostAPI {
 
   log(level: 'info' | 'warn' | 'error', message: string, details?: unknown): void {
     const validation = validateLogEvent(this.manifest.contract, level, message, details);
-    if (!validation.valid) throw new Error(`Log rejeitado: ${validation.errors.join('; ')}`);
+    if (!validation.valid) throw new Error(`Log rejected: ${validation.errors.join('; ')}`);
     this.logger.log(level, `[${this.addonId}] ${message}`);
     this.registry.get<DebugLog>('addons.debug.log')?.record({ addonId: this.addonId, level, message, details, timestamp: Date.now() });
   }
@@ -47,13 +47,13 @@ export class FetchAddonLoader {
     let manifest: AddonManifest;
     try {
       const response = await fetch(manifestUrl);
-      if (!response.ok) throw new Error(`HTTP ${response.status} ao buscar manifesto`);
+      if (!response.ok) throw new Error(`HTTP ${response.status} while fetching the manifest`);
       const data = await response.json();
       const validation = validateManifest(data);
-      if (!validation.valid) throw new Error(`Manifesto inválido: ${validation.errors.join(', ')}`);
+      if (!validation.valid) throw new Error(`Invalid manifest: ${validation.errors.join(', ')}`);
       manifest = data as AddonManifest;
     } catch (error) {
-      this.logger.log('error', `Falha ao carregar manifesto: ${(error as Error).message}`);
+      this.logger.log('error', `Failed to load manifest: ${(error as Error).message}`);
       return { manifest: null as unknown as AddonManifest, manifestUrl, status: 'error', error: error as Error, services: [] };
     }
     return this.loadValidated(manifestUrl, manifest);
@@ -66,9 +66,21 @@ export class FetchAddonLoader {
       services: this.registry.describe(),
     });
     if (!compatibility.compatible) {
-      const blocked = compatibility.errors.some((error) => error.startsWith('Serviço obrigatório ausente') || error.startsWith('Método ausente'));
-      const error = new Error(`Contrato incompatível: ${compatibility.errors.join(', ')}`);
-      return { manifest, manifestUrl, status: blocked ? 'blocked' : 'error', error, blockReason: blocked ? compatibility.errors.join(', ') : undefined, services: [] };
+      const requiredConsumers = manifest.contract.services.filter((service) => service.role === 'consumes' && service.required !== false);
+      const describedServices = this.registry.describe();
+      const blockedReasons = requiredConsumers.flatMap((service) => {
+        const provided = describedServices.get(service.id);
+        if (!provided) return [`Missing required service: ${service.id}`];
+        return (service.methods ?? [])
+          .filter((method) => !provided.methods.has(method.id))
+          .map((method) => `Missing method in ${service.id}: ${method.id}`);
+      });
+      const blocked = blockedReasons.length > 0 || compatibility.errors.some((error) => error.startsWith('Missing method in') || error.startsWith('Method not declared'));
+      const error = new Error(`Incompatible contract: ${compatibility.errors.join(', ')}`);
+      const blockReason = blockedReasons.length > 0
+        ? blockedReasons.join(', ')
+        : compatibility.errors.filter((error) => error.startsWith('Missing method in') || error.startsWith('Method not declared')).join(', ');
+      return { manifest, manifestUrl, status: blocked ? 'blocked' : 'error', error, blockReason: blocked ? blockReason : undefined, services: [] };
     }
     if (!manifest.entrypoint) {
       return {
@@ -83,17 +95,17 @@ export class FetchAddonLoader {
     let module: AddonModule;
     try {
       module = await this.importFn(new URL(manifest.entrypoint, manifestUrl).href);
-      if (!module.manifest || typeof module.setup !== 'function' || typeof module.createTab !== 'function') throw new Error('Add-on deve exportar manifest, setup e createTab');
-      // O manifesto remoto é a fonte da URL pública do bundle. O manifesto
-      // exportado pelo bundle pode usar um entrypoint relativo ao projeto de
-      // build, como ocorre nos servidores locais da demonstração.
+      if (!module.manifest || typeof module.setup !== 'function' || typeof module.createTab !== 'function') throw new Error('The add-on must export manifest, setup, and createTab');
+      // The remote manifest is the source of the bundle's public URL. The
+      // manifest exported by the bundle may use a build-project-relative
+      // entrypoint, as local demonstration servers do.
       const bundleManifestForValidation = { ...module.manifest, entrypoint: manifest.entrypoint };
       const moduleValidation = validateManifest(bundleManifestForValidation);
-      if (!moduleValidation.valid) throw new Error(`Manifesto do bundle inválido: ${moduleValidation.errors.join(', ')}`);
-      if (module.manifest.id !== manifest.id || module.manifest.version !== manifest.version) throw new Error('A identidade ou versão do bundle diverge do manifesto instalado');
-      if (getInteractionContractFingerprint(module.manifest.contract) !== getInteractionContractFingerprint(manifest.contract)) throw new Error('O contrato do bundle diverge do manifesto instalado');
+      if (!moduleValidation.valid) throw new Error(`Invalid bundle manifest: ${moduleValidation.errors.join(', ')}`);
+      if (module.manifest.id !== manifest.id || module.manifest.version !== manifest.version) throw new Error('The bundle identity or version differs from the installed manifest');
+      if (getInteractionContractFingerprint(module.manifest.contract) !== getInteractionContractFingerprint(manifest.contract)) throw new Error('The bundle contract differs from the installed manifest');
     } catch (error) {
-      this.logger.log('error', `Falha ao importar bundle: ${(error as Error).message}`);
+      this.logger.log('error', `Failed to import bundle: ${(error as Error).message}`);
       return { manifest, manifestUrl, status: 'error', error: error as Error, services: [] };
     }
     const api = new HostAPIImpl(this.registry, manifestUrl, this.logger, manifest);
@@ -101,7 +113,7 @@ export class FetchAddonLoader {
       await module.setup(api);
       const ui = module.createTab(api);
       const tabValidation = validateTabContract(manifest as unknown as Record<string, unknown>, ui);
-      if (!tabValidation.valid) throw new Error(`A aba diverge do contrato: ${tabValidation.errors.join(', ')}`);
+      if (!tabValidation.valid) throw new Error(`The tab differs from the contract: ${tabValidation.errors.join(', ')}`);
       return { manifest, manifestUrl, status: 'ready', services: api.getRegisteredServiceIds(), ui };
     } catch (error) {
       api.unloadAll();
@@ -110,17 +122,17 @@ export class FetchAddonLoader {
     }
   }
 
-  /** Pré-valida um conjunto de URLs e importa provedores antes dos consumidores. */
+  /** Pre-validates a set of URLs and imports providers before consumers. */
   async loadAll(manifestUrls: string[]): Promise<AddonInstance[]> {
     const inputs: { key: string; manifest: AddonManifest }[] = [];
     const invalid = new Map<string, AddonInstance>();
     for (const manifestUrl of manifestUrls) {
       try {
         const response = await fetch(manifestUrl);
-        if (!response.ok) throw new Error(`HTTP ${response.status} ao buscar manifesto`);
+        if (!response.ok) throw new Error(`HTTP ${response.status} while fetching the manifest`);
         const data = await response.json();
         const validation = validateManifest(data);
-        if (!validation.valid) throw new Error(`Manifesto inválido: ${validation.errors.join(', ')}`);
+        if (!validation.valid) throw new Error(`Invalid manifest: ${validation.errors.join(', ')}`);
         inputs.push({ key: manifestUrl, manifest: data as AddonManifest });
       } catch (error) {
         invalid.set(manifestUrl, { manifest: null as unknown as AddonManifest, manifestUrl, status: 'error', error: error as Error, services: [] });

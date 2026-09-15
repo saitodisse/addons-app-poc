@@ -1,160 +1,166 @@
-# A jornada de planejamento
+# The planning journey
 
-Este documento conta como a arquitetura ganhou forma. Ele é uma narrativa histórica, não uma lista de regras atuais. Para consultar contratos vigentes, use `ARCHITECTURE.md`, `DECISIONS.md` e `MANIFEST-SPEC.md`.
+This document tells how the architecture took shape. It is a historical narrative, not a list of current rules. To consult the active contracts, use `ARCHITECTURE.md`, `DECISIONS.md`, and `MANIFEST-SPEC.md`.
 
-## Estado atual após o protocolo público v1
+## Current state after public protocol v1
 
-O plano histórico foi convertido em uma implementação compatível com `@addons-poc/protocol@1.0.0`. O antigo núcleo misturava registro, loader e helpers de domínio; hoje o pacote público contém somente contrato, schema, validadores e SDK, enquanto loader, registry, status e adaptadores vivem em `packages/host-app/src/runtime`. Todos os manifestos usam uma única seção `contract` v1, inclusive os servidores HTTP, e todos os add-ons têm README próprio no [índice de pacotes](PACKAGES.md).
+The historical plan became an implementation compatible with
+`@addons-poc/protocol@1.0.0`. The old core mixed the registry, loader, and domain
+helpers; today the public package contains only the contract, schema, validators,
+and SDK, while the loader, registry, status, and adapters live in
+`packages/host-app/src/runtime`. All manifests use one `contract` v1 section,
+including HTTP servers, and every add-on has its own README in the [package
+index](PACKAGES.md).
 
-`@addons-poc/protocol@1.0.0` foi publicado no npm depois da confirmação da
-conta e da propriedade do escopo `@addons-poc`. Os consumidores agora apontam
-para a versão do registry, sem compatibilidade automática com o formato legado
-nem publicação em outro nome.
+`@addons-poc/protocol@1.0.0` was published to npm after confirming the account
+and ownership of the `@addons-poc` scope. Consumers now point to the registry
+version, with no automatic compatibility with the legacy format and no
+publication under another name.
 
-## 1. O incômodo inicial
+## 1. The initial discomfort
 
-A conversa começou com um problema comum em sistemas modulares: partes que deveriam ser substituíveis estavam ligadas por dependências diretas. Trocar uma implementação significava alterar importações, reconstruir aplicações e coordenar versões de muitas peças ao mesmo tempo.
+The conversation started with a common problem in modular systems: parts that should have been replaceable were connected by direct dependencies. Replacing an implementation meant changing imports, rebuilding applications, and coordinating many versions at once.
 
-O contexto que inspirou a conversa envolvia outros projetos, mas a conclusão foi criar esta POC como um laboratório independente. O `addons-app-poc` não faz parte do ecossistema AC nem depende dele.
+The context that inspired the conversation involved other projects, but the conclusion was to create this POC as an independent laboratory. The `addons-app-poc` is not part of the AC ecosystem and does not depend on it.
 
-## 2. A primeira ideia: pedir capacidades, não pacotes
+## 2. The first idea: request capabilities, not packages
 
-A inspiração inicial veio de contêineres de serviços e inversão de controle. O nome técnico é menos importante que a mudança de pergunta.
+The initial inspiration came from service containers and inversion of control. The technical name matters less than the change in the question.
 
-Em vez de escrever “importe exatamente o pacote X”, o consumidor diz “preciso de algo que cumpra o contrato Y”. Um registro apresenta a implementação disponível.
+Instead of writing “import exactly package X,” the consumer says “I need something that fulfills contract Y.” A registry presents the available implementation.
 
-Isso trouxe a primeira peça do desenho: o `ServiceRegistry`.
+This brought the first design component: `ServiceRegistry`.
 
 ```text
-consumidor ── pede "greeter" ──► registro
+consumer ── requests "greeter" ──► registry
                                       ▲
-                                      │ registra "greeter"
+                                      │ registers "greeter"
                                     add-on
 ```
 
-O registro resolveria o acoplamento dentro do processo. Ainda faltava entender como publicar, descobrir e substituir extensões de forma independente.
+The registry would solve coupling inside the process. It was still necessary to understand how to publish, discover, and replace extensions independently.
 
-## 3. O manifesto entra na história
+## 3. The manifest enters the story
 
-Um add-on precisava se apresentar antes de executar. Nasceu então o manifesto: um objeto legível que declara nome, versão, autoria, licença e capacidades.
+An add-on needed to introduce itself before executing. The manifest was born: a readable object that declares name, version, authorship, license, and capabilities.
 
-A decisão mais importante foi usar a **URL do manifesto como identidade**. O campo `id` poderia continuar amigável, mas a localização completa seria o valor estável usado pelo host.
+The most important decision was to use the **manifest URL as identity**. The `id` field could remain friendly, but the complete location would be the stable value used by the host.
 
-Essa escolha abriu uma possibilidade: o add-on poderia morar fora do repositório e ser encontrado por endereço.
+This choice opened a possibility: the add-on could live outside the repository and be found by address.
 
-## 4. A lição do Stremio
+## 4. The Stremio lesson
 
-O protocolo do Stremio mostrou uma fronteira útil. O aplicativo principal não precisa importar todo add-on; pode conversar com servidores independentes por um conjunto previsível de recursos.
+Stremio's protocol showed a useful boundary. The main application does not need to import every add-on; it can communicate with independent servers through a predictable set of resources.
 
-A POC adotou essa organização como referência técnica e a adaptou para textos:
+The POC adopted this organization as a technical reference and adapted it for text:
 
-| Referência de mídia | Adaptação nesta POC |
+| Media reference | Adaptation in this POC |
 |---|---|
-| manifesto remoto | manifesto remoto |
-| catálogo de itens | catálogo de textos, citações, poemas ou páginas |
-| busca | busca na fonte do add-on |
-| opções de legenda | opções de texto com uma URL de conteúdo |
-| conteúdo carregado depois | texto puro carregado sob demanda |
+| remote manifest | remote manifest |
+| item catalog | catalog of texts, quotes, poems, or pages |
+| search | search in the add-on's source |
+| subtitle options | text options with a content URL |
+| content loaded later | plain text loaded on demand |
 
-O objetivo não era copiar um produto inteiro. Era aprender com a separação entre host, contrato e servidor externo.
+The goal was not to copy an entire product. It was to learn from the separation between host, contract, and external server.
 
-## 5. A primeira POC: tudo dentro do processo
+## 5. The first POC: everything in process
 
-Começar por servidores teria misturado rede, protocolo e interface cedo demais. O primeiro degrau foi menor:
+Starting with servers would have mixed networking, protocol, and interface too early. The first step was smaller:
 
-1. definir `AddonManifest`;
-2. validar o objeto;
-3. criar `ServiceRegistry`;
-4. definir `HostAPI`;
-5. carregar um módulo com `manifest` e `setup`;
-6. provar o fluxo com saudação e contador;
-7. mostrar o resultado em um host React.
+1. define `AddonManifest`;
+2. validate the object;
+3. create `ServiceRegistry`;
+4. define `HostAPI`;
+5. load a module with `manifest` and `setup`;
+6. prove the flow with a greeting and counter;
+7. show the result in a React host.
 
-Essa ordem transformou cada abstração em algo observável. O contador provou estado. A saudação provou um contrato simples. O host provou que serviços podiam chegar à interface.
+This order turned every abstraction into something observable. The counter proved state. The greeting proved a simple contract. The host proved that services could reach the interface.
 
-## 6. O grilling: perguntas que endureceram o desenho
+## 6. The grilling: questions that hardened the design
 
-O planejamento foi submetido a perguntas difíceis. As respostas viraram decisões duráveis:
+The plan was subjected to difficult questions. The answers became durable decisions:
 
-- Como distinguir dois add-ons com o mesmo nome? Pela URL do manifesto.
-- Como inspecionar antes de executar? Separando `manifest` e `setup`.
-- Quanto do host deve ser exposto? Apenas um `HostAPI` pequeno.
-- Onde produtores e consumidores se encontram? No `ServiceRegistry`.
-- Quem vence quando há concorrência? A maior prioridade explícita.
-- O que acontece se a ativação falhar? A instância entra em erro.
-- O que acontece se o serviço preferido falhar? O fallback tenta o próximo.
-- Qual formato de módulo usar? ESM nativo.
-- O que merece testes primeiro? As regras críticas do protocolo.
+- How do we distinguish two add-ons with the same name? By manifest URL.
+- How do we inspect before executing? By separating `manifest` and `setup`.
+- How much of the host should be exposed? Only a small `HostAPI`.
+- Where do providers and consumers meet? In `ServiceRegistry`.
+- Who wins when there is competition? The highest explicit priority.
+- What happens if activation fails? The instance enters an error state.
+- What happens if the preferred service fails? Fallback tries the next one.
+- Which module format should be used? Native ESM.
+- What deserves tests first? The protocol's critical rules.
 
-As respostas completas, incluindo consequências e lacunas atuais, estão em `DECISIONS.md`.
+The complete answers, including current consequences and gaps, are in `DECISIONS.md`.
 
-## 7. O plano B vira parte do protocolo
+## 7. Plan B becomes part of the protocol
 
-Depois que duas implementações puderam coexistir, apareceu uma diferença importante: ordenar não é o mesmo que executar.
+After two implementations could coexist, an important difference appeared: ordering is not the same as execution.
 
-O registro ficou responsável apenas pela lista ordenada. As funções `withFallback` e `withFallbackAsync` receberam a responsabilidade de chamar cada implementação e lidar com exceções; elas permanecem como helpers internos cobertos por testes, não como exportação da biblioteca pública.
+The registry became responsible only for the ordered list. `withFallback` and `withFallbackAsync` received responsibility for calling each implementation and handling exceptions; they remain internal helpers covered by tests, not exports of the public library.
 
-O `addon-hello-pt` tornou a ideia visível. Ele tem prioridade maior, mas falha de propósito para o nome `error`. Nesse momento, o saudador padrão assume.
+`addon-hello-pt` made the idea visible. It has higher priority but intentionally fails for the name `error`. At that point, the default greeter takes over.
 
-Essa demonstração mostrou que substituição não precisa ser uma decisão de build. Pode ser uma decisão de runtime, tomada no instante da chamada.
+This demonstration showed that replacement does not need to be a build decision. It can be a runtime decision made at call time.
 
-## 8. A virada para servidores independentes
+## 8. The turn toward independent servers
 
-Com o fluxo em processo funcionando, o projeto voltou à pergunta maior: um add-on pode morar em qualquer lugar?
+After the in-process flow worked, the project returned to the larger question: can an add-on live anywhere?
 
-Surgiu o segundo formato. Um add-on HTTP omite `entrypoint`, declara `resources`, `types` e `catalogs` dentro da mesma seção `contract` e responde por HTTP. O host não executa o servidor; faz requisições HTTP.
+The second format appeared. An HTTP add-on omits `entrypoint`, declares `resources`, `types`, and `catalogs` inside the same `contract` section, and responds over HTTP. The host does not execute the server; it makes HTTP requests.
 
-O `@addons/addon-server` foi criado para reduzir o trabalho repetitivo. Um add-on fornece quatro funções, e o framework monta manifesto, catálogo, busca, opções de texto e conteúdo.
+`@addons/addon-server` was created to reduce repetitive work. An add-on supplies four functions, and the framework builds the manifest, catalog, search, text options, and content routes.
 
-Três fontes provaram aspectos diferentes:
+Three sources proved different aspects:
 
-- a Biblioteca mostrou conteúdo local ao servidor;
-- Citações mostrou transformação de uma API simples;
-- Poemas mostrou busca e leitura a partir de uma API externa.
+- the Library showed content local to the server;
+- Web Quotes showed transformation of a simple API;
+- Poems showed search and reading from an external API.
 
-Depois, a Wikipédia acrescentou uma quarta fonte e reforçou que o mesmo contrato podia esconder APIs de origem diferentes.
+Wikipedia later added a fourth source and reinforced that the same contract could hide different source APIs.
 
-## 9. Entrega sob demanda
+## 9. On-demand delivery
 
-Enviar textos completos durante uma busca seria desperdício. A solução foi adaptar o formato de opções de legenda: o add-on devolve metadados e uma URL, e o host busca o conteúdo quando o usuário abre o item.
+Sending complete texts during a search would waste bandwidth. The solution was to adapt the subtitle-options format: the add-on returns metadata and a URL, and the host fetches content when the user opens the item.
 
 ```text
-busca ──► metadados ──► escolha ──► opções de texto ──► conteúdo
+search ──► metadata ──► choice ──► text options ──► content
 ```
 
-Essa sequência mantém respostas iniciais pequenas e permite mais de uma versão ou idioma no futuro.
+This sequence keeps initial responses small and allows more than one version or language in the future.
 
-## 10. Add-ons começam a colaborar
+## 10. Add-ons start collaborating
 
-Depois de provar add-ons isolados, a POC passou a demonstrar composição:
+After proving isolated add-ons, the POC began demonstrating composition:
 
-- o agregador consulta vários servidores e mescla resultados;
-- favoritos usa um armazenamento oferecido pelo host;
-- health check consulta os mesmos servidores para medir disponibilidade;
-- o formatador mantém suas regras puras no add-on que o utiliza.
+- the aggregator queries several servers and merges results;
+- Favorites uses storage provided by the host;
+- Health queries the same servers to measure availability;
+- the formatter keeps its pure rules in the add-on that uses it.
 
-O ponto central é que nenhuma dessas extensões importa outra extensão. Elas conhecem contratos ou URLs, e o registro continua sendo a fronteira dentro do processo.
+The central point is that none of these extensions imports another extension. They know contracts or URLs, and the registry remains the boundary inside the process.
 
-## 11. O que aprendemos com a implementação
+## 11. What implementation taught us
 
-O código revelou diferenças entre uma arquitetura desenhada e uma arquitetura realmente demonstrada. A tela de Configurações passou a buscar manifestos por URL, exibir o contrato de interação antes da instalação e restaurar as escolhas após F5. Para módulos em processo, ela chama o `FetchAddonLoader`; para manifestos HTTP, preserva a declaração e sua aba genérica.
+The code revealed differences between a designed architecture and one actually demonstrated. The Settings screen began fetching manifests by URL, displaying the interaction contract before installation, and restoring choices after F5. For in-process modules it calls `FetchAddonLoader`; for HTTP manifests it preserves the declaration and its generic tab.
 
-Essa evolução também deixou claro o que a revisão de contrato faz e o que ela não faz. A impressão digital aceita detecta uma alteração na mesma URL e bloqueia a reativação até nova leitura, mas não prova autoria nem impede código em processo de usar APIs do navegador.
+This evolution also made clear what contract review does and does not do. The accepted fingerprint detects a change at the same URL and blocks reactivation until it is read again, but it does not prove authorship or prevent in-process code from using browser APIs.
 
-A limpeza básica após falha de `setup` já existe: o loader chama callbacks de `onUnload`, remove os serviços registrados e devolve estado `error`. Ainda falta garantir essa recuperação quando um callback de limpeza falha e executar os callbacks ao desativar ou remover uma instância ativa. Para manifestos HTTP sem `entrypoint`, a aba atual apresenta apenas título e descrição; catálogo, busca e leitura ainda precisam de uma interface genérica.
+Basic cleanup after `setup` failure already exists: the loader calls `onUnload` callbacks, removes registered services, and returns `error` state. It still needs to guarantee recovery when a cleanup callback fails and to run callbacks when disabling or removing an active instance. For HTTP manifests without `entrypoint`, the current tab shows only title and description; catalog, search, and reading still need a generic interface.
 
-Registrar essas diferenças é parte do resultado da POC. Um experimento é valioso justamente quando mostra quais peças da ideia são simples e quais exigem desenho adicional.
+Recording these differences is part of the POC's result. An experiment is valuable precisely when it shows which parts of an idea are simple and which need additional design.
 
-## 12. A direção daqui para frente
+## 12. The direction from here
 
-Com o protocolo público v1 entregue, a continuação começa pelo ciclo de vida:
+With public protocol v1 delivered, continuation starts with the lifecycle:
 
-1. completar o unload ao desativar ou remover add-ons e garantir a limpeza mesmo quando um callback falhar;
-2. apresentar catálogo, busca e leitura HTTP de modo genérico, com validação das respostas;
-3. permitir editar prioridades e melhorar as mensagens de incompatibilidade;
-4. armazenar manifestos em cache e definir atualização, preservando a revisão de contratos alterados;
-5. investigar isolamento real.
+1. complete unloading when disabling or removing add-ons and ensure cleanup even when a callback fails;
+2. present catalog, search, and HTTP reading generically, with response validation;
+3. allow priority editing and improve incompatibility messages;
+4. cache manifests and define updates while preserving review of changed contracts;
+5. investigate real isolation.
 
-Quando essas etapas existirem, a POC poderá responder uma pergunta mais exigente: não apenas “o protocolo funciona?”, mas “ele continua compreensível e seguro quando add-ons deixam de ser confiáveis?”.
+When these steps exist, the POC can answer a more demanding question: not only “does the protocol work?” but “does it remain understandable and safe when add-ons stop being trusted?”
 
-O roteiro e o [registro de verificação de 08/09/2026](PHASES.md#verificação-de-08092026) estão em `PHASES.md`, e os requisitos correspondentes estão em `PRD.md`.
+The roadmap and the [2026-09-08 verification record](PHASES.md#verification-on-2026-09-08) are in `PHASES.md`, and the corresponding requirements are in `PRD.md`.

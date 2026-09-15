@@ -7,30 +7,30 @@ export const manifest = defineAddonManifest({
   id: 'markdown',
   version: '1.0.0',
   name: 'Markdown Add-on',
-  description: 'Formatação de textos em Markdown e HTML (consumidor de serviços)',
-  author: 'Equipe AC',
+  description: 'Format text as Markdown and HTML (service consumer)',
+  author: 'AC Team',
   license: 'MIT',
   ui: {
     title: '📝 Markdown',
-    body: 'Transforme um título e um conteúdo em Markdown e HTML.',
+    body: 'Transform a title and content into Markdown and HTML.',
   },
   entrypoint: '/packages/addon-markdown/dist/bundle.js',
   services: [
-    { id: 'addons.markdown.text-formatter', version: '1.0.0', name: 'Text Formatter', description: 'Formata título+conteúdo em Markdown/HTML' },
+    { id: 'addons.markdown.text-formatter', version: '1.0.0', name: 'Text Formatter', description: 'Formats a title and content as Markdown/HTML' },
   ],
   contract: {
     version: '1.0.0',
     protocol: { version: '1.0.0', range: '^1.0.0' },
     capabilities: { required: [], optional: ['registry.services', 'ui.tab', 'logs', 'state-store'] },
-    services: [{ id: 'addons.markdown.text-formatter', role: 'provides', version: '1.0.0', description: 'Converte título e conteúdo para Markdown e HTML.', methods: [{ id: 'format', description: 'Formata um texto.', receives: { description: 'Título e conteúdo do texto.', schema: { type: 'object', description: 'Dados do texto.', classification: 'personal', properties: { title: { type: 'string', description: 'Título.', classification: 'personal' }, content: { type: 'string', description: 'Conteúdo.', classification: 'personal' } }, required: ['title', 'content'] } }, returns: { description: 'Texto em Markdown e HTML.', schema: { type: 'object', description: 'Texto formatado.', classification: 'personal' } } }] }, { id: 'state-store', role: 'consumes', version: '1.0.0', description: 'Guarda a aba quando um provedor de estado está ativo.', required: false, methods: [{ id: 'get', description: 'Lê a aba salva.' }, { id: 'set', description: 'Grava a aba.' }] }],
-    ui: { fields: [{ id: 'title', label: 'Título', description: 'Título do texto a formatar.', required: true, schema: { type: 'string', description: 'Título informado.', classification: 'personal' } }, { id: 'content', label: 'Conteúdo', description: 'Conteúdo do texto a formatar.', required: true, schema: { type: 'string', description: 'Conteúdo informado.', classification: 'personal' } }], actions: [{ id: 'format', label: 'Formatar', description: 'Gera Markdown e HTML localmente.', receives: ['title', 'content'], returns: { description: 'Markdown exibido e HTML como item da resposta.', schema: { type: 'object', description: 'Texto formatado.', classification: 'personal' } } }] },
-    state: [{ id: 'tab', description: 'Campos e última formatação exibida.', key: 'markdown:tab', operations: ['read', 'write'], value: { description: 'Estado visual da aba.', schema: { type: 'object', description: 'Título, conteúdo e resposta.', classification: 'personal' } }, retention: 'Enquanto o provedor de armazenamento escolhido pelo host conservar o estado.', deletionTrigger: 'Limpeza do provedor ou dados do navegador.', fallback: 'memory' }],
+    services: [{ id: 'addons.markdown.text-formatter', role: 'provides', version: '1.0.0', description: 'Converts a title and content to Markdown and HTML.', methods: [{ id: 'format', description: 'Formats text.', receives: { description: 'Text title and content.', schema: { type: 'object', description: 'Text data.', classification: 'personal', properties: { title: { type: 'string', description: 'Title.', classification: 'personal' }, content: { type: 'string', description: 'Content.', classification: 'personal' } }, required: ['title', 'content'] } }, returns: { description: 'Text in Markdown and HTML.', schema: { type: 'object', description: 'Formatted text.', classification: 'personal' } } }] }, { id: 'state-store', role: 'consumes', version: '1.0.0', description: 'Stores the tab when a state provider is active.', required: false, methods: [{ id: 'get', description: 'Reads the saved tab.' }, { id: 'set', description: 'Writes the tab.' }] }],
+    ui: { fields: [{ id: 'title', label: 'Title', description: 'Title of the text to format.', required: true, schema: { type: 'string', description: 'Provided title.', classification: 'personal' } }, { id: 'content', label: 'Content', description: 'Content of the text to format.', required: true, schema: { type: 'string', description: 'Provided content.', classification: 'personal' } }], actions: [{ id: 'format', label: 'Format', description: 'Generates Markdown and HTML locally.', receives: ['title', 'content'], returns: { description: 'Displayed Markdown and HTML as a response item.', schema: { type: 'object', description: 'Formatted text.', classification: 'personal' } } }] },
+    state: [{ id: 'tab', description: 'Fields and the last displayed formatting.', key: 'markdown:tab', operations: ['read', 'write'], value: { description: 'Tab visual state.', schema: { type: 'object', description: 'Title, content, and response.', classification: 'personal' } }, retention: 'While the storage provider selected by the host retains the state.', deletionTrigger: 'Provider cleanup or browser data removal.', fallback: 'memory' }],
     http: [],
-    logs: [{ id: 'lifecycle', level: 'info', message: 'Add-on markdown configurado com sucesso', description: 'Confirma a ativação do add-on.' }],
+    logs: [{ id: 'lifecycle', level: 'info', message: 'Markdown add-on configured successfully', description: 'Confirms add-on activation.' }],
   },
 });
 
-/** Construtor do serviço de formatação, mantido dentro deste add-on. */
+/** Formatter service constructor, kept inside this add-on. */
 export function createTextFormatter() {
   return {
     format(source: { title: string; content: string }) {
@@ -42,7 +42,7 @@ export function createTextFormatter() {
 
 export function setup(host: HostAPI): void {
   host.registerService('addons.markdown.text-formatter', createTextFormatter());
-  host.log('info', 'Add-on markdown configurado com sucesso');
+  host.log('info', 'Markdown add-on configured successfully');
 }
 
 export function createTab(host: HostAPI): AddonTab {
@@ -50,25 +50,25 @@ export function createTab(host: HostAPI): AddonTab {
   return {
     ...manifest.contract.ui,
     fields: [
-      { id: 'title', label: 'Título', placeholder: 'Título do texto', required: true },
-      { id: 'content', label: 'Conteúdo', type: 'textarea', placeholder: 'Escreva o conteúdo', required: true },
+      { id: 'title', label: 'Title', placeholder: 'Text title', required: true },
+      { id: 'content', label: 'Content', type: 'textarea', placeholder: 'Write the content', required: true },
     ],
-    actions: [{ id: 'format', label: 'Formatar' }],
+    actions: [{ id: 'format', label: 'Format' }],
     persistence: createTabStatePersistence(host, 'markdown:tab'),
     run(actionId, values) {
-      if (actionId !== 'format') return { status: 'error', body: 'Ação desconhecida.' };
-      if (!formatter) return { status: 'error', body: 'Serviço de formatação indisponível.' };
+      if (actionId !== 'format') return { status: 'error', body: 'Unknown action.' };
+      if (!formatter) return { status: 'error', body: 'Formatting service unavailable.' };
       const title = values.title?.trim();
       const content = values.content?.trim();
       if (!title || !content) {
-        host.log('warn', 'Formatação recusada: campos ausentes');
-        return { status: 'error', body: 'Preencha título e conteúdo.' };
+        host.log('warn', 'Formatting rejected: missing fields');
+        return { status: 'error', body: 'Enter a title and content.' };
       }
       const formatted = formatter.format({ title, content });
-      host.log('info', 'Texto formatado', { title, characters: content.length });
+      host.log('info', 'Text formatted', { title, characters: content.length });
       return {
         status: 'success',
-        title: 'Texto formatado',
+        title: 'Formatted text',
         body: formatted.markdown,
         items: [{ label: 'HTML', value: formatted.html }],
       };

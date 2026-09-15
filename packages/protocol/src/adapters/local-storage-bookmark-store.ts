@@ -2,11 +2,11 @@ import type { Bookmark, BookmarkStore } from '../domain/bookmarks';
 import { MemoryBookmarkStore } from './memory-bookmark-store';
 
 /**
- * Adaptador que persiste en localStorage del navegador.
+ * Adapter that persists in the browser's localStorage.
  *
- * La referencia a `window.localStorage` se lee de forma perezosa y protegida,
- * de modo que el adaptador degrada a memoria en entornos sin navegador (Node,
- * tests) sin romper — el mismo espíritu de la degradación del registry.
+ * The `window.localStorage` reference is read lazily and safely, so the adapter
+ * falls back to memory in browserless environments (Node and tests) without
+ * breaking, following the same spirit as registry degradation.
  */
 export class LocalStorageBookmarkStore implements BookmarkStore {
   private readonly key: string;
@@ -19,7 +19,7 @@ export class LocalStorageBookmarkStore implements BookmarkStore {
     this.migrate();
   }
 
-  /** Vuelca el contenido guardado en localStorage a la memoria de trabajo. */
+  /** Loads content saved in localStorage into working memory. */
   private migrate(): void {
     if (!this.storage) return;
     try {
@@ -30,7 +30,7 @@ export class LocalStorageBookmarkStore implements BookmarkStore {
         void this.memory.save({ id: item.id, title: item.title, url: item.url, createdAt: item.createdAt });
       }
     } catch {
-      // payload corrupto: se ignora y se empieza con memoria limpia
+      // Corrupt payload: ignore it and start with clean memory.
     }
   }
 
@@ -39,7 +39,7 @@ export class LocalStorageBookmarkStore implements BookmarkStore {
     try {
       this.storage.setItem(this.key, JSON.stringify(await this.memory.list()));
     } catch {
-      // localStorage lleno o bloqueado: la sesión sigue en memoria
+      // Full or blocked localStorage: the session continues in memory.
     }
   }
 

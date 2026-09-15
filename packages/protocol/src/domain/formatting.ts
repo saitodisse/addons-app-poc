@@ -1,19 +1,19 @@
 /**
- * Formatting: transformación pura de texto en Markdown/HTML.
+ * Formatting: pure text transformation to Markdown/HTML.
  *
- * Funciones puras, sin I/O ni efectos de lado — el mismo criterio que
- * validation.ts (Fase 1.2). El add-on `addon-markdown` registra un servicio
- * `textFormatter` construido sobre estas funciones canónicas.
+ * Pure functions without I/O or side effects, following the same criterion as
+ * validation.ts (Phase 1.2). The `addon-markdown` add-on registers a
+ * `textFormatter` service built on these canonical functions.
  */
 
 /**
- * Convierte texto fuente en texto plano en Markdown.
+ * Converts source text into plain-text Markdown.
  *
- * Convención de formato:
- * - La primera línea se usa como título (título corto antes del primer punto).
- * - Los párrafos separados por línea en blanco se conservan.
- * - Líneas que empiezan por '- ' se interpretan como ítems de lista.
- * - La primera línea se convierte en encabezado `#`.
+ * Formatting convention:
+ * - The first line is used as the title (short title before the first period).
+ * - Paragraphs separated by a blank line are preserved.
+ * - Lines starting with '- ' are interpreted as list items.
+ * - The first line becomes a `#` heading.
  */
 export function toMarkdown(title: string, content: string): string {
   const body = content.trim().split(/\n{2,}/);
@@ -51,10 +51,10 @@ function linesToHtmlBlocks(source: string): string[] {
 }
 
 /**
- * Convierte Markdown simple en HTML. Soporta:
- * - Encabezado `# \` al inicio.
- * - Listas no ordenadas (\`- \`).
- * - Párrafos separados por línea en blanco.
+ * Converts simple Markdown to HTML. Supports:
+ * - A `# ` heading at the start.
+ * - Unordered lists (`- `).
+ * - Paragraphs separated by a blank line.
  */
 export function htmlFromMarkdown(markdown: string): string {
   const lines = markdown.split('\n');
@@ -80,7 +80,7 @@ function htmlFromMarkdownBody(source: string): string {
   return blocksToHtml(source).join('\n');
 }
 
-/** Da de respuesta los bloques HTML (reutiliza la lógica de lista). */
+/** Returns HTML blocks, reusing the list logic. */
 export function blocksToHtml(source: string): string[] {
   return htmlBlocks(source);
 }
@@ -106,13 +106,13 @@ function htmlBlocks(source: string): string[] {
   return blocks;
 }
 
-/** Contrato del servicio que registra `addon-markdown`. */
+/** Contract for the service registered by `addon-markdown`. */
 export interface TextFormatter {
-  /** Serializa [título, contenido] a un objeto con Markdown y HTML. */
+  /** Serializes [title, content] into an object with Markdown and HTML. */
   format(source: { title: string; content: string }): { title: string; markdown: string; html: string };
 }
 
-/** Implementación canónica (pure) de TextFormatter usa toMarkdown + htmlFromMarkdown. */
+/** Canonical (pure) TextFormatter implementation using toMarkdown + htmlFromMarkdown. */
 export const createTextFormatter = (): TextFormatter => ({
   format({ title, content }) {
     const md = toMarkdown(title, content);

@@ -12,8 +12,8 @@ import { LiveDemoModal } from './components/LiveDemoModal';
 import { SearchResultPage } from './components/SearchResultPage';
 import { SearchResultsTable } from './components/SearchResultsTable';
 import { clampSearchLimit, createFetchSearchClient, hasNextSearchPage, searchPage } from './search';
-import type { SearchCollection, SearchLimitValue, SearchPageState, SearchPagination, SearchProviderError, SearchResultRow } from './search';
-import { ehRotaDeResultado, manifestUrlDaRota, navegar, RUTAS, rotaDoAddon, urlDoResultadoDaRota, useRuta } from './router';
+import type { SearchCollection, SearchLanguages, SearchLimitValue, SearchPageState, SearchPagination, SearchProviderError, SearchResultRow } from './search';
+import { isResultRoute, manifestUrlFromRoute, navigate, ROUTES, addonRoute, resultUrlFromRoute, useRoute } from './router';
 import { INSTALLATIONS_STORAGE_KEY, resetFactoryStorage } from './factory-reset';
 import { headersToObject, logBrowserHttpExchange } from './http-observability';
 
@@ -28,6 +28,7 @@ interface PersistedInstallations {
   disabledManifestUrls: string[];
   acceptedContractFingerprints: Record<string, string>;
   searchLimits: Record<string, SearchLimitValue>;
+  searchLanguages: SearchLanguages;
 }
 
 interface PersistedSearchState {
@@ -38,7 +39,7 @@ interface PersistedSearchState {
 }
 
 function readPersistedInstallations(): PersistedInstallations {
-  if (typeof window === 'undefined') return { manifestUrls: [], disabledManifestUrls: [], acceptedContractFingerprints: {}, searchLimits: {} };
+  if (typeof window === 'undefined') return { manifestUrls: [], disabledManifestUrls: [], acceptedContractFingerprints: {}, searchLimits: {}, searchLanguages: {} };
   try {
     const saved = JSON.parse(window.localStorage.getItem(INSTALLATIONS_STORAGE_KEY) ?? '{}') as Partial<PersistedInstallations>;
     const manifestUrls = Array.isArray(saved.manifestUrls) ? saved.manifestUrls.filter((url): url is string => typeof url === 'string') : [];
@@ -53,15 +54,19 @@ function readPersistedInstallations(): PersistedInstallations {
         .filter(([url, value]) => manifestUrls.includes(url) && (value === '' || (typeof value === 'number' && Number.isFinite(value))))
         .map(([url, value]) => [url, value === '' ? '' : clampSearchLimit(value)])) as Record<string, SearchLimitValue>
       : {};
-    return { manifestUrls: [...new Set(manifestUrls)], disabledManifestUrls: [...new Set(disabledManifestUrls)], acceptedContractFingerprints, searchLimits };
+    const searchLanguages: SearchLanguages = saved.searchLanguages && typeof saved.searchLanguages === 'object'
+      ? Object.fromEntries(Object.entries(saved.searchLanguages)
+        .filter(([url, value]) => manifestUrls.includes(url) && typeof value === 'string' && value.trim()))
+      : {};
+    return { manifestUrls: [...new Set(manifestUrls)], disabledManifestUrls: [...new Set(disabledManifestUrls)], acceptedContractFingerprints, searchLimits, searchLanguages };
   } catch {
-    return { manifestUrls: [], disabledManifestUrls: [], acceptedContractFingerprints: {}, searchLimits: {} };
+    return { manifestUrls: [], disabledManifestUrls: [], acceptedContractFingerprints: {}, searchLimits: {}, searchLanguages: {} };
   }
 }
 
 function normalizeManifestUrl(value: string): string {
   const url = new URL(value);
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('A URL precisa usar http ou https');
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('The URL must use http or https');
   return url.href;
 }
 
@@ -74,7 +79,7 @@ function persistInstallations(installations: PersistedInstallations): void {
     }
     window.localStorage.setItem(INSTALLATIONS_STORAGE_KEY, JSON.stringify(installations));
   } catch {
-    // Se o navegador bloquear localStorage, a instalação continua válida até esta aba ser recarregada.
+    // If the browser blocks localStorage, the installation remains valid until this tab reloads.
   }
 }
 
@@ -116,6 +121,7 @@ export function App() {
   const [acceptedContractFingerprints, setAcceptedContractFingerprints] = useState<Record<string, string>>({});
   const [pendingContractUrls, setPendingContractUrls] = useState<string[]>([]);
   const [searchLimits, setSearchLimits] = useState<Record<string, SearchLimitValue>>({});
+  const [searchLanguages, setSearchLanguages] = useState<SearchLanguages>({});
   const [{ q: searchUrlQuery, page: searchUrlPage }, setSearchUrl] = useQueryStates(SEARCH_URL_PARAMS, { history: 'push' });
   const currentSearchPage = Number.isSafeInteger(searchUrlPage) && searchUrlPage > 0 ? searchUrlPage : 1;
   const [searchInput, setSearchInput] = useState(searchUrlQuery);
@@ -135,7 +141,7 @@ export function App() {
   const searchPagesRef = useRef(new Map<string, Map<number, SearchCollection>>());
   const addonLifecycleRef = useRef(0);
   const httpTextClient = useMemo(() => createFetchSearchClient(), []);
-  const rota = useRuta();
+  const route = useRoute();
 
   const loadRemoteAddon = useCallback(async (manifestUrl: string): Promise<AddonInstance> => {
     return new FetchAddonLoader(registry, logger).load(manifestUrl);
@@ -174,10 +180,10 @@ export function App() {
         durationMs: Date.now() - startedAt,
       });
       logged = true;
-      if (!response.ok) throw new Error(`HTTP ${response.status} ao buscar manifesto`);
+      if (!response.ok) throw new Error(`HTTP ${response.status} while fetching the manifest`);
       const manifest = body as AddonManifest;
       const validation = validateManifest(manifest);
-      if (!validation.valid) throw new Error(`Manifesto inválido: ${validation.errors.join(', ')}`);
+      if (!validation.valid) throw new Error(`Invalid manifest: ${validation.errors.join(', ')}`);
       return manifest;
     } catch (error) {
       if (!logged) {
@@ -208,7 +214,7 @@ export function App() {
             if (instance.manifest) instances.set(instance.manifestUrl, instance);
           }
         } catch (error) {
-          console.error('Não foi possível restaurar os add-ons instalados', error);
+          console.error('Could not restore installed add-ons', error);
         }
         let restored = [...instances.values()];
         const pending: string[] = [];
@@ -240,6 +246,7 @@ export function App() {
         setAddons(restored);
         setAcceptedContractFingerprints(persisted.acceptedContractFingerprints);
         setSearchLimits(persisted.searchLimits);
+        setSearchLanguages(persisted.searchLanguages);
         setPendingContractUrls(pending);
         setDisabledAddonUrls([...new Set([
           ...persisted.disabledManifestUrls.filter((url) => restored.some((addon) => addon.manifestUrl === url)),
@@ -267,8 +274,12 @@ export function App() {
           ? []
           : [[addon.manifestUrl, limit === '' ? '' : clampSearchLimit(limit)]];
       })),
+      searchLanguages: Object.fromEntries(addons.flatMap((addon) => {
+        const language = searchLanguages[addon.manifestUrl];
+        return language?.trim() ? [[addon.manifestUrl, language]] : [];
+      })),
     });
-  }, [acceptedContractFingerprints, addons, disabledAddonUrls, installationsReady, searchLimits]);
+  }, [acceptedContractFingerprints, addons, disabledAddonUrls, installationsReady, searchLanguages, searchLimits]);
 
   const activeStateStoreAddon = useMemo(() => addons.find((addon) =>
     addon.status === 'ready'
@@ -328,6 +339,11 @@ export function App() {
     setSearchLimits((current) => ({ ...current, [manifestUrl]: value === '' ? '' : clampSearchLimit(value) }));
   }, []);
 
+  const onSearchLanguageChange = useCallback((manifestUrl: string, value: string) => {
+    if (!value.trim()) return;
+    setSearchLanguages((current) => ({ ...current, [manifestUrl]: value }));
+  }, []);
+
   const clearSearchView = useCallback(() => {
     searchRequestRef.current += 1;
     setSearchInput('');
@@ -346,7 +362,7 @@ export function App() {
 
   useEffect(() => {
     searchPagesRef.current.clear();
-  }, [addons, disabledAddonUrls, searchLimits]);
+  }, [addons, disabledAddonUrls, searchLanguages, searchLimits]);
 
   const loadSearchPage = useCallback((query: string, page: number) => {
     let cachedPages = searchPagesRef.current.get(query);
@@ -354,8 +370,8 @@ export function App() {
       cachedPages = new Map<number, SearchCollection>();
       searchPagesRef.current.set(query, cachedPages);
     }
-    return searchPage(addons, disabledAddonUrls, query, page, searchLimits, httpTextClient, cachedPages);
-  }, [addons, disabledAddonUrls, httpTextClient, searchLimits]);
+    return searchPage(addons, disabledAddonUrls, query, page, searchLimits, httpTextClient, cachedPages, searchLanguages);
+  }, [addons, disabledAddonUrls, httpTextClient, searchLanguages, searchLimits]);
 
   useEffect(() => {
     if (!installationsReady || !searchStateReady) return;
@@ -385,7 +401,7 @@ export function App() {
       .catch((error) => {
         if (requestId !== searchRequestRef.current) return;
         setSearchResults([]);
-        setSearchErrors([{ addonName: 'Host', message: (error as Error).message || 'A pesquisa não pôde ser concluída.' }]);
+        setSearchErrors([{ addonName: 'Host', message: (error as Error).message || 'The search could not be completed.' }]);
         setSearchProviderCount(0);
         setSearchPagination({});
       })
@@ -420,25 +436,16 @@ export function App() {
     void setSearchUrl({ q: query, page: 1 });
   }, [clearSearch, setSearchUrl]);
 
-  const logInstalledContract = (installed: AddonInstance) => {
-    console.info('Contrato do add-on instalado', {
-      manifest: installed.manifest,
-      manifestUrl: installed.manifestUrl,
-      status: installed.status,
-      services: installed.services,
-    });
-  };
-
   const installFromUrl = useCallback(async (value: string, acceptedFingerprint: string): Promise<string | undefined> => {
     let manifestUrl: string;
     try {
       manifestUrl = normalizeManifestUrl(value);
     } catch (error) {
-      return (error as Error).message || 'Informe uma URL de manifesto válida';
+      return (error as Error).message || 'Enter a valid manifest URL';
     }
 
     if (addons.some((addon) => addon.manifestUrl === manifestUrl)) {
-      return 'Este add-on já está instalado';
+      return 'This add-on is already installed';
     }
 
     setLoading(true);
@@ -446,21 +453,20 @@ export function App() {
       const installed = await loadRemoteAddon(manifestUrl);
 
       if (installed.status === 'error') {
-        return installed.error?.message ?? 'Não foi possível instalar o add-on';
+        return installed.error?.message ?? 'Could not install the add-on';
       }
       const currentFingerprint = getInteractionContractFingerprint(installed.manifest.contract);
       if (currentFingerprint !== acceptedFingerprint) {
         registry.clearAddon(manifestUrl);
-        return 'O contrato mudou durante a instalação. Revise-o novamente antes de aceitar.';
+        return 'The contract changed during installation. Review it again before accepting.';
       }
 
       setAddons((current) => [...current, installed]);
       setAcceptedContractFingerprints((current) => ({ ...current, [manifestUrl]: currentFingerprint }));
-      logInstalledContract(installed);
       void recheckDependencies(addons.filter((addon) => addon.status === 'blocked').map((addon) => addon.manifestUrl));
       return undefined;
     } catch (error) {
-      return (error as Error).message || 'Não foi possível instalar o add-on';
+      return (error as Error).message || 'Could not install the add-on';
     } finally {
       setLoading(false);
     }
@@ -491,10 +497,10 @@ export function App() {
         setDisabledAddonUrls((urls) => urls.filter((url) => url !== manifestUrl));
         void recheckDependencies(addons.filter((addon) => addon.status === 'blocked' && addon.manifestUrl !== manifestUrl).map((addon) => addon.manifestUrl));
       } else {
-        console.error('Não foi possível ativar o add-on', reloaded.error);
+        console.error('Could not enable the add-on', reloaded.error);
       }
     } catch (error) {
-      console.error('Não foi possível ativar o add-on', error);
+      console.error('Could not enable the add-on', error);
     } finally {
       setLoading(false);
     }
@@ -552,6 +558,7 @@ export function App() {
       setAcceptedContractFingerprints({});
       setPendingContractUrls([]);
       setSearchLimits({});
+      setSearchLanguages({});
       clearSearch();
       setSearchStateReady(true);
     } finally {
@@ -565,24 +572,24 @@ export function App() {
     !disabledAddonUrls.includes(addon.manifestUrl),
   );
 
-  const selectedManifestUrl = manifestUrlDaRota(rota);
+  const selectedManifestUrl = manifestUrlFromRoute(route);
   const selectedAddon = activeAddons.find((addon) => addon.manifestUrl === selectedManifestUrl) ?? null;
-  const isAddonRoute = rota.startsWith('/addons/');
-  const isSearchResultRoute = ehRotaDeResultado(rota);
-  const searchResultContentUrl = urlDoResultadoDaRota(rota);
+  const isAddonRoute = route.startsWith('/addons/');
+  const isSearchResultRoute = isResultRoute(route);
+  const searchResultContentUrl = resultUrlFromRoute(route);
   const selectedSearchResult = searchResultContentUrl
     ? searchResults.find((result) => result.url === searchResultContentUrl) ?? null
     : null;
 
   useEffect(() => {
     if (!loading && selectedManifestUrl && !selectedAddon) {
-      navegar(RUTAS.inicio);
+      navigate(ROUTES.home);
     }
   }, [loading, selectedAddon, selectedManifestUrl]);
 
   const selectAddon = useCallback((manifestUrl: string) => {
     setLiveDemoOpen(false);
-    navegar(rotaDoAddon(manifestUrl));
+    navigate(addonRoute(manifestUrl));
   }, []);
 
   const closeLiveDemo = useCallback(() => setLiveDemoOpen(false), []);
@@ -590,12 +597,12 @@ export function App() {
 
   const reviewAddonContract = useCallback((_manifestUrl: string) => {
     setLiveDemoOpen(false);
-    navegar(RUTAS.settings);
+    navigate(ROUTES.settings);
   }, []);
 
   useEffect(() => {
-    if (rota !== RUTAS.inicio) setLiveDemoOpen(false);
-  }, [rota]);
+    if (route !== ROUTES.home) setLiveDemoOpen(false);
+  }, [route]);
 
   return (
     <div style={{
@@ -612,12 +619,12 @@ export function App() {
         onSearchValueChange={setSearchInput}
         onSearch={(value) => void runSearch(value)}
         onClearSearch={clearSearch}
-        showLiveDemo={rota === RUTAS.inicio}
+        showLiveDemo={route === ROUTES.home}
         liveDemoOpen={liveDemoOpen}
         onToggleLiveDemo={toggleLiveDemo}
       />
 
-      <main className={rota === RUTAS.inicio ? 'host-home-main' : isSearchResultRoute ? 'host-search-result-page-main' : isAddonRoute ? 'host-addon-route-main' : undefined} style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 24px 48px' }}>
+      <main className={route === ROUTES.home ? 'host-home-main' : isSearchResultRoute ? 'host-search-result-page-main' : isAddonRoute ? 'host-addon-route-main' : undefined} style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 24px 48px' }}>
         {!isAddonRoute && !isSearchResultRoute && (
           <SearchResultsTable
             query={searchQuery}
@@ -632,14 +639,16 @@ export function App() {
             onNextPage={() => changeSearchPage(currentSearchPage + 1)}
           />
         )}
-        {rota === RUTAS.settings ? (
+        {route === ROUTES.settings ? (
           <section>
             <AddonManager
               addons={addons}
               disabledAddonUrls={disabledAddonUrls}
               pendingContractUrls={pendingContractUrls}
               searchLimits={searchLimits}
+              searchLanguages={searchLanguages}
               onSearchLimitChange={onSearchLimitChange}
+              onSearchLanguageChange={onSearchLanguageChange}
               onInspectManifest={inspectManifest}
               onInstallFromUrl={installFromUrl}
               onToggle={toggleAddon}
@@ -649,7 +658,7 @@ export function App() {
               loading={loading}
             />
           </section>
-        ) : rota === RUTAS.inicio ? (
+        ) : route === ROUTES.home ? (
           <LiveDemoModal
             open={liveDemoOpen}
             addons={addons}
@@ -662,16 +671,18 @@ export function App() {
             onToggle={toggleAddon}
             onReviewContract={reviewAddonContract}
             searchLimits={searchLimits}
+            searchLanguages={searchLanguages}
             onSearchLimitChange={onSearchLimitChange}
+            onSearchLanguageChange={onSearchLanguageChange}
           />
         ) : isSearchResultRoute ? (
           <SearchResultPage contentUrl={searchResultContentUrl} result={selectedSearchResult} />
         ) : (
-          <section className="addon-route-page" aria-label={selectedAddon ? `Detalhe da extensão ${selectedAddon.manifest.name}` : 'Detalhe da extensão'}>
-            <a href="#/" className="addon-route-back">← Voltar para a demonstração</a>
+          <section className="addon-route-page" aria-label={selectedAddon ? `Add-on details for ${selectedAddon.manifest.name}` : 'Add-on details'}>
+            <a href="#/" className="addon-route-back">← Back to demo</a>
             {selectedAddon && (
               <header className="addon-route-header">
-                <span className="addon-route-kicker">Extensão instalada</span>
+                <span className="addon-route-kicker">Installed add-on</span>
                 <h2>{selectedAddon.manifest.name}</h2>
                 <p>{selectedAddon.manifest.description}</p>
                 <code>{selectedAddon.manifestUrl}</code>

@@ -1,124 +1,121 @@
 # `@addons-poc/protocol`
 
-O manual de convivência entre um aplicativo e seus add-ons.
+The agreement between an application and its add-ons.
 
-Versão `1.0.0` · Licença [MIT](LICENSE) · pacote ESM público.
+Version `1.0.0` · [MIT](LICENSE) license · public ESM package.
 
-## Em uma frase
+## In one sentence
 
-O protocolo é um conjunto de regras que permite ao aplicativo principal,
-chamado **host**, entender e executar add-ons criados separadamente.
+The protocol is a set of rules that lets the main application, called the
+**host**, understand and run add-ons created separately.
 
-Este é o padrão do `addons-app-poc`. Ele não pretende ser um padrão universal.
+This is the standard for `addons-app-poc`. It is not intended to be a universal
+standard.
 
-## Por que este protocolo existe
+## Why this protocol exists
 
-Imagine que o host seja um videogame e cada add-on seja um cartucho. Os dois
-precisam concordar sobre o formato do encaixe antes de funcionar juntos.
+Imagine the host as a video game and each add-on as a cartridge. They must agree on the shape of the connection before they can work together.
 
-No projeto, esse encaixe precisa responder perguntas simples:
+In this project, that connection must answer simple questions:
 
-- quem criou o add-on e qual é sua versão;
-- o que ele oferece e do que precisa;
-- quais campos e botões deseja mostrar;
-- quais dados pretende guardar;
-- quais chamadas de internet realiza;
-- quais mensagens pode registrar.
+- who created the add-on and what version it has;
+- what it provides and what it needs;
+- which fields and buttons it wants to show;
+- which data it wants to store;
+- which internet calls it makes;
+- which messages it may record.
 
-Sem essas regras, o host precisaria conhecer cada add-on antecipadamente. Com o
-protocolo, ele lê uma descrição pública, verifica a compatibilidade e só então
-decide se pode ativar a extensão.
+Without these rules, the host would need to know every add-on in advance. With
+the protocol, it reads a public description, checks compatibility, and only then
+decides whether it can activate the extension.
 
-## O que forma o protocolo
+## What makes up the protocol
 
-### O manifesto é a ficha de apresentação
+### The manifest is the presentation card
 
-Todo add-on publica um arquivo chamado `manifest.json`. Ele informa nome,
-versão, descrição, autoria, licença e o contrato de interação.
+Every add-on publishes a file called `manifest.json`. It states the name,
+version, description, authorship, license, and interaction contract.
 
-A identidade verdadeira do add-on é a URL completa desse manifesto, por
-exemplo:
+The add-on's true identity is the complete URL of this manifest, for example:
 
 ```text
 https://example.com/addons/hello/manifest.json
 ```
 
-Dois manifestos em endereços diferentes são tratados como dois add-ons, mesmo
-que tenham o mesmo nome ou `id`.
+Two manifests at different addresses are treated as two add-ons, even if they
+have the same name or `id`.
 
-### O contrato é uma promessa antes da execução
+### The contract is a promise before execution
 
-O manifesto contém uma única seção `contract`. Ela descreve tudo o que o add-on
-declara fazer:
+The manifest contains one `contract` section. It describes everything the add-on
+declares that it does:
 
-| Parte | Explicação simples |
+| Part | Simple explanation |
 |---|---|
-| `protocol` | Versão das regras que o add-on entende |
-| `capabilities` | Recursos obrigatórios ou opcionais que ele espera do host |
-| `services` | Serviços que oferece ou deseja usar |
-| `ui` | Campos, botões e respostas da sua tela |
-| `state` | Dados que pretende guardar e operações permitidas |
-| `http` | Chamadas de internet recebidas ou realizadas |
-| `logs` | Mensagens estruturadas que pode registrar |
-| `resources` | Recursos HTTP, como catálogo, busca ou texto |
+| `protocol` | Version of the rules the add-on understands |
+| `capabilities` | Required or optional resources it expects from the host |
+| `services` | Services it provides or wants to use |
+| `ui` | Fields, buttons, and responses for its screen |
+| `state` | Data it wants to store and allowed operations |
+| `http` | Incoming or outgoing internet calls |
+| `logs` | Structured messages it may record |
+| `resources` | HTTP resources such as a catalog, search, or text |
 
-As capacidades oficiais são `registry.services`, `ui.tab`, `logs` e
-`state-store`. Capacidades e serviços próprios usam nomes com um namespace,
-como `addons.hello.greeter`, para não colidirem com nomes de outros projetos.
+The official capabilities are `registry.services`, `ui.tab`, `logs`, and
+`state-store`. Custom capabilities and services use namespaced names such as
+`addons.hello.greeter` to avoid collisions with other projects.
 
-As informações recebidas e devolvidas também são classificadas como:
+Received and returned information is also classified as:
 
-- `public`: informação pública;
-- `personal`: informação relacionada a uma pessoa;
-- `secret`: informação sensível, como uma credencial.
+- `public`: public information;
+- `personal`: information related to a person;
+- `secret`: sensitive information such as a credential.
 
-O contrato descreve o tipo e a classificação do dado. Senhas, tokens e outros
-segredos reais não devem ser gravados no manifesto.
+The contract describes the data type and classification. Real passwords,
+tokens, and other secrets must not be stored in the manifest.
 
-## Como a instalação acontece
+## How installation happens
 
 ```text
-Pessoa informa a URL do manifesto
+Person enters the manifest URL
                 ↓
-Host baixa e valida o manifest.json
+Host downloads and validates manifest.json
                 ↓
-Host mostra o contrato para revisão
+Host shows the contract for review
                 ↓
-Host verifica versões, recursos e serviços
+Host checks versions, resources, and services
                 ↓
-Add-on fica pronto, bloqueado ou com erro
+Add-on becomes ready, blocked, or errored
 ```
 
-O host valida os metadados, a versão do protocolo, as capacidades, os serviços
-e os schemas de dados. Um schema é uma descrição verificável do formato de uma
-informação. A v1 aceita strings, números, inteiros, booleanos, valores nulos,
-objetos e listas.
+The host validates metadata, protocol version, capabilities, services, and data
+schemas. A schema is a verifiable description of an information format. v1
+accepts strings, numbers, integers, booleans, null values, objects, and arrays.
 
-Uma instância pode passar pelos seguintes estados:
+An instance can pass through these states:
 
-| Estado | Significado |
+| State | Meaning |
 |---|---|
-| `loading` | O host ainda está carregando o add-on |
-| `ready` | O add-on foi validado e está pronto |
-| `blocked` | O contrato é conhecido, mas falta uma dependência obrigatória |
-| `error` | O manifesto, o bundle ou a inicialização falhou |
+| `loading` | The host is still loading the add-on |
+| `ready` | The add-on was validated and is ready |
+| `blocked` | The contract is known, but a required dependency is missing |
+| `error` | The manifest, bundle, or initialization failed |
 
-Dependências obrigatórias ausentes e ciclos entre add-ons bloqueiam a ativação.
-Quando um novo provedor aparece, o host pode reavaliar os bloqueados.
+Missing required dependencies and cycles between add-ons block activation. When a new provider appears, the host can reevaluate blocked instances.
 
-Depois da revisão humana, o host guarda uma impressão digital do contrato junto
-da URL. Se o contrato mudar no mesmo endereço, a pessoa precisa revisá-lo outra
-vez. Essa impressão digital detecta mudanças, mas não é uma assinatura digital
-nem comprova autoria.
+After human review, the host stores a contract fingerprint with the URL. If the
+contract changes at the same address, the person must review it again. This
+fingerprint detects changes but is not a digital signature and does not prove
+authorship.
 
-## Os dois formatos de add-on
+## The two add-on formats
 
-### Add-on em processo
+### In-process add-on
 
-É um módulo JavaScript ESM carregado pelo host. Seu manifesto contém um
-`entrypoint`, que aponta para o bundle JavaScript.
+This is an ESM JavaScript module loaded by the host. Its manifest contains an
+`entrypoint` that points to the JavaScript bundle.
 
-O módulo exporta três itens:
+The module exports three items:
 
 ```ts
 manifest
@@ -126,9 +123,9 @@ setup(host)
 createTab(host)
 ```
 
-Antes de executar o bundle, o host confere se o manifesto interno possui a mesma
-identidade, versão e contrato do manifesto público. Durante o `setup`, o add-on
-recebe uma API pequena:
+Before executing the bundle, the host checks that the internal manifest has the
+same identity, version, and contract as the public manifest. During `setup`, the
+add-on receives a small API:
 
 ```ts
 host.services
@@ -137,56 +134,59 @@ host.onUnload
 host.log
 ```
 
-O add-on só pode registrar serviços declarados. O host também confere as
-interações que passam por sua mediação. Se a inicialização falhar, ele remove os
-registros parciais e deixa a instância em `error`.
+The add-on may register only declared services. The host also checks interactions
+that pass through its mediation. If initialization fails, it removes partial
+registrations and leaves the instance in `error`.
 
-### Add-on HTTP
+### HTTP add-on
 
-É um servidor independente e não possui `entrypoint`. Ele publica
-`GET /manifest.json` e declara recursos como `catalog`, `search` e `text`.
+This is an independent server and has no `entrypoint`. It publishes
+`GET /manifest.json` and declares resources such as `catalog`, `search`, and
+`text`. A resource may declare `languages` when it accepts a language choice;
+the host shows this setting per provider and sends the choice as `lang` in the
+query.
 
-Catálogo e busca devolvem metadados e podem dividir a resposta em páginas. A
-requisição seguinte repete a rota com `limit` e o `cursor` opaco devolvido em
-`pagination.next`:
+Catalog and search return metadata and may split responses into pages. The next
+request repeats the route with `limit`, the opaque `cursor` returned in
+`pagination.next`, and, when declared, `lang`:
 
 ```text
-GET /search/page/termo.json?limit=20&cursor=...
+GET /search/page/term.json?limit=20&cursor=...&lang=en
 ```
 
-Uma resposta paginada usa este formato:
+A paginated response uses this shape:
 
 ```json
 {
-  "metas": [{ "id": "texto-1", "type": "page", "name": "Página" }],
-  "pagination": { "limit": 20, "total": 42, "next": "cursor-opaco" }
+  "metas": [{ "id": "text-1", "type": "page", "name": "Page" }],
+  "pagination": { "limit": 20, "total": 42, "next": "opaque-cursor" }
 }
 ```
 
-`pagination` é opcional para preservar compatibilidade com add-ons antigos. O
-campo `next` ausente significa que não há outra página. O conteúdo completo é
-buscado apenas quando a pessoa escolhe uma opção. Um recurso de texto usa este
-envelope:
+`pagination` is optional to preserve compatibility with older add-ons. An
+absent `next` field means there is no other page. Full content is fetched only
+when a person chooses an option. A text resource uses this envelope:
 
 ```json
 {
   "texts": [
     {
-      "id": "texto-1",
-      "url": "https://example.com/text/texto-1/content.txt",
-      "lang": "pt-BR",
-      "name": "Versão principal"
+      "id": "text-1",
+      "url": "https://example.com/text/text-1/content.txt",
+      "lang": "en-US",
+      "name": "Primary version"
     }
   ]
 }
 ```
 
-O servidor é ESM puro, não conhece React e não carrega o runtime interno do
-host.
+The add-on should preserve `lang` in content links when the response needs to
+keep the language during navigation. The server is plain ESM, does not know
+React, and does not load the host's internal runtime.
 
-## Exemplo de manifesto
+## Manifest example
 
-Este exemplo declara um add-on em processo que oferece um serviço de saudação:
+This example declares an in-process add-on that provides a greeting service:
 
 ```ts
 import {
@@ -198,8 +198,8 @@ export const manifest = defineAddonManifest({
   id: 'hello',
   version: '1.0.0',
   name: 'Hello Add-on',
-  description: 'Cria uma saudação para o nome informado.',
-  author: 'Equipe',
+  description: 'Creates a greeting for the provided name.',
+  author: 'AC Team',
   license: 'MIT',
   entrypoint: 'https://example.com/addons/hello/bundle.js',
   contract: {
@@ -213,53 +213,53 @@ export const manifest = defineAddonManifest({
       id: 'addons.hello.greeter',
       role: 'provides',
       version: '1.0.0',
-      name: 'Saudação',
-      description: 'Produz uma saudação personalizada.',
+      name: 'Greeting',
+      description: 'Produces personalized greetings.',
       methods: [{
         id: 'greet',
-        description: 'Saúda uma pessoa pelo nome.',
+        description: 'Greets a person by name.',
         receives: {
-          description: 'Nome da pessoa.',
+          description: 'Person name.',
           schema: {
             type: 'string',
-            description: 'Nome usado na saudação.',
+            description: 'Name used in the greeting.',
             classification: 'personal',
           },
         },
         returns: {
-          description: 'Mensagem produzida.',
+          description: 'Produced message.',
           schema: {
             type: 'string',
-            description: 'Texto da saudação.',
+            description: 'Greeting text.',
             classification: 'personal',
           },
         },
       }],
     }],
     ui: {
-      title: 'Saudação',
-      body: 'Informe um nome para receber uma saudação.',
+      title: 'Greeting',
+      body: 'Enter a name to receive a greeting.',
       fields: [{
         id: 'name',
-        label: 'Nome',
-        description: 'Nome usado para criar a mensagem.',
+        label: 'Name',
+        description: 'Name used to create the message.',
         required: true,
         schema: {
           type: 'string',
-          description: 'Nome da pessoa.',
+          description: 'Person name.',
           classification: 'personal',
         },
       }],
       actions: [{
         id: 'greet',
-        label: 'Saudar',
-        description: 'Cria a saudação.',
+        label: 'Greet',
+        description: 'Creates the greeting.',
         receives: ['name'],
         returns: {
-          description: 'Resposta exibida pelo host.',
+          description: 'Response displayed by the host.',
           schema: {
             type: 'object',
-            description: 'Resultado da ação.',
+            description: 'Action result.',
             classification: 'personal',
           },
         },
@@ -275,10 +275,9 @@ const result = validateManifest(manifest);
 if (!result.valid) throw new Error(result.errors.join('; '));
 ```
 
-## Como os serviços conversam
+## How services communicate
 
-Um add-on não pede um serviço apenas pelo nome. Ele informa também a versão e
-os métodos que espera encontrar:
+An add-on does not request a service by name alone. It also states the version and methods it expects:
 
 ```ts
 const greeter = host.services.use<{ greet(name: string): string }>({
@@ -288,76 +287,73 @@ const greeter = host.services.use<{ greet(name: string): string }>({
 });
 ```
 
-No contrato, `provides` significa “oferece este serviço” e `consumes` significa
-“precisa usar este serviço”.
+In the contract, `provides` means “offers this service,” and `consumes` means
+“needs to use this service.”
 
-O provedor declara uma versão exata, como `1.0.0`. O consumidor pode aceitar
-uma faixa, como `^1.0.0`. O host compara identificador, versão, métodos, entradas
-e saídas antes de conectar os dois.
+The provider declares an exact version such as `1.0.0`. The consumer may accept
+a range such as `^1.0.0`. The host compares the identifier, version, methods,
+inputs, and outputs before connecting them.
 
-Quando existem vários provedores compatíveis, o host escolhe o de maior
-prioridade. Um serviço obrigatório ausente bloqueia o consumidor; um serviço
-opcional pode permitir que ele continue, por exemplo usando apenas a memória.
+When several compatible providers exist, the host chooses the one with the
+highest priority. A missing required service blocks the consumer; an optional
+service may let it continue, for example by using memory only.
 
-O serviço oficial `state-store` oferece armazenamento serializável. O contrato
-limita quais chaves e operações, como leitura ou escrita, cada add-on pode usar.
+The official `state-store` service provides serializable storage. The contract
+limits which keys and operations, such as reading or writing, each add-on may
+use.
 
-## Três versões que não devem ser confundidas
+## Three versions that must not be confused
 
-| Versão | Exemplo | O que representa |
+| Version | Example | What it represents |
 |---|---|---|
-| Pacote npm | `@addons-poc/protocol@1.0.0` | A distribuição da biblioteca |
-| Contrato | `contract.version: 1.0.0` | As regras de compatibilidade entre host e add-on |
-| Add-on | `manifest.version: 1.0.0` | A versão daquela extensão específica |
+| npm package | `@addons-poc/protocol@1.0.0` | The library distribution |
+| Contract | `contract.version: 1.0.0` | Compatibility rules between host and add-on |
+| Add-on | `manifest.version: 1.0.0` | The version of that specific extension |
 
-Atualizar um add-on não significa necessariamente atualizar o protocolo. Uma
-mudança incompatível no protocolo exige uma nova versão major. Remover ou mudar
-o significado de um método também exige uma nova versão major daquele serviço.
+Updating an add-on does not necessarily mean updating the protocol. An incompatible protocol change requires a new major version. Removing a method or changing its meaning also requires a new major version of that service.
 
-## O que este pacote publica
+## What this package publishes
 
-As exportações principais estão em [`src/index.ts`](src/index.ts): tipos do
-contrato, `defineAddonManifest`, validadores, negociação SemVer, acesso mediado
-a serviços, persistência de abas e tipos de `HostAPI`.
+The main exports are in [`src/index.ts`](src/index.ts): contract types,
+`defineAddonManifest`, validators, SemVer negotiation, mediated service access,
+tab persistence, and `HostAPI` types.
 
-O schema equivalente está em
-[`schema/addon-contract.schema.json`](schema/addon-contract.schema.json) e pode
-ser importado por `@addons-poc/protocol/schema`.
+The equivalent schema is in
+[`schema/addon-contract.schema.json`](schema/addon-contract.schema.json) and can
+be imported from `@addons-poc/protocol/schema`.
 
-O pacote distribui JavaScript ESM, declarações TypeScript, schema JSON, README,
-licença e metadados do `package.json`. Arquivos auxiliares usados apenas nos
-testes do workspace não fazem parte da API pública.
+The package distributes ESM JavaScript, TypeScript declarations, JSON schema,
+README, license, and `package.json` metadata. Auxiliary files used only in
+workspace tests are not part of the public API.
 
-O pacote não exporta loader, registro de serviços, catálogo de add-ons ou
-helpers de fallback do runtime. Essas responsabilidades ficam em
-`packages/host-app/src/runtime`. Add-ons também não dependem do host nem de
-outros add-ons: a colaboração acontece pelo protocolo público.
+The package does not export a loader, service registry, add-on catalog, or
+runtime fallback helpers. Those responsibilities live in
+`packages/host-app/src/runtime`. Add-ons also do not depend on the host or other
+add-ons: collaboration happens through the public protocol.
 
-## Limites da versão 1
+## Version 1 limits
 
-O protocolo oferece validação e transparência, mas não é uma barreira completa
-de segurança:
+The protocol provides validation and transparency, but it is not a complete
+security barrier:
 
-- não executa o add-on em um ambiente isolado;
-- não bloqueia tecnicamente chamadas de internet;
-- não comprova quem publicou o manifesto;
-- a impressão digital não é uma assinatura criptográfica;
-- `onUnload` recebe callbacks, mas o descarregamento completo ao desativar ou
-  remover uma instância ainda não está concluído;
-- a validação HTTP completa, o cache e a atualização automática ainda estão
-  fora desta versão.
+- it does not run the add-on in an isolated environment;
+- it does not technically block internet calls;
+- it does not prove who published the manifest;
+- the fingerprint is not a cryptographic signature;
+- `onUnload` accepts callbacks, but complete unloading when disabling or removing an instance is not finished;
+- complete HTTP validation, caching, and automatic updates are outside this version.
 
-Por isso, a v1 foi desenhada para add-ons confiáveis. A declaração em
-`contract.http` oferece transparência para revisão, mas ainda não funciona como
-uma permissão de rede tecnicamente obrigatória.
+Therefore, v1 is designed for trusted add-ons. The `contract.http` declaration
+provides transparency for review, but it is not yet a technically enforced
+network permission.
 
-## Como instalar e validar
+## How to install and validate
 
 ```bash
 npm install @addons-poc/protocol@1.0.0
 ```
 
-No repositório:
+In the repository:
 
 ```bash
 pnpm --filter @addons-poc/protocol test
@@ -366,19 +362,17 @@ cd packages/protocol
 npm pack --dry-run
 ```
 
-`@addons-poc/protocol@1.0.0` já está publicado no npm. Para confirmar a versão
-distribuída, execute:
+`@addons-poc/protocol@1.0.0` is already published to npm. To confirm the distributed version, run:
 
 ```bash
 npm view @addons-poc/protocol@1.0.0 version dist.tarball
 ```
 
-Uma versão futura exige conta autenticada e propriedade confirmada do escopo
-`@addons-poc`. Não existe fallback automático para outro nome.
+A future version requires an authenticated account and confirmed ownership of
+the `@addons-poc` scope. There is no automatic fallback to another name.
 
-## Para continuar
+## Continue reading
 
-Leia a [especificação do manifesto](../../docs/MANIFEST-SPEC.md), a
-[arquitetura](../../docs/ARCHITECTURE.md) e o
-[índice dos pacotes](../../docs/PACKAGES.md) quando precisar aprofundar os
-detalhes técnicos.
+Read the [manifest specification](../../docs/MANIFEST-SPEC.md), the
+[architecture](../../docs/ARCHITECTURE.md), and the [package index](../../docs/PACKAGES.md)
+when you need deeper technical details.

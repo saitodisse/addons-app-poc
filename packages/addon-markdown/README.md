@@ -1,22 +1,22 @@
 # `@addons/addon-markdown`
 
-Add-on em processo que fornece `addons.markdown.text-formatter` `1.0.0`.
+An in-process add-on that provides `addons.markdown.text-formatter` `1.0.0`.
 
-## Por que existe
+## Why it exists
 
-Mantém um helper de domínio dentro do próprio add-on e demonstra que formatação de texto não é uma API global do host.
+It keeps a domain helper inside the add-on and demonstrates that text formatting is not a global host API.
 
-## O que oferece
+## What it offers
 
-O método `format({ title, content })` produz Markdown e HTML localmente. A aba declara os campos e a ação no contrato; seu estado pode usar `state-store` e cai para memória quando o serviço não existe. Não há I/O externo.
+The `format({ title, content })` method produces Markdown and HTML locally. The tab declares its fields and action in the contract; its state may use `state-store` and falls back to memory when the service does not exist. There is no external I/O.
 
-## Como executar e testar
+## How to run and test
 
 ```bash
 pnpm --filter @addons/addon-markdown test
 pnpm --filter @addons/addon-markdown serve
 ```
 
-O manifesto fica em `http://localhost:5304/manifest.json`. O serviço é obtido por `host.services.use` com o descritor `addons.markdown.text-formatter`.
+The manifest is at `http://localhost:5304/manifest.json`. The service is obtained through `host.services.use` with the `addons.markdown.text-formatter` descriptor.
 
-Implementação e testes: [`src/index.ts`](src/index.ts) e [`src/formatting.ts`](src/formatting.ts).
+Implementation and tests: [`src/index.ts`](src/index.ts) and [`src/formatting.ts`](src/formatting.ts).

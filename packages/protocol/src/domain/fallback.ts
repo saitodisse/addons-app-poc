@@ -5,7 +5,7 @@ export class AggregateFallbackError extends Error {
     public readonly serviceId: string,
     public readonly errors: Error[],
   ) {
-    super(`Todas as implementações de '${serviceId}' falharam`);
+    super(`All implementations of '${serviceId}' failed`);
     this.name = 'AggregateFallbackError';
   }
 }

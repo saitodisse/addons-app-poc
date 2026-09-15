@@ -5,8 +5,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5280,
-    // Escuta em todas as interfaces (0.0.0.0) para funcionar no WSL2:
-    // o localhost-forwarding do Windows só repassa IPv4.
+    // Listen on every interface (0.0.0.0) for WSL2 compatibility:
+    // Windows localhost forwarding only passes through IPv4.
     host: '0.0.0.0',
   },
 });

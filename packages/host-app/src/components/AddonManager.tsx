@@ -6,14 +6,16 @@ import { AddonContractView } from './AddonContractView';
 import { FactoryResetControl } from './FactoryResetControl';
 import { LOCAL_MANIFEST_SUGGESTIONS, loadLocalManifestSuggestions } from '../local-manifest-suggestions';
 import { DEFAULT_SEARCH_LIMIT } from '../search';
-import type { SearchLimitValue } from '../search';
+import type { SearchLanguages, SearchLimitValue } from '../search';
 
 interface AddonManagerProps {
   addons: AddonInstance[];
   disabledAddonUrls: string[];
   pendingContractUrls: string[];
   searchLimits: Record<string, SearchLimitValue>;
+  searchLanguages: SearchLanguages;
   onSearchLimitChange: (manifestUrl: string, value: SearchLimitValue) => void;
+  onSearchLanguageChange: (manifestUrl: string, value: string) => void;
   onInspectManifest: (url: string) => Promise<AddonManifest>;
   onInstallFromUrl: (url: string, acceptedFingerprint: string) => Promise<string | undefined>;
   onToggle: (manifestUrl: string) => Promise<void>;
@@ -28,7 +30,7 @@ interface PendingInstallation {
   manifest: AddonManifest;
 }
 
-export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, searchLimits, onSearchLimitChange, onInspectManifest, onInstallFromUrl, onToggle, onRemove, onAcceptContract, onFactoryReset, loading }: AddonManagerProps) {
+export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, searchLimits, searchLanguages, onSearchLimitChange, onSearchLanguageChange, onInspectManifest, onInstallFromUrl, onToggle, onRemove, onAcceptContract, onFactoryReset, loading }: AddonManagerProps) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pendingInstallation, setPendingInstallation] = useState<PendingInstallation | null>(null);
@@ -65,7 +67,7 @@ export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, s
       setPendingInstallation({ manifestUrl, manifest });
       setError(null);
     } catch (inspectionError) {
-      setError((inspectionError as Error).message || 'Não foi possível ler o manifesto');
+      setError((inspectionError as Error).message || 'Could not read the manifest');
     } finally {
       setInspecting(false);
     }
@@ -98,15 +100,15 @@ export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, s
   const renderPendingReview = () => {
     if (!pendingInstallation) return null;
     return (
-      <section aria-label="Revisão antes da instalação" style={{ margin: '0 0 12px', padding: 18, border: '1px solid rgba(129,140,248,0.35)', borderRadius: 10, background: 'rgba(30,41,59,0.52)' }}>
+      <section aria-label="Review before installation" style={{ margin: '0 0 12px', padding: 18, border: '1px solid rgba(129,140,248,0.35)', borderRadius: 10, background: 'rgba(30,41,59,0.52)' }}>
         <h2 style={{ margin: '0 0 6px', color: '#f1f5f9', fontSize: 24, lineHeight: 1.15 }}>{pendingInstallation.manifest.name}</h2>
         <p style={{ margin: '0 0 16px', color: '#cbd5e1', fontSize: 14, lineHeight: 1.5 }}>{pendingInstallation.manifest.description}</p>
         <div ref={pendingReviewRef} tabIndex={-1} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 18px' }}>
-          <button type="button" onClick={() => void acceptPendingInstallation()} disabled={busy} style={{ padding: '10px 14px', border: 'none', borderRadius: 8, background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: '#fff', cursor: busy ? 'wait' : 'pointer', fontSize: 13, fontWeight: 700 }}>Instalar e aceitar contrato</button>
-          <button type="button" onClick={() => setPendingInstallation(null)} disabled={busy} style={{ padding: '10px 14px', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#cbd5e1', cursor: busy ? 'wait' : 'pointer', fontSize: 13 }}>Cancelar</button>
+          <button type="button" onClick={() => void acceptPendingInstallation()} disabled={busy} style={{ padding: '10px 14px', border: 'none', borderRadius: 8, background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: '#fff', cursor: busy ? 'wait' : 'pointer', fontSize: 13, fontWeight: 700 }}>Install and accept contract</button>
+          <button type="button" onClick={() => setPendingInstallation(null)} disabled={busy} style={{ padding: '10px 14px', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#cbd5e1', cursor: busy ? 'wait' : 'pointer', fontSize: 13 }}>Cancel</button>
         </div>
-        <h3 style={{ margin: '0 0 6px', color: '#e2e8f0', fontSize: 15 }}>Revise o contrato antes de instalar</h3>
-        <p style={{ margin: '0 0 16px', color: '#94a3b8', fontSize: 13, lineHeight: 1.5 }}>A instalação só será ativada depois desta aceitação. Se o manifesto mudar antes da confirmação, o host pedirá nova revisão.</p>
+        <h3 style={{ margin: '0 0 6px', color: '#e2e8f0', fontSize: 15 }}>Review the contract before installing</h3>
+        <p style={{ margin: '0 0 16px', color: '#94a3b8', fontSize: 13, lineHeight: 1.5 }}>Installation is activated only after this acceptance. If the manifest changes before confirmation, the host will request a new review.</p>
         <AddonContractView
           manifest={pendingInstallation.manifest}
           manifestUrl={pendingInstallation.manifestUrl}
@@ -120,18 +122,18 @@ export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, s
     <div>
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#94a3b8' }}>
-          Adicionar add-on pela URL
+          Add add-on by URL
         </h2>
         <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <label htmlFor="addon-manifest-url" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
-            URL do manifesto do add-on
+            Add-on manifest URL
           </label>
           <input
             id="addon-manifest-url"
             type="url"
             value={url}
             onChange={(event) => setUrl(event.target.value)}
-            placeholder="https://exemplo.com/manifest.json"
+            placeholder="https://example.com/manifest.json"
             required
             disabled={busy}
             style={{
@@ -160,7 +162,7 @@ export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, s
               opacity: busy ? 0.6 : 1,
             }}
           >
-            {busy ? 'Lendo...' : 'Ver contrato'}
+            {busy ? 'Reading...' : 'View contract'}
           </button>
         </form>
         {error && <p role="alert" style={{ color: '#fca5a5', fontSize: 12, margin: '8px 0 0' }}>{error}</p>}
@@ -170,13 +172,13 @@ export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, s
 
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#94a3b8' }}>
-          Add-ons instalados
+          Installed add-ons
         </h2>
         <p style={{ color: '#64748b', fontSize: 13, lineHeight: 1.5, margin: '0 0 12px' }}>
-          Add-ons que declaram busca permitem ajustar quantos resultados aparecem em cada página da listagem principal.
+          Add-ons that declare search let you adjust how many results appear on each page of the main list.
         </p>
         {addons.length === 0 ? (
-          <p style={{ color: '#64748b', fontSize: 13, margin: 0 }}>Nenhum add-on instalado.</p>
+          <p style={{ color: '#64748b', fontSize: 13, margin: 0 }}>No add-ons installed.</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {addons.map((addon) => (
@@ -188,7 +190,9 @@ export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, s
                 onRemove={onRemove}
                 stateDestination={getStateDestination(addon.manifest.contract, activeProviderIds)}
                 searchLimit={searchLimits[addon.manifestUrl] ?? DEFAULT_SEARCH_LIMIT}
+                searchLanguage={searchLanguages[addon.manifestUrl]}
                 onSearchLimitChange={onSearchLimitChange}
+                onSearchLanguageChange={onSearchLanguageChange}
                 reviewRequired={pendingContractUrls.includes(addon.manifestUrl)}
                 onAcceptContract={(manifestUrl) => void onAcceptContract(manifestUrl)}
               />
@@ -197,18 +201,18 @@ export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, s
         )}
       </section>
 
-      <section aria-label="Manifestos locais disponíveis" style={{ marginBottom: 32 }}>
+      <section aria-label="Available local manifests" style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#94a3b8' }}>
-          Manifestos locais disponíveis
+          Available local manifests
         </h2>
         <p style={{ color: '#64748b', fontSize: 13, lineHeight: 1.5, margin: '0 0 12px' }}>
-          As URLs são conhecidas pela demonstração local; os títulos e resumos abaixo vêm de cada `manifest.json`, sem importar ou executar o add-on.
+          These URLs are known by the local demonstration; the titles and summaries below come from each `manifest.json`, without importing or executing the add-on.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {suggestions.map((suggestion) => {
             const isOpen = pendingInstallation?.manifestUrl === suggestion.manifestUrl;
             const isInstalled = installedManifestUrls.has(suggestion.manifestUrl);
-            const actionLabel = isOpen ? 'Fechar' : isInstalled ? 'Instalado' : 'Instalar';
+            const actionLabel = isOpen ? 'Close' : isInstalled ? 'Installed' : 'Install';
             return (
               <Fragment key={suggestion.manifestUrl}>
                 <div
@@ -233,10 +237,10 @@ export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, s
                       type="button"
                       onClick={() => copySuggestion(suggestion.manifestUrl)}
                       disabled={busy}
-                      aria-label={`Copiar ${suggestion.manifestUrl} para o campo de URL`}
+                      aria-label={`Copy ${suggestion.manifestUrl} to the URL field`}
                       style={{ padding: '7px 10px', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 6, background: 'rgba(255,255,255,0.04)', color: '#cbd5e1', cursor: busy ? 'wait' : 'pointer', fontSize: 12 }}
                     >
-                      Copiar
+                      Copy
                     </button>
                     <button
                       type="button"
@@ -248,7 +252,7 @@ export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, s
                         void inspectAndReview(suggestion.manifestUrl);
                       }}
                       disabled={busy || isInstalled}
-                      aria-label={`${isOpen ? 'Fechar' : 'Instalar'} ${suggestion.manifestUrl}`}
+                      aria-label={`${isOpen ? 'Close' : 'Install'} ${suggestion.manifestUrl}`}
                       style={{ padding: '7px 10px', border: 'none', borderRadius: 6, background: isInstalled ? 'rgba(34,197,94,0.1)' : isOpen ? 'rgba(239,68,68,0.12)' : 'linear-gradient(135deg, #3b82f6, #6366f1)', color: isInstalled ? '#86efac' : isOpen ? '#fca5a5' : '#fff', cursor: busy ? 'wait' : isInstalled ? 'default' : 'pointer', fontSize: 12, fontWeight: 600, opacity: busy || isInstalled ? 0.6 : 1 }}
                     >
                       {actionLabel}

@@ -1,7 +1,7 @@
 import type { AddonTabPersistence, AddonTabViewState } from './tab';
 import type { HostAPI } from './host-api';
 
-/** Armazenamento opcional e serializável oferecido por um add-on de persistência. */
+/** Optional serializable storage offered by a persistence add-on. */
 export interface AddonStateStore {
   get<T>(key: string): Promise<T | undefined>;
   set<T>(key: string, value: T): Promise<void>;
@@ -11,8 +11,8 @@ export interface AddonStateStore {
 }
 
 /**
- * Cria a ponte de persistência de uma aba sem assumir que ela esteja disponível.
- * Se nenhum add-on de armazenamento estiver ativo, as operações são no-op.
+ * Creates a tab persistence bridge without assuming that it is available.
+ * If no storage add-on is active, operations are no-ops.
  */
 export function createTabStatePersistence(host: Pick<HostAPI, 'services'>, key: string): AddonTabPersistence {
   return {

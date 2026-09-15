@@ -4,7 +4,7 @@ import { logBrowserDebugPayload } from './http-observability';
 describe('logBrowserDebugPayload', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it('imprime o payload parseado e o corpo bruto recebido pelo host', () => {
+  it('prints the parsed payload and the raw body received by the host', () => {
     const groupCollapsed = vi.spyOn(console, 'groupCollapsed').mockImplementation(() => undefined);
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     const groupEnd = vi.spyOn(console, 'groupEnd').mockImplementation(() => undefined);
@@ -22,9 +22,9 @@ describe('logBrowserDebugPayload', () => {
     });
 
     expect(groupCollapsed).toHaveBeenCalledWith('[addons-poc][DEBUG] GET http://localhost:5294/debug/traffic.json');
-    expect(log).toHaveBeenCalledWith('Debug recebido pelo host', body);
-    expect(log).toHaveBeenCalledWith('Corpo bruto do debug', bodyText);
-    expect(log).toHaveBeenCalledWith('Resposta HTTP do debug', {
+    expect(log).toHaveBeenCalledWith('Debug received by the host', body);
+    expect(log).toHaveBeenCalledWith('Raw debug body', bodyText);
+    expect(log).toHaveBeenCalledWith('Debug HTTP response', {
       status: 200,
       ok: true,
       headers: { 'content-type': 'application/json' },

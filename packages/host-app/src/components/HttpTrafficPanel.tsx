@@ -35,7 +35,7 @@ export function HttpTrafficPanel({ addon }: { addon: AddonInstance }) {
       try {
         body = JSON.parse(bodyText);
       } catch {
-        // O corpo bruto ainda precisa aparecer no console quando o debug falhar.
+        // The raw body must still appear in the console when debugging fails.
       }
       const responseHeaders = headersToObject(response.headers);
       const durationMs = Date.now() - startedAt;
@@ -57,7 +57,7 @@ export function HttpTrafficPanel({ addon }: { addon: AddonInstance }) {
         durationMs,
       });
       exchangeLogged = true;
-      if (!response.ok) throw new Error(`HTTP ${response.status} ao buscar o histórico`);
+      if (!response.ok) throw new Error(`HTTP ${response.status} while fetching history`);
     } catch (refreshError) {
       if (!exchangeLogged) {
         logBrowserHttpExchange({
@@ -83,7 +83,7 @@ export function HttpTrafficPanel({ addon }: { addon: AddonInstance }) {
   if (!url) return null;
 
   return (
-    <section className="host-http-traffic" aria-label={`Tráfego HTTP de ${addon.manifest.name}`}>
+    <section className="host-http-traffic" aria-label={`HTTP traffic for ${addon.manifest.name}`}>
       <a className="host-http-traffic-link" href={url} target="_blank" rel="noreferrer">
         {url}
       </a>

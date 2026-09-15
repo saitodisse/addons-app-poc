@@ -8,7 +8,7 @@ function manifest(id: string, services: ServiceInteraction[]): AddonManifest {
     version: '1.0.0',
     name: id,
     description: id,
-    author: 'Teste',
+    author: 'Test team',
     license: 'MIT',
     contract: {
       version: '1.0.0',
@@ -24,11 +24,11 @@ function manifest(id: string, services: ServiceInteraction[]): AddonManifest {
 }
 
 function service(id: string, role: ServiceInteraction['role'], version: string, priority?: number): ServiceInteraction {
-  return { id, role, version, name: id, description: id, priority, methods: [{ id: 'run', description: 'Executa.' }] };
+  return { id, role, version, name: id, description: id, priority, methods: [{ id: 'run', description: 'Runs the service.' }] };
 }
 
 describe('analyzeAddonDependencies', () => {
-  it('seleciona o provedor compatível de maior prioridade', () => {
+  it('selects the compatible provider with the highest priority', () => {
     const result = analyzeAddonDependencies([
       { key: 'low', manifest: manifest('low', [service('addons.shared.runner', 'provides', '1.0.0', 0)]) },
       { key: 'high', manifest: manifest('high', [service('addons.shared.runner', 'provides', '1.0.0', 10)]) },
@@ -38,16 +38,16 @@ describe('analyzeAddonDependencies', () => {
     expect(result.statuses.get('consumer')).toMatchObject({ status: 'ready', providers: { 'addons.shared.runner': 'high' } });
   });
 
-  it('bloqueia um consumidor quando o serviço obrigatório está ausente', () => {
+  it('blocks a consumer when the required service is missing', () => {
     const result = analyzeAddonDependencies([
       { key: 'consumer', manifest: manifest('consumer', [service('addons.missing.runner', 'consumes', '^1.0.0')]) },
     ]);
 
     expect(result.statuses.get('consumer')?.status).toBe('blocked');
-    expect(result.statuses.get('consumer')?.errors.join(' ')).toContain('Serviço obrigatório ausente');
+    expect(result.statuses.get('consumer')?.errors.join(' ')).toContain('Missing required service');
   });
 
-  it('bloqueia ciclos de serviços obrigatórios', () => {
+  it('blocks required service cycles', () => {
     const result = analyzeAddonDependencies([
       { key: 'a', manifest: manifest('a', [service('addons.a', 'provides', '1.0.0'), service('addons.b', 'consumes', '^1.0.0')]) },
       { key: 'b', manifest: manifest('b', [service('addons.b', 'provides', '1.0.0'), service('addons.a', 'consumes', '^1.0.0')]) },

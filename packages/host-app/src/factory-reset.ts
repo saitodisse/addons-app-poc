@@ -20,11 +20,11 @@ function clearHostKeys(storage: StorageLike | null | undefined): void {
     }
     for (const key of keysToRemove) storage.removeItem(key);
   } catch {
-    // Storage bloqueado não deve impedir que o reset da memória termine.
+    // Blocked storage must not prevent the in-memory reset from finishing.
   }
 }
 
-/** Remove somente configurações do host e estados pertencentes ao protocolo. */
+/** Removes only host settings and protocol-owned state. */
 export function resetPersistedHostState(
   localStorage: StorageLike | null | undefined,
   sessionStorage: StorageLike | null | undefined,
@@ -33,7 +33,7 @@ export function resetPersistedHostState(
   clearHostKeys(sessionStorage);
 }
 
-/** Executa o reset no navegador sem apagar dados de outros aplicativos. */
+/** Runs the reset in the browser without deleting data from other applications. */
 export function resetFactoryStorage(): void {
   if (typeof window === 'undefined') return;
 
@@ -42,12 +42,12 @@ export function resetFactoryStorage(): void {
   try {
     localStorage = window.localStorage;
   } catch {
-    /* armazenamento local indisponível */
+    /* local storage unavailable */
   }
   try {
     sessionStorage = window.sessionStorage;
   } catch {
-    /* armazenamento da sessão indisponível */
+    /* session storage unavailable */
   }
   resetPersistedHostState(localStorage, sessionStorage);
 }

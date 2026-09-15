@@ -1,20 +1,20 @@
 # `@addons/addon-health`
 
-Add-on em processo que fornece `addons.health.health-check` `1.0.0`.
+An in-process add-on that provides `addons.health.health-check` `1.0.0`.
 
-## Por que existe
+## Why it exists
 
-Torna observável o estado dos add-ons sem acoplar o host a uma lista de serviços.
+It makes add-on state observable without coupling the host to a list of services.
 
-## O que oferece
+## What it offers
 
-A aba **Saúde dos Add-ons** consulta os 14 manifestos dos servidores locais da demonstração, mede cada resposta e retorna o nome, o endereço e o estado de cada um. Essas chamadas `GET /manifest.json` estão declaradas em `contract.http`. O estado da aba é opcional e usa `state-store` quando disponível.
+The **Add-on Health** tab queries the 14 manifests from the demonstration's local servers, measures each response, and returns its name, address, and state. These `GET /manifest.json` calls are declared in `contract.http`. The tab state is optional and uses `state-store` when available.
 
-## Como executar e testar
+## How to run and test
 
 ```bash
 pnpm --filter @addons/addon-health test
 pnpm --filter @addons/addon-health serve
 ```
 
-O manifesto fica em `http://localhost:5307/manifest.json`. O cliente de rede está em [`src/http-client.ts`](src/http-client.ts); a declaração do I/O está em [`src/index.ts`](src/index.ts).
+The manifest is at `http://localhost:5307/manifest.json`. The network client is in [`src/http-client.ts`](src/http-client.ts); the I/O declaration is in [`src/index.ts`](src/index.ts).

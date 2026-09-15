@@ -12,15 +12,15 @@ function fakeStorage(): Storage {
 }
 
 describe('Local Storage Add-on', () => {
-  it('oferece um estado serializável isolado por prefixo', async () => {
+  it('provides serializable state isolated by prefix', async () => {
     const store = createLocalStateStore(fakeStorage());
     await store.set('hello:tab', { name: 'Ana' });
     expect(await store.get('hello:tab')).toEqual({ name: 'Ana' });
   });
 
-  it('entrega o JSON completo de cada estado para o host revelar sob demanda', async () => {
+  it('provides complete JSON for each state so the host can reveal it on demand', async () => {
     const store = createLocalStateStore(fakeStorage());
-    await store.set('hello:tab', { values: { name: 'Ana' }, response: { status: 'info', body: 'Olá, Ana!' } });
+    await store.set('hello:tab', { values: { name: 'Ana' }, response: { status: 'info', body: 'Hello, Ana!' } });
     const host = {
       services: { use: () => store },
       registerService: () => {},
@@ -35,15 +35,15 @@ describe('Local Storage Add-on', () => {
     expect(snapshot?.items).toEqual([
       {
         label: 'hello:tab',
-        value: 'localStorage · ver JSON',
-        details: { values: { name: 'Ana' }, response: { status: 'info', body: 'Olá, Ana!' } },
+        value: 'localStorage · view JSON',
+        details: { values: { name: 'Ana' }, response: { status: 'info', body: 'Hello, Ana!' } },
       },
     ]);
     expect(result?.items).toEqual([
       {
         label: 'hello:tab',
-        value: 'localStorage · ver JSON',
-        details: { values: { name: 'Ana' }, response: { status: 'info', body: 'Olá, Ana!' } },
+        value: 'localStorage · view JSON',
+        details: { values: { name: 'Ana' }, response: { status: 'info', body: 'Hello, Ana!' } },
       },
     ]);
   });

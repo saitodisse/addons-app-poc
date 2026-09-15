@@ -1,33 +1,33 @@
-# Especificação do manifesto de add-on
+# Add-on manifest specification
 
-**Status: Entregue · Versão 1.0.0**
+**Status: Delivered · Version 1.0.0**
 
-Os exemplos de implementação de cada manifesto estão nos READMEs listados em
-[`PACKAGES.md`](PACKAGES.md). O contrato desta página é a referência comum ao
-host, ao protocolo e aos add-ons.
+Implementation examples for each manifest are in the READMEs listed in
+[`PACKAGES.md`](PACKAGES.md). The contract on this page is the shared reference
+for the host, protocol, and add-ons.
 
-## Por que
+## Why
 
-O host precisa decidir se consegue instalar uma extensão antes de importar o
-bundle ou chamar um servidor. Um manifesto completo torna essa decisão legível
-para pessoas e verificável por código.
+The host must decide whether it can install an extension before importing its
+bundle or calling its server. A complete manifest makes that decision readable
+to people and verifiable by code.
 
-## O que
+## What
 
-A URL completa do manifesto é a identidade do add-on. O formato legado não é
-aceito. Todo manifesto tem metadados e uma única seção `contract` v1. O
-contrato é uma fronteira de compatibilidade e governança para plugins
-confiáveis; ele não é um sandbox.
+The complete manifest URL is the add-on's identity. The legacy format is not
+accepted. Every manifest has metadata and one `contract` v1 section. The
+contract is a compatibility and governance boundary for trusted plugins; it is
+not a sandbox.
 
-## Manifesto mínimo
+## Minimum manifest
 
 ```json
 {
   "id": "hello",
   "version": "1.0.0",
   "name": "Hello Add-on",
-  "description": "Oferece uma saudação.",
-  "author": "Equipe AC",
+  "description": "Provides a greeting.",
+  "author": "AC Team",
   "license": "MIT",
   "entrypoint": "https://example.com/addons/hello/bundle.js",
   "contract": {
@@ -42,19 +42,19 @@ confiáveis; ele não é um sandbox.
       "role": "provides",
       "version": "1.0.0",
       "name": "Greeter",
-      "description": "Cria saudações.",
+      "description": "Creates greetings.",
       "methods": [{
         "id": "greet",
-        "description": "Saúda um nome.",
-        "receives": { "description": "Nome", "schema": { "type": "string", "description": "Nome", "classification": "personal" } },
-        "returns": { "description": "Saudação", "schema": { "type": "string", "description": "Texto", "classification": "personal" } }
+        "description": "Greets a name.",
+        "receives": { "description": "Name", "schema": { "type": "string", "description": "Name", "classification": "personal" } },
+        "returns": { "description": "Greeting", "schema": { "type": "string", "description": "Text", "classification": "personal" } }
       }]
     }],
     "ui": {
       "title": "Hello",
-      "body": "Digite um nome.",
-      "fields": [{ "id": "name", "label": "Seu nome", "description": "Nome usado na saudação.", "required": true, "schema": { "type": "string", "description": "Nome", "classification": "personal" } }],
-      "actions": [{ "id": "greet", "label": "Saudar", "description": "Cria a saudação.", "receives": ["name"], "returns": { "description": "Resposta", "schema": { "type": "object", "description": "Resposta da aba", "classification": "personal" } } }]
+      "body": "Enter a name.",
+      "fields": [{ "id": "name", "label": "Your name", "description": "Name used in the greeting.", "required": true, "schema": { "type": "string", "description": "Name", "classification": "personal" } }],
+      "actions": [{ "id": "greet", "label": "Greet", "description": "Creates the greeting.", "receives": ["name"], "returns": { "description": "Response", "schema": { "type": "object", "description": "Tab response", "classification": "personal" } } }]
     },
     "state": [],
     "http": [],
@@ -63,35 +63,37 @@ confiáveis; ele não é um sandbox.
 }
 ```
 
-`entrypoint` existe apenas para add-ons em processo. Um bundle em processo
-exporta `manifest`, `setup(host)` e `createTab(host)`. Um add-on HTTP omite
-`entrypoint` e declara seus recursos em `contract.resources`, relacionados às
-interações HTTP recebidas do mesmo `contract`; o servidor continua respondendo
-`GET /manifest.json` e as rotas de catálogo, busca e texto.
+`entrypoint` exists only for in-process add-ons. An in-process bundle exports
+`manifest`, `setup(host)`, and `createTab(host)`. An HTTP add-on omits
+`entrypoint` and declares its resources in `contract.resources`, related to the
+incoming HTTP interactions from the same `contract`; the server continues to
+respond to `GET /manifest.json` and catalog, search, and text routes.
 
-## Como o host valida
+## How the host validates
 
-1. Confere metadados (`id` em kebab-case, versão `X.Y.Z`, autor, licença e
-   descrição).
-2. Confere `contract.version`, a versão do protocolo e a faixa SemVer.
-3. Confere capacidades oficiais (`registry.services`, `ui.tab`, `logs`,
-   `state-store`) ou nomes namespaceados.
-4. Confere descritores: cada serviço tem `id`, papel, versão, métodos e
-   schemas. Um provedor publica uma versão exata; um consumidor pode declarar
-   uma faixa `^` ou `~`. Serviços não oficiais usam `namespace.nome`.
-5. Confere UI, estado, HTTP e logs. O subconjunto de JSON Schema aceita
-   `string`, `number`, `integer`, `boolean`, `null`, `object` e `array`, além
-   de `properties`, `required`, `items`, `enum`, `uri` e `date-time`.
-6. Negocia as capacidades e serviços obrigatórios disponíveis no host.
+1. It checks metadata (`id` in kebab-case, `X.Y.Z` version, author, license,
+   and description).
+2. It checks `contract.version`, the protocol version, and the SemVer range.
+3. It checks official capabilities (`registry.services`, `ui.tab`, `logs`,
+   `state-store`) or namespaced names.
+4. It checks descriptors: each service has an ID, role, version, methods, and
+   schemas. A provider publishes an exact version; a consumer may declare a `^`
+   or `~` range. Unofficial services use `namespace.name`.
+5. It checks UI, state, HTTP, and logs. The JSON Schema subset accepts `string`,
+   `number`, `integer`, `boolean`, `null`, `object`, and `array`, plus
+   `properties`, `required`, `items`, `enum`, `uri`, and `date-time`.
+6. It negotiates the capabilities and required services available in the host.
 
-O validador canônico é `validateManifest` de `@addons-poc/protocol`. O schema
-JSON distribuído pode ser importado por `@addons-poc/protocol/schema`.
-O pacote público não exporta `ServiceRegistry`, loader ou helpers de fallback;
-essas responsabilidades ficam no runtime do host.
+The canonical validator is `validateManifest` from
+`@addons-poc/protocol`. The distributed JSON Schema can be imported from
+`@addons-poc/protocol/schema`. The public package does not export
+`ServiceRegistry`, the loader, or fallback helpers; those responsibilities live
+in the host runtime.
 
-## Serviços e proxy tipada
+## Services and typed proxy
 
-O add-on não usa a API legada de consulta por string. Ele solicita o contrato que precisa:
+The add-on does not use the legacy string-based lookup API. It requests the
+contract it needs:
 
 ```ts
 const greeter = host.services.use<Greeter>({
@@ -101,48 +103,55 @@ const greeter = host.services.use<Greeter>({
 });
 ```
 
-O host só entrega um serviço declarado pelo consumidor ou provedor. Métodos,
-entradas e saídas precisam permanecer compatíveis. Alterar o significado ou
-remover método exige uma versão major nova do serviço. Provedores são
-ordenados por prioridade; fallback é uma operação explícita do runtime.
+The host only provides a service declared by the consumer or provider. Methods,
+inputs, and outputs must remain compatible. Changing the meaning or removing a
+method requires a new major service version. Providers are ordered by priority;
+fallback is an explicit runtime operation.
 
-O serviço oficial opcional `state-store` pode ser fornecido pelo host ou por
-um add-on. O consumidor marca `required: true` quando não consegue operar sem
-ele. Sem provedor, um consumidor opcional continua em memória.
+The optional official `state-store` service may be provided by the host or an
+add-on. A consumer sets `required: true` when it cannot operate without it.
+Without a provider, an optional consumer remains in memory.
 
-## UI, estado, HTTP e logs
+## UI, state, HTTP, and logs
 
-`contract.ui` declara título, corpo, campos, ações e schemas das respostas.
-`contract.state` declara chave ou padrão, operações, retenção e exclusão.
-`contract.http` registra entradas e saídas, com método, rota-modelo, origem e
-finalidade. `contract.logs` descreve eventos estruturados e sua classificação.
+`contract.ui` declares the title, body, fields, actions, and response schemas.
+`contract.state` declares the key or pattern, operations, retention, and
+deletion. `contract.http` records incoming and outgoing interactions, with a
+method, route template, origin, and purpose. `contract.logs` describes
+structured events and their classification.
 
-O host valida ações e estado no runtime. I/O externo direto continua possível
-para plugins confiáveis: a declaração HTTP é transparência e revisão, não
-interceptação. `onUnload`, sandbox e proxy de rede estão fora da v1.
+The host validates actions and state at runtime. Direct external I/O remains
+possible for trusted plugins: the HTTP declaration provides transparency and
+review, not interception. `onUnload`, sandboxing, and a network proxy are
+outside v1.
 
-## Compatibilidade e estados
+## Compatibility and states
 
-Antes de importar um bundle, o host pode recusar um contrato incompatível. Um
-serviço obrigatório ausente deixa a instalação bloqueada e ela é reavaliada
-quando um provedor compatível surge. Dependências obrigatórias em ciclo são
-bloqueadas. Falha de `setup` limpa os registros parciais e deixa a instância
-em `error`.
+Before importing a bundle, the host may reject an incompatible contract. A
+missing required service leaves the installation blocked, and it is reevaluated
+when a compatible provider appears. Required dependency cycles are blocked. A
+`setup` failure clears partial registrations and leaves the instance in
+`error`.
 
-Depois da revisão humana, o host guarda uma impressão digital do `contract`
-junto da URL. Mudança na mesma URL exige nova revisão. A impressão digital não
-é assinatura criptográfica nem prova autoria.
+After human review, the host stores a `contract` fingerprint with the URL. A
+change at the same URL requires a new review. The fingerprint is not a
+cryptographic signature and does not prove authorship.
 
-## Perfil HTTP de texto
+## HTTP text profile
 
-Os recursos de texto mantêm o envelope:
+Text resources keep this envelope:
 
 ```json
-{ "texts": [{ "id": "texto-1", "url": "https://example.com/text/texto-1/content.txt", "lang": "pt-BR", "name": "Versão principal" }] }
+{ "texts": [{ "id": "text-1", "url": "https://example.com/text/text-1/content.txt", "lang": "pt-BR", "name": "Primary version" }] }
 ```
 
-Catálogo e busca devolvem metadados. Ambos podem aceitar `limit` e `cursor` na
-query string e devolver `pagination` com `limit`, `total` opcional e `next`
-opcional. O cursor é opaco e só deve ser reutilizado na mesma consulta. O
-conteúdo só é buscado quando a pessoa abre uma opção. O servidor é ESM puro,
-não conhece React e não depende do runtime interno do host.
+Catalog and search return metadata. Both may accept `limit`, `cursor`, and, when
+the resource declares `languages`, `lang` in the query string and return
+optional `pagination` with optional `limit`, `total`, and `next`. The cursor is
+opaque and should only be reused for the same query. Content is fetched only
+when a person opens an option. The server is plain ESM, does not know React,
+and does not depend on the host's internal runtime.
+
+`languages` is optional on a resource item and contains language codes accepted
+by the add-on. The host displays a per-provider selector and keeps `lang` in
+content links when the server offers that behavior.

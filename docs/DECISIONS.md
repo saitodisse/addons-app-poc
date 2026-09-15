@@ -1,35 +1,35 @@
-# Decisões de arquitetura
+# Architecture decisions
 
-Este documento preserva o raciocínio por trás do sistema. Ele existe porque uma decisão sem contexto parece apenas uma regra arbitrária; com o problema e as alternativas visíveis, fica mais fácil saber quando mantê-la e quando revisá-la.
+This document preserves the reasoning behind the system. It exists because a decision without context looks like an arbitrary rule; when the problem and alternatives are visible, it is easier to know when to keep it and when to revisit it.
 
-Cada decisão começa pela ideia simples e termina nas consequências técnicas.
+Each decision starts with the simple idea and ends with the technical consequences.
 
-## 1. A URL do manifesto é a identidade
+## 1. The manifest URL is the identity
 
-### Por que
+### Why
 
-Nomes e identificadores declarados podem se repetir. Duas pessoas podem publicar um add-on chamado `hello`, e o mesmo servidor pode atualizar o nome sem se tornar outro add-on.
+Declared names and identifiers can repeat. Two people can publish an add-on called `hello`, and the same server can change its name without becoming a different add-on.
 
-### Decisão
+### Decision
 
-O endereço completo do manifesto identifica o add-on. O campo `id` continua útil para leitura, logs e interface, mas não define unicidade.
+The complete manifest address identifies the add-on. The `id` field remains useful for reading, logs, and the interface, but it does not define uniqueness.
 
-### Consequências técnicas
+### Technical consequences
 
-- `AddonInstance.manifestUrl` preserva a identidade.
-- `ServiceEntry.addonId` recebe a URL do manifesto quando o loader registra serviços.
-- mover o manifesto para outra URL cria outra identidade;
-- atualizar o conteúdo na mesma URL mantém a identidade.
+- `AddonInstance.manifestUrl` preserves identity.
+- `ServiceEntry.addonId` receives the manifest URL when the loader registers services.
+- moving the manifest to another URL creates another identity;
+- updating content at the same URL preserves identity.
 
-## 2. Manifesto e setup são partes separadas
+## 2. Manifest and setup are separate parts
 
-### Por que
+### Why
 
-O host precisa entender o que um add-on declara antes de executar seu código.
+The host must understand what an add-on declares before executing its code.
 
-### Decisão
+### Decision
 
-Um add-on em processo exporta `manifest` e `setup`. O manifesto descreve; o `setup` inicializa.
+An in-process add-on exports `manifest` and `setup`. The manifest describes; `setup` initializes.
 
 ```typescript
 interface AddonModule {
@@ -38,390 +38,373 @@ interface AddonModule {
 }
 ```
 
-### Consequências técnicas
+### Technical consequences
 
-O host pode validar metadados e serviços antes da ativação. Em uma evolução futura, também pode exibir permissões ou compatibilidade antes de executar o bundle.
+The host can validate metadata and services before activation. In a future evolution, it can also show permissions or compatibility before executing the bundle.
 
-## 3. O HostAPI deve permanecer pequeno
+## 3. HostAPI must remain small
 
-### Por que
+### Why
 
-Cada método exposto pelo host vira um compromisso de compatibilidade. Uma API enorme dá mais poder imediato ao add-on, mas aumenta o acoplamento e dificulta isolamento futuro.
+Each method exposed by the host becomes a compatibility commitment. A large API gives the add-on more immediate power, but increases coupling and makes future isolation harder.
 
-### Decisão
+### Decision
 
-O add-on recebe apenas:
+The add-on receives only:
 
-- `services`, para consultar o registro;
-- `registerService`, para publicar uma implementação;
-- `onUnload`, para declarar limpeza;
-- `log`, para emitir mensagens contextualizadas.
+- `services`, to query the registry;
+- `registerService`, to publish an implementation;
+- `onUnload`, to declare cleanup;
+- `log`, to emit contextual messages.
 
-### Consequências técnicas
+### Technical consequences
 
-Recursos como rede, persistência ou autenticação devem chegar como serviços explícitos, não como acesso irrestrito aos detalhes internos do host.
+Capabilities such as networking, persistence, or authentication must arrive as explicit services, not unrestricted access to the host's internal details.
 
-`log` aceita detalhes opcionais e os encaminha ao serviço `addons.debug.log` quando ele estiver ativo. Isso não acrescenta uma API de debug paralela nem entrega armazenamento diretamente ao add-on.
+`log` accepts optional details and forwards them to the `addons.debug.log` service when it is active. This does not add a parallel debug API or hand storage directly to the add-on.
 
-## 4. O registry é interno ao host
+## 4. The registry is internal to the host
 
-### Por que
+### Why
 
-Se o host e cada add-on importarem uns aos outros, todas as partes ficam presas à mesma build.
+If the host and each add-on imported one another, every part would be tied to the same build.
 
-### Decisão
+### Decision
 
-Produtores registram implementações por `serviceId` no registry privado do
-host; consumidores só recebem `host.services.use(contrato)`. O pacote público
-descreve a porta, mas não exporta o registry nem um loader.
+Providers register implementations by `serviceId` in the host's private registry; consumers receive only `host.services.use(contract)`. The public package describes the port but does not export the registry or a loader.
 
-### Consequências técnicas
+### Technical consequences
 
-O registro guarda `serviceId`, instância, origem, descritor e prioridade. Ele
-não conhece React, HTTP ou o propósito de cada serviço. Essa profundidade
-pequena e genérica é intencional.
+The registry stores `serviceId`, instance, source, descriptor, and priority. It does not know React, HTTP, or the purpose of each service. This small, generic depth is intentional.
 
-## 5. A prioridade é explícita
+## 5. Priority is explicit
 
-### Por que
+### Why
 
-Quando várias implementações oferecem a mesma capacidade, o sistema precisa de uma ordem previsível.
+When several implementations provide the same capability, the system needs a predictable order.
 
-### Decisão
+### Decision
 
-Cada descritor de provedor pode declarar uma prioridade numérica. Valores
-maiores vêm primeiro; a prioridade padrão é zero.
+Each provider descriptor may declare a numeric priority. Higher values come first; the default priority is zero.
 
-### Consequências técnicas
+### Technical consequences
 
-`ServiceRegistry.register` ordena as entradas. Empates usam a identidade da
-URL do manifesto como desempate, para que a escolha seja determinística.
+`ServiceRegistry.register` orders entries. Ties use the manifest URL identity as a tiebreaker so that the choice is deterministic.
 
-## 6. Falha no setup desativa a instância
+## 6. A setup failure deactivates the instance
 
-### Por que
+### Why
 
-Um add-on parcialmente inicializado deixa o estado difícil de compreender. O host precisa saber se a ativação terminou ou não.
+A partially initialized add-on leaves state difficult to understand. The host must know whether activation finished.
 
-### Decisão
+### Decision
 
-Se `setup` lançar uma exceção, o loader devolve uma `AddonInstance` com status `error` e não anuncia serviços na instância retornada.
+If `setup` throws an exception, the loader returns an `AddonInstance` with `error` status and does not advertise services in the returned instance.
 
-### Consequências técnicas e lacuna atual
+### Technical consequences and current gap
 
-O loader executa os callbacks registrados, limpa os serviços daquela URL e
-devolve uma instância em `error`, desde que os callbacks terminem sem exceção.
-A remoção de registros após falha de `setup` tem teste no runtime do host.
-Ainda falta garantir que uma falha no próprio callback não interrompa os
-demais callbacks nem impeça a remoção dos serviços. A ativação atual registra
-serviços diretamente no registry; não há uma transação que os mantenha
-invisíveis até a conclusão do `setup`.
+The loader runs registered callbacks, clears services for that URL, and returns
+an `error` instance as long as callbacks finish without throwing. Removal of
+registrations after a `setup` failure has a host-runtime test. It still needs to
+ensure that a callback failure does not interrupt later callbacks or prevent
+service removal. Current activation registers services directly in the registry;
+there is no transaction keeping them invisible until `setup` completes.
 
-## 7. Fallback é uma operação explícita
+## 7. Fallback is an explicit operation
 
-### Por que
+### Why
 
-Escolher o primeiro serviço e tentar alternativas são responsabilidades diferentes. Esconder execução dentro do registro tornaria erros e tipos mais difíceis de controlar.
+Choosing the first service and trying alternatives are different responsibilities. Hiding execution inside the registry would make errors and types harder to control.
 
-### Decisão
+### Decision
 
-O registry interno ordena; helpers internos `withFallback` e
-`withFallbackAsync` executam a tentativa em sequência. Eles não fazem parte
-das exportações públicas do `@addons-poc/protocol`; a API pública do add-on é
-`host.services.use(contrato)`.
+The internal registry orders entries; internal helpers `withFallback` and
+`withFallbackAsync` execute attempts in sequence. They are not part of the
+public exports of `@addons-poc/protocol`; the public add-on API is
+`host.services.use(contract)`.
 
-### Consequências técnicas
+### Technical consequences
 
-O consumidor fornece a função que será aplicada a cada implementação. Se todas falharem, recebe um `AggregateFallbackError` com os erros individuais. Se nenhum serviço estiver registrado, o mesmo erro é lançado com a lista interna vazia.
+The consumer supplies the function applied to each implementation. If all fail, it receives an `AggregateFallbackError` with the individual errors. If no service is registered, the same error is thrown with an empty internal list.
 
-## 8. Add-ons em processo usam ESM
+## 8. In-process add-ons use ESM
 
-### Por que
+### Why
 
-O navegador e o Node.js modernos já entendem módulos ECMAScript, ou **ESM**. Um padrão nativo reduz formatos proprietários e loaders extras.
+Modern browsers and Node.js already understand ECMAScript modules, or **ESM**. A native standard reduces proprietary formats and extra loaders.
 
-### Decisão
+### Decision
 
-Bundles em processo devem ser módulos ESM carregáveis com `import()`.
+In-process bundles must be ESM modules loadable with `import()`.
 
-### Consequências técnicas
+### Technical consequences
 
-O `entrypoint` precisa ser uma URL HTTP ou HTTPS no manifesto público validado pelo loader. Essa URL remota é a fonte canônica para importar o bundle; o manifesto exportado dentro do bundle pode conservar um caminho relativo do projeto de build, desde que sua identidade, versão e contrato coincidam com o manifesto remoto. O host não contém imports, aliases ou catálogo embutido de metadados de add-ons: depois da revisão do contrato, a interface usa `FetchAddonLoader` para buscar o manifesto e importar o bundle ESM publicado pela extensão. Como conveniência de desenvolvimento, Configurações lista URLs locais conhecidas de `manifest.json` e lê apenas `name` e `description` para a apresentação, sem executar o bundle.
+The `entrypoint` must be an HTTP or HTTPS URL in the public manifest validated by the loader. This remote URL is the canonical source for importing the bundle; the manifest exported inside the bundle may keep a relative build-project path as long as its identity, version, and contract match the remote manifest. The host contains no imports, aliases, or embedded add-on metadata catalog: after contract review, the interface uses `FetchAddonLoader` to fetch the manifest and import the extension's published ESM bundle. As a development convenience, Settings lists known local `manifest.json` URLs and reads only `name` and `description` for presentation without executing the bundle.
 
-## 9. O manifesto deve ser completo antes da execução
+## 9. The manifest must be complete before execution
 
-### Por que
+### Why
 
-Um host precisa mostrar autoria, versão, licença e capacidades sem adivinhar informações pelo código.
+A host needs to show authorship, version, license, and capabilities without guessing from code.
 
-### Decisão
+### Decision
 
-Todo manifesto declara `id`, `version`, `name`, `description`, `author`,
-`license` e uma única seção `contract` v1. Serviços, UI, estado, HTTP, logs,
-capacidades e recursos vivem dentro dela. O formato legado não é interpretado.
+Every manifest declares `id`, `version`, `name`, `description`, `author`,
+`license`, and one `contract` v1 section. Services, UI, state, HTTP, logs,
+capabilities, and resources live inside it. The legacy format is not interpreted.
 
-### Consequências técnicas
+### Technical consequences
 
-`validateManifest` rejeita campos obrigatórios vazios, IDs fora de kebab-case,
-versões fora de `X.Y.Z`, capacidades não namespaceadas, descritores sem
-schemas e estruturas incompatíveis. A especificação canônica está em
+`validateManifest` rejects empty required fields, IDs outside kebab-case,
+versions outside `X.Y.Z`, non-namespaced capabilities, descriptors without
+schemas, and incompatible structures. The canonical specification is in
 [`MANIFEST-SPEC.md`](MANIFEST-SPEC.md).
 
-## 10. Interfaces de domínio tornam serviços compreensíveis
+## 10. Domain interfaces make services understandable
 
-### Por que
+### Why
 
-Um `serviceId` sozinho não diz quais métodos a implementação oferece. Sem um contrato, o erro só aparece durante a execução.
+A `serviceId` alone does not say which methods an implementation provides. Without a contract, the error appears only during execution.
 
-### Decisão
+### Decision
 
-O protocolo público expõe tipos do contrato e um SDK de autoria. Helpers de
-domínio, como favoritos, Markdown ou agregação, ficam nos próprios add-ons e
-não viram uma API global acidental.
+The public protocol exposes contract types and an authoring SDK. Domain helpers, such as favorites, Markdown, or aggregation, stay in the add-ons that use them and do not become an accidental global API.
 
-### Consequências técnicas
+### Technical consequences
 
-O TypeScript verifica produtores e consumidores durante o desenvolvimento. A
-proxy `services.use` também valida entradas, saídas e estado em runtime; essa
-garantia não substitui revisão de código confiável nem sandbox.
+TypeScript checks providers and consumers during development. The `services.use` proxy also validates inputs, outputs, and state at runtime; this guarantee does not replace trusted code review or sandboxing.
 
-## 11. Os testes se concentram no protocolo crítico
+## 11. Tests focus on the critical protocol
 
-### Por que
+### Why
 
-O erro mais caro é aquele que quebra todos os add-ons. Por isso, registro, validação, fallback, carregamento e clientes merecem testes pequenos e determinísticos.
+The most expensive error is one that breaks every add-on. Therefore, registry, validation, fallback, loading, and clients deserve small, deterministic tests.
 
-### Decisão
+### Decision
 
-O `@addons-poc/protocol` mantém testes unitários ao lado do código. O servidor e os add-ons com transformação própria também testam seus handlers e serviços.
+`@addons-poc/protocol` keeps unit tests next to the code. The server and add-ons with their own transformations also test their handlers and services.
 
-### Consequências técnicas
+### Technical consequences
 
-Rede real é substituída por funções injetadas ou mocks sempre que o objetivo é
-testar regras. A interface React ainda depende principalmente de verificação
-manual.
+Real networking is replaced with injected functions or mocks whenever the goal is to test rules. The React interface still depends mainly on manual verification.
 
-## 12. O protocolo público é um pacote versionado
+## 12. The public protocol is a versioned package
 
-### Por que
+### Why
 
-Hosts e add-ons independentes precisam instalar a mesma fronteira sem trazer o
-runtime inteiro do host.
+Independent hosts and add-ons need to install the same boundary without bringing the entire host runtime.
 
-### Decisão
+### Decision
 
-`@addons-poc/protocol` começa em `1.0.0`, usa MIT, publica ESM, declarações
-TypeScript e `schema/addon-contract.schema.json`. A publicação exige conferir
-a conta e a propriedade do escopo antes de enviar o pacote.
+`@addons-poc/protocol` starts at `1.0.0`, uses MIT, publishes ESM, TypeScript declarations, and `schema/addon-contract.schema.json`. Publication requires checking the account and scope ownership before sending the package.
 
-### Consequências técnicas
+### Technical consequences
 
-O pacote não contém loader, registry ou catálogo de add-ons em sua exportação.
-Uma mudança incompatível exige uma major nova; mudanças de método ou schema
-exigem uma nova versão major do serviço.
+The package does not contain a loader, registry, or add-on catalog in its exports. An incompatible change requires a new major version; method or schema changes require a new major version of the service.
 
-## 13. Um add-on pode ser um servidor HTTP
+## 13. An add-on can be an HTTP server
 
-### Por que
+### Why
 
-Executar tudo dentro do host aumenta acoplamento, tamanho da build e risco. Algumas capacidades funcionam melhor como serviços independentes.
+Running everything inside the host increases coupling, build size, and risk. Some capabilities work better as independent services.
 
-### Decisão
+### Decision
 
-O protocolo aceita add-ons que declaram `contract.resources` e respondem por
-HTTP, seguindo a organização de rotas popularizada pelo Stremio.
+The protocol accepts add-ons that declare `contract.resources` and respond over HTTP, following the route organization popularized by Stremio.
 
-### Consequências técnicas
+### Technical consequences
 
-Os add-ons que consomem texto mantêm seus clientes locais; o servidor usa
-`@addons/addon-server`. Código e implantação podem evoluir separadamente, mas
-o sistema precisa tratar rede, CORS, tempo de resposta e indisponibilidade.
+Add-ons that consume text keep their local clients; the server uses
+`@addons/addon-server`. Code and deployment can evolve separately, but the
+system must handle networking, CORS, response time, and unavailability.
 
-## 14. Texto usa entrega em duas etapas
+## 14. Text uses two-stage delivery
 
-### Por que
+### Why
 
-Enviar o conteúdo completo em catálogos e buscas desperdiça banda. Na maioria das vezes, o usuário só abre alguns resultados.
+Sending complete content in catalogs and searches wastes bandwidth. Most of the time, the user opens only a few results.
 
-### Decisão
+### Decision
 
-Catálogo e busca devolvem metadados. O recurso `text` devolve uma lista de opções no formato:
+Catalog and search return metadata. The `text` resource returns a list of options in this format:
 
 ```json
 {
   "texts": [
     {
-      "id": "texto-1",
-      "url": "https://example.com/text/text/texto-1/content.txt",
+      "id": "text-1",
+      "url": "https://example.com/text/text/text-1/content.txt",
       "lang": "pt-BR",
-      "name": "Versão principal"
+      "name": "Primary version"
     }
   ]
 }
 ```
 
-### Consequências técnicas
+### Technical consequences
 
-O host busca o conteúdo apontado por `url` somente quando necessário. O formato se inspira em `subtitles` do Stremio, adaptado para texto puro.
+The host fetches the content referenced by `url` only when needed. The format is inspired by Stremio's `subtitles`, adapted for plain text.
 
-## 15. O servidor HTTP permanece autônomo
+## 15. The HTTP server remains autonomous
 
-### Por que
+### Why
 
-Um add-on remoto deve ser simples de hospedar sem carregar toda a ferramenta TypeScript do protocolo.
+A remote add-on should be simple to host without loading the protocol's entire TypeScript toolchain.
 
-### Decisão
+### Decision
 
-`@addons/addon-server` e os add-ons de texto usam JavaScript ESM puro e zero dependências externas de runtime além do protocolo público para validar o manifesto.
+`@addons/addon-server` and text add-ons use plain ESM JavaScript and zero external runtime dependencies beyond the public protocol used to validate the manifest.
 
-### Consequências técnicas
+### Technical consequences
 
-O servidor chama a validação canônica de `@addons-poc/protocol`; não existe um
-parser legado paralelo.
+The server calls the canonical validation from `@addons-poc/protocol`; there is no parallel legacy parser.
 
-## 16. Serviços podem compor outros serviços
+## 16. Services can compose other services
 
-### Por que
+### Why
 
-Extensões úteis raramente vivem isoladas. Favoritos precisam de armazenamento; busca agregada precisa de fontes; o host pode oferecer infraestrutura sem conhecer cada consumidor.
+Useful extensions rarely live in isolation. Favorites need storage; aggregated search needs sources; the host can provide infrastructure without knowing each consumer.
 
-### Decisão
+### Decision
 
-Um add-on pode consultar `host.services` durante o `setup` e construir sua capacidade a partir de serviços existentes.
+An add-on may query `host.services` during `setup` and build its capability from existing services.
 
-### Consequências técnicas
+### Technical consequences
 
-- o host registra infraestrutura com uma origem explícita, como `addonId: "host"`;
-- consumidores devem prever a ausência de dependências opcionais;
-- o host analisa dependências obrigatórias, reativa bloqueios quando um provedor aparece e bloqueia ciclos;
-- add-ons não importam outros add-ons diretamente.
+- the host registers infrastructure with an explicit source such as `addonId: "host"`;
+- consumers must account for missing optional dependencies;
+- the host analyzes required dependencies, reactivates blocked instances when a provider appears, and blocks cycles;
+- add-ons do not import other add-ons directly.
 
-## 17. A interface de demonstração pertence ao add-on ativo
+## 17. The demo interface belongs to the active add-on
 
-### Por que
+### Why
 
-Abas fixas no host faziam o aplicativo conhecer serviços e exemplos específicos. Uma extensão removida ainda deixava sua interface no host, o que contradiz a ideia de instalação independente.
+Fixed tabs in the host made the application know specific services and examples. A removed extension still left its interface in the host, contradicting independent installation.
 
-### Decisão
+### Decision
 
-Todo manifesto declara `contract.ui.title` e `contract.ui.body`. Um módulo em processo exporta `createTab(host)`, que fornece campos, ações e `run(actionId, values)`. O retorno de `run` é uma resposta declarativa que o host renderiza sem conhecer a regra do add-on.
+Every manifest declares `contract.ui.title` and `contract.ui.body`. An in-process module exports `createTab(host)`, which provides fields, actions, and `run(actionId, values)`. The return value of `run` is a declarative response that the host renders without knowing the add-on's rules.
 
-### Consequências técnicas
+### Technical consequences
 
-- o host lista somente instâncias `ready`, ativas e com aba;
-- desativar ou remover uma extensão remove sua aba imediatamente;
-- cada add-on mantém sua própria funcionalidade, inclusive estado de serviço e chamadas remotas;
-- add-ons HTTP podem declarar uma aba informativa no manifesto; para ações interativas precisam também de um módulo em processo;
-- itens de uma resposta podem transportar `details` em JSON; o host só os mostra sob demanda e não interpreta sua estrutura;
-- o contrato é neutro de React, portanto o `protocol` não passa a depender da biblioteca de interface.
+- the host lists only `ready`, active instances with a tab;
+- disabling or removing an extension immediately removes its tab;
+- each add-on owns its functionality, including service state and remote calls;
+- HTTP add-ons may declare an informational tab in the manifest; interactive actions also require an in-process module;
+- response items may carry JSON `details`; the host shows them on demand and does not interpret their structure;
+- the contract is React-neutral, so `protocol` does not become dependent on the interface library.
 
-## 18. Persistência e observabilidade são capacidades opcionais
+## 18. Persistence and observability are optional capabilities
 
-### Por que
+### Why
 
-Gravar dados diretamente pelo host fazia Favoritos persistir mesmo sem uma extensão de armazenamento instalada. Da mesma forma, mensagens no console eram invisíveis dentro da POC e não permitiam que uma extensão de debug mostrasse o que as demais executaram.
+Writing data directly through the host made Favorites persist even without an installed storage extension. Likewise, console messages were invisible inside the POC and did not let a debug extension show what the others had executed.
 
-### Decisão
+### Decision
 
-O protocolo usa dois serviços opcionais: `state-store`, para valores serializáveis por chave, e `addons.debug.log`, para eventos estruturados. Os add-ons consumidores consultam esses serviços no momento da operação; se estiverem ausentes, continuam em memória e não gravam estado. Abas que desejam salvar sua interface declaram a ponte `persistence` com `load` e `save`.
+The protocol uses two optional services: `state-store`, for serializable values by key, and `addons.debug.log`, for structured events. Consumer add-ons query these services when operating; when they are absent, they remain in memory and do not save state. Tabs that want to save their interface declare a `persistence` bridge with `load` and `save`.
 
-`storage-local` oferece `state-store` com prioridade `10`; `storage-session`, com prioridade `0`. Portanto o armazenamento local vence enquanto ambos estiverem ativos. `debug` oferece `addons.debug.log` e mostra seus eventos pela própria aba.
+`storage-local` provides `state-store` with priority `10`; `storage-session`, with priority `0`. Therefore local storage wins while both are active. `debug` provides `addons.debug.log` and displays its events through its own tab.
 
-### Consequências técnicas
+### Technical consequences
 
-- o host não registra mais `localStorage` como infraestrutura implícita;
-- nome e resposta das abas, contador, histórico de busca e lista de favoritos persistem somente com algum `state-store` ativo;
-- logs estruturados são emitidos por `HostAPI.log` e exibidos em tempo real quando Debug está ativo;
-- desativar um provedor limpa sua implementação do registro, de modo que outro provedor ativo pode assumir ou nenhum estado será salvo;
-- os dados já existentes no armazenamento não são apagados ao desativar a extensão; somente deixam de ser lidos e atualizados até ela voltar a ficar ativa.
+- the host no longer registers `localStorage` as implicit infrastructure;
+- tab names and responses, the counter, search history, and favorites list persist only with an active `state-store`;
+- structured logs are emitted by `HostAPI.log` and displayed in real time when Debug is active;
+- disabling a provider clears its registry implementation, so another active provider can take over or no state will be saved;
+- data already in storage is not erased when the extension is disabled; it is simply no longer read or updated until the extension becomes active again.
 
-## 19. O host preserva sua lista de instalações
+## 19. The host preserves its installation list
 
-### Por que
+### Why
 
-Sem guardar as URLs instaladas, um F5 apaga todas as instâncias em memória. Isso também impede que o host reative `storage-local` antes de carregar os consumidores e, portanto, torna a persistência de estado pouco útil entre recarregamentos.
+Without storing installed URLs, an F5 erases every in-memory instance. It also prevents the host from reactivating `storage-local` before loading consumers, making state persistence across reloads less useful.
 
-### Decisão
+### Decision
 
-O host guarda em `localStorage` uma configuração pequena com as URLs dos manifestos instalados e as URLs desativadas. No carregamento inicial, ele tenta a ordem registrada e repete os add-ons bloqueados quando um provedor compatível aparece. Se a chave não existir, inicia sem extensões.
+The host stores a small `localStorage` configuration with installed manifest URLs and disabled URLs. During initial loading, it tries the recorded order and retries blocked add-ons when a compatible provider appears. If the key does not exist, it starts without extensions.
 
-### Consequências técnicas
+### Technical consequences
 
-- remover uma extensão também a remove da configuração persistida;
-- desativar uma extensão permanece desativado após recarregar;
-- uma URL que não puder ser restaurada é ignorada naquela sessão e sai da lista persistida ao final do carregamento;
-- a configuração do host não substitui `state-store`: ela só permite reconstruir as extensões que poderão escolher persistir seus próprios dados.
+- removing an extension also removes it from the persisted configuration;
+- disabling an extension remains disabled after reloading;
+- a URL that cannot be restored is ignored for that session and removed from the persisted list after loading finishes;
+- the host configuration does not replace `state-store`: it only rebuilds the extensions that may choose to persist their own data.
 
-## 20. Todo add-on declara seu contrato de interação
+## 20. Every add-on declares its interaction contract
 
-### Por que
+### Why
 
-Uma pessoa conseguia instalar um add-on sabendo seu nome e serviço, mas não conseguia identificar todos os dados recebidos, o estado gravado ou as chamadas HTTP feitas por ele. Essa lacuna impede uma escolha consciente e deixa mudanças de capacidade silenciosas.
+A person could install an add-on knowing its name and service but could not identify all data it received, state it stored, or HTTP calls it made. This gap prevents an informed choice and allows silent capability changes.
 
-### Decisão
+### Decision
 
-Todo manifesto compatível deve trazer `contract` na versão `1.0.0`. O bloco descreve serviços fornecidos e consumidos, campos e ações da aba, estado por chave ou padrão, HTTP recebido e enviado e eventos de log. Os dados são classificados como públicos, pessoais ou secretos; valores secretos não entram no manifesto nem devem ser mostrados pela interface.
+Every compatible manifest must include `contract` version `1.0.0`. The block describes provided and consumed services, tab fields and actions, state by key or pattern, incoming and outgoing HTTP, and log events. Data is classified as public, personal, or secret; secret values do not belong in the manifest and must not be shown by the interface.
 
-O host rejeita um manifesto sem contrato. Ele compara serviços fornecidos, campos e ações mediadas com a declaração, encaminha apenas os campos aceitos pela ação e bloqueia acesso a serviço ou chave de estado não declarados. A URL continua sendo a identidade, mas uma alteração no contrato na mesma URL exige nova aceitação antes da reativação.
+The host rejects a manifest without a contract. It compares provided services, fields, and mediated actions with the declaration, forwards only fields accepted by the action, and blocks access to undeclared services or state keys. The URL remains the identity, but a contract change at the same URL requires new acceptance before reactivation.
 
-### Consequências técnicas e limite atual
+### Technical consequences and current limit
 
-- `AddonManifest.contract` e `validateManifest` formam o novo contrato canônico;
-- o host persiste a impressão digital aceita do contrato com sua configuração de instalação;
-- add-ons HTTP registram método, origem, rota-modelo, finalidade, entrada e saída esperada;
-- HTTP de saída ainda não é mediado, logo permanece uma declaração transparente e não uma permissão tecnicamente bloqueada;
-- a mudança é incompatível para manifestos antigos: eles precisam publicar `contract` antes de serem instalados.
+- `AddonManifest.contract` and `validateManifest` form the new canonical contract;
+- the host persists the accepted contract fingerprint with its installation configuration;
+- HTTP add-ons record method, origin, route template, purpose, and expected input and output;
+- outgoing HTTP is not yet mediated, so it remains a transparent declaration rather than a technically enforced permission;
+- the change is incompatible with old manifests: they must publish `contract` before installation.
 
-## 21. A busca global agrega recursos HTTP declarados com paginação
+## 21. Global search aggregates declared HTTP resources with pagination
 
-### Por que
+### Why
 
-Servidores HTTP já podiam responder a buscas, mas uma aba informativa não dava
-à pessoa um lugar único para comparar os resultados. Fazer o host conhecer cada
-extensão resolveria a tela rapidamente, mas recriaria o acoplamento que o
-protocolo deveria evitar.
+HTTP servers could already answer searches, but an informational tab did not give a person one place to compare results. Making the host know each extension would solve the screen quickly but recreate the coupling the protocol should avoid.
 
-### Decisão
+### Decision
 
-O host mantém um campo de pesquisa global e consulta, em paralelo, os add-ons
-ativos que declaram um recurso `search`. O adaptador interno normaliza cada meta
-para uma linha com `type`, `id`, `url`, `name` e `description`, preservando
-`emoji` ou `image` quando disponíveis. Catálogo e busca podem devolver um
-`pagination` opcional com `limit`, `total` e um cursor opaco `next`; o host
-reenvia esse cursor como `cursor` e oferece **Página anterior** e **Próxima
-página**, com a página atual entre os botões, no início e no fim da tabela. Cada
-manifesto tem um tamanho local de página, configurável entre um e quinhentos. O
-host tolera uma falha isolada, mostra o erro junto das respostas válidas e deixa
-Enter disparar a busca e Esc limpar os resultados.
+The host keeps a global search field and queries, in parallel, active add-ons
+that declare a `search` resource. The internal adapter normalizes each meta into
+a row with `type`, `id`, `url`, `name`, and `description`, preserving `emoji` or
+`image` when available. Catalog and search may return optional `pagination` with
+`limit`, `total`, and an opaque `next` cursor; the host resends that cursor as
+`cursor` and offers **Previous page** and **Next page**, with the current page
+between them at the beginning and end of the table. Each manifest has a local
+page size configurable from one to five hundred. A search resource may declare
+`languages`; in that case, the host shows a choice per provider, sends the
+selected language as `lang`, and resets pagination when it changes. The host
+tolerates an isolated failure, shows the error alongside valid responses, and
+lets Enter start the search and Esc clear the results.
 
-### Consequências técnicas
+### Technical consequences
 
-- `packages/protocol/src/domain/text.ts` expõe `TextPageRequest` e
-  `TextPagination`; os campos são opcionais e não alteram a versão publicada do
-  protocolo;
-- `packages/host-app/src/search.ts` usa as rotas HTTP declaradas, sem importar
-  add-ons concretos;
-- a tabela existe em todas as rotas e também quando não há provedores ativos;
-- a URL de conteúdo do recurso `text` é um fallback quando a meta não oferece
-  uma URL própria;
-- o tamanho da página é aplicado por add-on no host e pode ser ajustado na
-  lateral ou em Configurações; cada resposta pode manter a continuação com
-  `pagination.next`, sem impor a mesma paginação a cada servidor;
-- a resposta de página continua compatível com add-ons antigos: `pagination` é
-  opcional e a ausência de `next` encerra a listagem;
-- com um `state-store` ativo, `host:search:results:v1` guarda a última consulta,
-  suas linhas e seus cursores; sem esse serviço, o resultado permanece apenas
-  em memória;
-- a validação atual garante a forma básica `{ metas: [...] }` e valida a forma
-  opcional de `pagination`; schemas
-  completos, catálogo e leitura continuam fora desta decisão.
+- `packages/protocol/src/domain/text.ts` exposes `TextPageRequest` and
+  `TextPagination`; the fields are optional and do not change the published
+  protocol version;
+- `packages/host-app/src/search.ts` uses declared HTTP routes without importing
+  concrete add-ons;
+- the table exists on every route and when no providers are active;
+- the `text` resource content URL is a fallback when the meta does not provide a
+  URL of its own;
+- the page size is applied per add-on in the host and can be adjusted in the
+  sidebar or Settings; each response may continue with `pagination.next`, with
+  no single pagination scheme imposed on every server;
+- `languages` is an optional resource declaration; the selected configuration
+  is associated with the manifest URL, and the host does not interpret language
+  code meanings;
+- content links may preserve `lang` so navigation continues in the search
+  language;
+- page responses remain compatible with older add-ons: `pagination` is optional,
+  and the absence of `next` ends the listing;
+- with an active `state-store`, `host:search:results:v1` stores the last query,
+  its rows, and its cursors; without that service, results remain in memory;
+- current validation guarantees the basic `{ metas: [...] }` shape and validates
+  optional `pagination`; complete schemas, catalog, and reading remain outside
+  this decision.
 
-## Quando revisar uma decisão
+## When to revisit a decision
 
-Uma decisão pode mudar quando a POC produzir evidência melhor. A revisão deve atualizar, na mesma entrega:
+A decision can change when the POC produces better evidence. The review must update, in the same delivery:
 
-1. a explicação do problema;
-2. a nova decisão e as alternativas descartadas;
-3. o código e os testes afetados;
-4. a arquitetura, o manifesto e o glossário, quando aplicável;
-5. o status da fase correspondente.
+1. the explanation of the problem;
+2. the new decision and rejected alternatives;
+3. affected code and tests;
+4. the architecture, manifest, and glossary when applicable;
+5. the corresponding phase status.

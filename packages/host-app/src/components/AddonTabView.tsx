@@ -69,7 +69,7 @@ export function AddonTabView({ addon }: AddonTabViewProps) {
 
   const run = async (actionId: string) => {
     if (!tab.run) {
-      setResponse({ status: 'info', body: 'Este add-on não oferece ações interativas.' });
+      setResponse({ status: 'info', body: 'This add-on does not offer interactive actions.' });
       return;
     }
 
@@ -85,12 +85,12 @@ export function AddonTabView({ addon }: AddonTabViewProps) {
       const result = await tab.run(actionId, input.values);
       const output = validateTabResult(result);
       if (!output.valid) {
-        setResponse({ status: 'error', body: `Resposta rejeitada pelo contrato: ${output.errors.join('\n')}` });
+        setResponse({ status: 'error', body: `Response rejected by the contract: ${output.errors.join('\n')}` });
       } else {
         setResponse(result);
       }
     } catch (error) {
-      setResponse({ status: 'error', body: (error as Error).message || 'A ação não pôde ser concluída.' });
+      setResponse({ status: 'error', body: (error as Error).message || 'The action could not be completed.' });
     } finally {
       setRunningAction(null);
     }
@@ -149,7 +149,7 @@ export function AddonTabView({ addon }: AddonTabViewProps) {
                   opacity: runningAction && runningAction !== action.id ? 0.6 : 1,
                 }}
               >
-                {runningAction === action.id ? 'Executando…' : action.label}
+                {runningAction === action.id ? 'Running…' : action.label}
               </button>
             );
           })}
@@ -203,7 +203,7 @@ export function AddonTabView({ addon }: AddonTabViewProps) {
             </>
           ) : (
             <p style={{ margin: 0, padding: 18, color: '#64748b', fontSize: 13, lineHeight: 1.55 }}>
-              Clique em um estado para ver seu JSON completo aqui.
+              Click a state item to view its complete JSON here.
             </p>
           )}
         </aside>

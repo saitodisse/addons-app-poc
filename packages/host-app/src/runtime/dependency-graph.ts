@@ -37,9 +37,9 @@ function providersFor(inputs: AddonDependencyInput[]): Map<string, Provider[]> {
 }
 
 /**
- * Analisa dependências declaradas antes de qualquer import. A ausência de um
- * consumidor obrigatório vira bloqueio; uma dependência opcional não bloqueia.
- * O resultado é reexecutável quando um novo provedor entra no registry.
+ * Analyzes declared dependencies before any import. A missing required
+ * consumer becomes blocked; an optional dependency does not block.
+ * The analysis can run again when a new provider enters the registry.
  */
 export function analyzeAddonDependencies(inputs: AddonDependencyInput[]): AddonDependencyAnalysis {
   const providers = providersFor(inputs);
@@ -53,7 +53,7 @@ export function analyzeAddonDependencies(inputs: AddonDependencyInput[]): AddonD
     for (const service of input.manifest.contract.services.filter((candidate) => candidate.role === 'consumes' && candidate.required !== false)) {
       const provider = providers.get(service.id)?.[0];
       if (!provider) {
-        errors.push(`Serviço obrigatório ausente: ${service.id}`);
+        errors.push(`Missing required service: ${service.id}`);
         continue;
       }
       const compatibility = checkServiceCompatibility(service, {
@@ -93,11 +93,11 @@ export function analyzeAddonDependencies(inputs: AddonDependencyInput[]): AddonD
   for (const cycle of cycles) {
     for (const key of cycle) {
       const status = statuses.get(key);
-      if (status && !status.errors.some((error) => error.includes('ciclo obrigatório'))) status.errors.push(`Ciclo obrigatório detectado: ${cycle.join(' -> ')}`);
+      if (status && !status.errors.some((error) => error.includes('required dependency cycle'))) status.errors.push(`Required dependency cycle detected: ${cycle.join(' -> ')}`);
     }
   }
 
-  // Um consumidor de um add-on já bloqueado também não pode ser importado.
+  // A consumer of an already blocked add-on cannot be imported either.
   let changed = true;
   while (changed) {
     changed = false;
@@ -105,8 +105,8 @@ export function analyzeAddonDependencies(inputs: AddonDependencyInput[]): AddonD
       const status = statuses.get(input.key)!;
       for (const providerKey of edges.get(input.key) ?? []) {
         const providerStatus = statuses.get(providerKey);
-        if (providerStatus?.errors.length && !status.errors.some((error) => error.includes(`Provedor bloqueado: ${providerKey}`))) {
-          status.errors.push(`Provedor bloqueado: ${providerKey}`);
+        if (providerStatus?.errors.length && !status.errors.some((error) => error.includes(`Blocked provider: ${providerKey}`))) {
+          status.errors.push(`Blocked provider: ${providerKey}`);
           changed = true;
         }
       }

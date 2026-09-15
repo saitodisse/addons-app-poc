@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
-  "description": "Contrato público e SDK para add-ons confiáveis do addons-app-poc",
+  "description": "Public contract and SDK for trusted addons-app-poc add-ons",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/saitodisse/addons-app-poc.git"

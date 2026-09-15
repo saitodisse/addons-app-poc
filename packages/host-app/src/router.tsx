@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import type { CSSProperties, MouseEvent, ReactNode, ClassAttributes } from 'react';
 
 /**
- * Mini-router baseado em hash (`#/rota`) — sem dependências externas.
+ * Hash-based mini-router (`#/route`) with no external dependencies.
  *
- * Cada página resolve uma única rota a partir do fragmento da URL.
+ * Each page resolves one route from the URL fragment.
  */
 
-export type Ruta = string;
+export type Route = string;
 
 function parseHash(): string {
   const h = window.location.hash;
@@ -16,15 +16,15 @@ function parseHash(): string {
   return w.startsWith('/') ? w : `/${w}`;
 }
 
-function normalizeRuta(r: string): string {
-  if (!r) return '/';
-  const seg = r.split('?')[0]!.split('#')[0]!.split('/').filter(Boolean);
+function normalizeRoute(route: string): string {
+  if (!route) return '/';
+  const seg = route.split('?')[0]!.split('#')[0]!.split('/').filter(Boolean);
   return `/${seg.join('/')}`;
 }
 
-/** Rotas predefinidas do host. */
-export const RUTAS = {
-  inicio: '/',
+/** Predefined host routes. */
+export const ROUTES = {
+  home: '/',
   settings: '/settings',
 } as const;
 
@@ -32,18 +32,18 @@ const ADDON_ROUTE_PREFIX = '/addons/';
 const SEARCH_RESULT_ROUTE_PREFIX = '/article/';
 
 /**
- * Cria uma rota estável para uma extensão a partir da sua identidade canônica.
- * A URL do manifesto é codificada para continuar sendo um único segmento da rota.
+ * Creates a stable add-on route from its canonical identity.
+ * The manifest URL is encoded so it remains one route segment.
  */
-export function rotaDoAddon(manifestUrl: string): string {
+export function addonRoute(manifestUrl: string): string {
   return `${ADDON_ROUTE_PREFIX}${encodeURIComponent(manifestUrl)}`;
 }
 
-/** Extrai a URL do manifesto de uma rota de extensão válida. */
-export function manifestUrlDaRota(ruta: string): string | null {
-  if (!ruta.startsWith(ADDON_ROUTE_PREFIX)) return null;
+/** Extracts the manifest URL from a valid add-on route. */
+export function manifestUrlFromRoute(route: string): string | null {
+  if (!route.startsWith(ADDON_ROUTE_PREFIX)) return null;
 
-  const encodedManifestUrl = ruta.slice(ADDON_ROUTE_PREFIX.length);
+  const encodedManifestUrl = route.slice(ADDON_ROUTE_PREFIX.length);
   if (!encodedManifestUrl || encodedManifestUrl.includes('/')) return null;
 
   try {
@@ -53,21 +53,21 @@ export function manifestUrlDaRota(ruta: string): string | null {
   }
 }
 
-/** Cria uma rota dedicada para um resultado, sem perder a URL do add-on. */
-export function rotaDoResultado(contentUrl: string): string {
+/** Creates a dedicated result route without losing the add-on URL. */
+export function resultRoute(contentUrl: string): string {
   return `${SEARCH_RESULT_ROUTE_PREFIX}${encodeURIComponent(contentUrl)}`;
 }
 
-/** Identifica rotas de artigo, inclusive as incompletas para exibir erro na tela. */
-export function ehRotaDeResultado(ruta: string): boolean {
-  return ruta.startsWith(SEARCH_RESULT_ROUTE_PREFIX);
+/** Identifies article routes, including incomplete ones so the UI can show an error. */
+export function isResultRoute(route: string): boolean {
+  return route.startsWith(SEARCH_RESULT_ROUTE_PREFIX);
 }
 
-/** Extrai uma URL HTTP válida de uma rota de artigo. */
-export function urlDoResultadoDaRota(ruta: string): string | null {
-  if (!ehRotaDeResultado(ruta)) return null;
+/** Extracts a valid HTTP URL from an article route. */
+export function resultUrlFromRoute(route: string): string | null {
+  if (!isResultRoute(route)) return null;
 
-  const encodedContentUrl = ruta.slice(SEARCH_RESULT_ROUTE_PREFIX.length);
+  const encodedContentUrl = route.slice(SEARCH_RESULT_ROUTE_PREFIX.length);
   if (!encodedContentUrl || encodedContentUrl.includes('/')) return null;
 
   try {
@@ -79,25 +79,25 @@ export function urlDoResultadoDaRota(ruta: string): string | null {
   }
 }
 
-/** Observa o hash atual; atualiza em mudanças de fragmento. */
-export function useRuta(): string {
-  const [ruta, setRuta] = useState(parseHash);
+/** Observes the current hash and updates on fragment changes. */
+export function useRoute(): string {
+  const [route, setRoute] = useState(parseHash);
   useEffect(() => {
-    const listener = () => setRuta(parseHash());
+    const listener = () => setRoute(parseHash());
     window.addEventListener('hashchange', listener);
     return () => window.removeEventListener('hashchange', listener);
   }, []);
-  return ruta;
+  return route;
 }
 
-/** Navega a uma rota dada (reescreve o fragmento da URL). */
-export function navegar(ruta: string): void {
-  window.location.hash = normalizeRuta(ruta);
+/** Navigates to a route by rewriting the URL fragment. */
+export function navigate(route: string): void {
+  window.location.hash = normalizeRoute(route);
 }
 
-/** Constrói um href para uma rota (com #). */
-export function href(ruta: string): string {
-  return `#${normalizeRuta(ruta)}`;
+/** Builds an href for a route (with #). */
+export function href(route: string): string {
+  return `#${normalizeRoute(route)}`;
 }
 
 interface LinkProps extends Omit<ClassAttributes<HTMLAnchorElement>, 'href'> {
@@ -107,10 +107,10 @@ interface LinkProps extends Omit<ClassAttributes<HTMLAnchorElement>, 'href'> {
   onNavigate?: () => void;
 }
 
-/** Atalho de <a href="#/rota"> compatível, para não depender de react-router. */
+/** Compatible <a href="#/route"> shortcut that avoids a react-router dependency. */
 export function Link({ to, children, onNavigate, style, ...rest }: LinkProps) {
   const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
-    if (e.ctrlKey || e.metaKey || e.shiftKey) return; // nova pestaña
+    if (e.ctrlKey || e.metaKey || e.shiftKey) return; // new tab
     onNavigate?.();
   };
   return (

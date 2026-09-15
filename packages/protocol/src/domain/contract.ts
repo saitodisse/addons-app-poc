@@ -1,4 +1,4 @@
-/** Versão do protocolo público. Mudanças incompatíveis exigem uma major nova. */
+/** Public protocol version. Breaking changes require a new major version. */
 import { validateServiceCallInput, validateServiceCallOutput, validateStateValue, validateValueAgainstSchema } from './runtime-validation';
 
 export const PROTOCOL_VERSION = '1.0.0';
@@ -6,7 +6,7 @@ export const INTERACTION_CONTRACT_VERSION = PROTOCOL_VERSION;
 
 export type DataClassification = 'public' | 'personal' | 'secret';
 
-/** Subconjunto declarativo de JSON Schema aceito pelo protocolo. */
+/** Declarative subset of JSON Schema accepted by the protocol. */
 export interface InteractionSchema {
   type: string;
   description: string;
@@ -27,11 +27,11 @@ export interface ServiceInteraction {
   id: string;
   role: 'provides' | 'consumes';
   description: string;
-  /** Versão exata do provedor ou faixa SemVer exigida por um consumidor. */
+  /** Exact provider version or SemVer range required by a consumer. */
   version?: string;
-  /** Nome legível do descritor serializado. */
+  /** Human-readable name of the serialized descriptor. */
   name?: string;
-  /** Prioridade determinística do provedor; maior valor vence. */
+  /** Deterministic provider priority; the highest value wins. */
   priority?: number;
   required?: boolean;
   methods?: Array<{
@@ -91,11 +91,11 @@ export interface LogInteraction {
 }
 
 export interface AddonInteractionContract {
-  /** Perfil da especificação do protocolo. */
+  /** Protocol specification profile. */
   version: typeof PROTOCOL_VERSION;
-  /** Faixa SemVer do protocolo que o add-on aceita. */
+  /** SemVer range for the protocol accepted by the add-on. */
   protocol?: { version: typeof PROTOCOL_VERSION; range: string };
-  /** Capacidades canônicas exigidas ou opcionais no host. */
+  /** Canonical capabilities required or optional in the host. */
   capabilities?: { required: string[]; optional: string[] };
   services: ServiceInteraction[];
   ui: {
@@ -113,11 +113,11 @@ export interface AddonInteractionContract {
   catalogs?: import('./manifest').AddonCatalog[];
 }
 
-/** Nome público do contrato; o alias antigo só existe dentro da migração desta POC. */
+/** Public contract name; the old alias exists only within this POC's migration. */
 export type AddonContract = AddonInteractionContract;
 
 export interface AddonServiceAccess {
-  /** Obtém uma implementação compatível com o descritor solicitado. */
+  /** Gets an implementation compatible with the requested descriptor. */
   use<T>(contract: ServiceContractRef): T | undefined;
 }
 
@@ -149,7 +149,7 @@ function stateMatches(state: StateInteraction, key: string): boolean {
 
 function ensureStateOperation(contract: AddonInteractionContract, operation: string, key?: string): void {
   const allowed = contract.state.some((state) => state.operations.includes(operation) && (key === undefined || stateMatches(state, key)));
-  if (!allowed) throw new Error(`Operação de estado não declarada no contrato: ${operation}${key ? ` ${key}` : ''}`);
+  if (!allowed) throw new Error(`State operation not declared in the contract: ${operation}${key ? ` ${key}` : ''}`);
 }
 
 function assertRuntime(valid: { valid: boolean; errors: string[] }, context: string): void {
@@ -161,13 +161,13 @@ function guardedStateStore(store: StateStoreLike, contract: AddonInteractionCont
     get: <T>(key: string) => {
       ensureStateOperation(contract, 'read', key);
       return store.get<T>(key).then((value) => {
-        if (value !== undefined) assertRuntime(validateStateValue(contract, key, value), 'Estado incompatível');
+        if (value !== undefined) assertRuntime(validateStateValue(contract, key, value), 'Incompatible state');
         return value;
       });
     },
     set: <T>(key: string, value: T) => {
       ensureStateOperation(contract, 'write', key);
-      assertRuntime(validateStateValue(contract, key, value), 'Estado incompatível');
+      assertRuntime(validateStateValue(contract, key, value), 'Incompatible state');
       return store.set(key, value);
     },
     remove: (key: string) => {
@@ -187,11 +187,11 @@ function guardedStateStore(store: StateStoreLike, contract: AddonInteractionCont
 
 export function assertProvidedService(contract: AddonInteractionContract, serviceId: string): void {
   if (!contract.services.some((service) => service.role === 'provides' && service.id === serviceId)) {
-    throw new Error(`Serviço não declarado como fornecido no contrato: ${serviceId}`);
+    throw new Error(`Service not declared as provided in the contract: ${serviceId}`);
   }
 }
 
-/** Entrega ao add-on somente os serviços e chaves de estado declarados por ele. */
+/** Gives the add-on only the services and state keys it declares. */
 export function createContractServiceAccess(registry: ServiceReader, contract: AddonInteractionContract): AddonServiceAccess {
   const declared = new Map(contract.services.map((service) => [service.id, service]));
   const wrapped = new WeakMap<object, unknown>();
@@ -209,15 +209,15 @@ export function createContractServiceAccess(registry: ServiceReader, contract: A
         const method = declaration?.methods?.find((item) => item.id === property);
         if (!method) return undefined;
         return (...args: unknown[]) => {
-          assertRuntime(validateServiceCallInput(contract, serviceId, property, args), `Entrada rejeitada em ${serviceId}.${property}`);
+          assertRuntime(validateServiceCallInput(contract, serviceId, property, args), `Input rejected at ${serviceId}.${property}`);
           const result = member.apply(target, args);
           if (result && typeof (result as PromiseLike<unknown>).then === 'function') {
             return (result as PromiseLike<unknown>).then((value) => {
-              assertRuntime(validateServiceCallOutput(contract, serviceId, property, value), `Saída rejeitada em ${serviceId}.${property}`);
+              assertRuntime(validateServiceCallOutput(contract, serviceId, property, value), `Output rejected at ${serviceId}.${property}`);
               return value;
             });
           }
-          assertRuntime(validateServiceCallOutput(contract, serviceId, property, result), `Saída rejeitada em ${serviceId}.${property}`);
+          assertRuntime(validateServiceCallOutput(contract, serviceId, property, result), `Output rejected at ${serviceId}.${property}`);
           return result;
         };
       },
@@ -230,19 +230,19 @@ export function createContractServiceAccess(registry: ServiceReader, contract: A
     use<T>(requested: ServiceContractRef): T | undefined {
       const declaration = declared.get(requested.id);
       if (!declaration) {
-        throw new Error(`Serviço não declarado como consumido ou fornecido no contrato: ${requested.id}`);
+        throw new Error(`Service not declared as consumed or provided in the contract: ${requested.id}`);
       }
       if (requested.version && declaration.role === 'provides' && declaration.version && !semverSatisfies(declaration.version, requested.version)) {
-        throw new Error(`Versão incompatível do serviço ${requested.id}: solicitado ${requested.version}, declarado ${declaration.version}`);
+        throw new Error(`Incompatible version for service ${requested.id}: requested ${requested.version}, declared ${declaration.version}`);
       }
       for (const method of requested.methods ?? []) {
         const declaredMethod = declaration.methods?.find((candidate) => candidate.id === method.id);
-        if (!declaredMethod) throw new Error(`Método não declarado no contrato: ${requested.id}.${method.id}`);
+        if (!declaredMethod) throw new Error(`Method not declared in the contract: ${requested.id}.${method.id}`);
         if (method.receives && (!declaredMethod.receives || stableJson(method.receives.schema) !== stableJson(declaredMethod.receives.schema))) {
-          throw new Error(`Entrada incompatível no contrato: ${requested.id}.${method.id}`);
+          throw new Error(`Incompatible input in the contract: ${requested.id}.${method.id}`);
         }
         if (method.returns && (!declaredMethod.returns || stableJson(method.returns.schema) !== stableJson(declaredMethod.returns.schema))) {
-          throw new Error(`Saída incompatível no contrato: ${requested.id}.${method.id}`);
+          throw new Error(`Incompatible output in the contract: ${requested.id}.${method.id}`);
         }
       }
       const service = registry.get<T>(requested.id);
@@ -255,7 +255,7 @@ export function createContractServiceAccess(registry: ServiceReader, contract: A
   };
 }
 
-/** Faixa mínima de SemVer usada pelo protocolo, sem dependência de runtime. */
+/** Minimal SemVer range support used by the protocol, without a runtime dependency. */
 export function parseSemVer(value: string): [number, number, number] | undefined {
   const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(value);
   return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : undefined;
@@ -300,45 +300,45 @@ export interface ServiceCompatibilityDescriptor {
   methods: ReadonlyMap<string, { receives?: InteractionPayload; returns?: InteractionPayload }> | ReadonlySet<string>;
 }
 
-/** Compara um consumidor com um provedor do mesmo identificador. */
+/** Compares a consumer with a provider using the same identifier. */
 export function checkServiceCompatibility(required: ServiceInteraction, provided: ServiceCompatibilityDescriptor): CompatibilityResult {
   const errors: string[] = [];
-  if (required.id !== provided.id) errors.push(`Identificador de serviço incompatível: ${required.id}`);
-  if (required.version && !semverSatisfies(provided.version, required.version)) errors.push(`Versão incompatível do serviço ${required.id}`);
+  if (required.id !== provided.id) errors.push(`Incompatible service identifier: ${required.id}`);
+  if (required.version && !semverSatisfies(provided.version, required.version)) errors.push(`Incompatible version for service ${required.id}`);
   for (const method of required.methods ?? []) {
     const providedMethod = provided.methods instanceof Map
       ? provided.methods.get(method.id)
       : provided.methods.has(method.id) ? {} : undefined;
     if (providedMethod === undefined) {
-      errors.push(`Método ausente em ${required.id}: ${method.id}`);
+      errors.push(`Missing method in ${required.id}: ${method.id}`);
       continue;
     }
     const providedReceives = 'receives' in providedMethod ? providedMethod.receives : undefined;
     const providedReturns = 'returns' in providedMethod ? providedMethod.returns : undefined;
     if (method.receives && (!providedReceives || stableJson(method.receives.schema) !== stableJson(providedReceives.schema))) {
-      errors.push(`Entrada incompatível em ${required.id}.${method.id}`);
+      errors.push(`Incompatible input in ${required.id}.${method.id}`);
     }
     if (method.returns && (!providedReturns || stableJson(method.returns.schema) !== stableJson(providedReturns.schema))) {
-      errors.push(`Saída incompatível em ${required.id}.${method.id}`);
+      errors.push(`Incompatible output in ${required.id}.${method.id}`);
     }
   }
   return { compatible: errors.length === 0, errors };
 }
 
-/** Negocia protocolo, capacidades e dependências obrigatórias antes da execução. */
+/** Negotiates the protocol, capabilities, and required dependencies before execution. */
 export function checkContractCompatibility(contract: AddonInteractionContract, host: HostCompatibility): CompatibilityResult {
   const errors: string[] = [];
-  if (contract.version !== PROTOCOL_VERSION) errors.push(`Versão do contrato não suportada: ${contract.version}`);
-  if (contract.protocol?.version !== PROTOCOL_VERSION) errors.push(`Versão do protocolo não suportada: ${contract.protocol?.version ?? 'ausente'}`);
+  if (contract.version !== PROTOCOL_VERSION) errors.push(`Unsupported contract version: ${contract.version}`);
+  if (contract.protocol?.version !== PROTOCOL_VERSION) errors.push(`Unsupported protocol version: ${contract.protocol?.version ?? 'missing'}`);
   const range = contract.protocol?.range ?? '^1.0.0';
-  if (!semverSatisfies(host.protocolVersion, range)) errors.push(`Host não atende à faixa de protocolo ${range}`);
+  if (!semverSatisfies(host.protocolVersion, range)) errors.push(`Host does not satisfy protocol range ${range}`);
   for (const capability of contract.capabilities?.required ?? []) {
-    if (!host.capabilities.has(capability)) errors.push(`Capacidade obrigatória ausente: ${capability}`);
+    if (!host.capabilities.has(capability)) errors.push(`Missing required capability: ${capability}`);
   }
   for (const service of contract.services.filter((item) => item.role === 'consumes' && item.required !== false)) {
     const provided = host.services.get(service.id);
     if (!provided) {
-      errors.push(`Serviço obrigatório ausente: ${service.id}`);
+      errors.push(`Missing required service: ${service.id}`);
       continue;
     }
     errors.push(...checkServiceCompatibility(service, { id: service.id, version: provided.version, methods: provided.methods }).errors);
@@ -347,12 +347,12 @@ export function checkContractCompatibility(contract: AddonInteractionContract, h
 }
 
 export function getStateDestination(contract: AddonInteractionContract, availableProviders: ReadonlySet<string>): string {
-  if (contract.state.length === 0) return 'Não persiste estado próprio.';
-  if (availableProviders.has('storage-local')) return 'localStorage deste navegador (`addons:state:*`)';
-  if (availableProviders.has('storage-session')) return 'sessionStorage desta aba (`addons:state:*`)';
+  if (contract.state.length === 0) return 'Does not persist its own state.';
+  if (availableProviders.has('storage-local')) return 'This browser localStorage (`addons:state:*`)';
+  if (availableProviders.has('storage-session')) return 'This tab sessionStorage (`addons:state:*`)';
   return contract.state.some((state) => state.fallback === 'memory')
-    ? 'memória temporária; será perdido ao recarregar'
-    : 'nenhum destino disponível';
+    ? 'temporary memory; lost on reload'
+    : 'no destination available';
 }
 
 function stableJson(value: unknown): string {
@@ -363,7 +363,7 @@ function stableJson(value: unknown): string {
   return value === undefined ? 'null' : JSON.stringify(value);
 }
 
-/** Identifica mudanças declaradas; não substitui assinatura ou verificação de integridade. */
+/** Identifies declared changes; does not replace signing or integrity verification. */
 export function getInteractionContractFingerprint(contract: AddonInteractionContract): string {
   const source = stableJson(contract);
   let hash = 2166136261;
@@ -380,23 +380,23 @@ export interface InteractionInputValidation {
   values: Record<string, string>;
 }
 
-/** Filtra e valida os valores que uma ação da aba declarou poder receber. */
+/** Filters and validates the values a tab action declares it can receive. */
 export function validateTabActionInput(contract: AddonInteractionContract, actionId: string, values: Record<string, string>): InteractionInputValidation {
   const action = contract.ui.actions.find((candidate) => candidate.id === actionId);
-  if (!action) return { valid: false, errors: [`Ação não declarada no contrato: ${actionId}`], values: {} };
+  if (!action) return { valid: false, errors: [`Action not declared in the contract: ${actionId}`], values: {} };
   const allowed = new Set(action.receives ?? []);
   const filtered = Object.fromEntries(Object.entries(values).filter(([id]) => allowed.has(id)));
   const errors: string[] = [];
   for (const fieldId of allowed) {
     const field = contract.ui.fields.find((candidate) => candidate.id === fieldId);
     if (!field) {
-      errors.push(`Ação ${actionId} referencia o campo ausente ${fieldId}`);
+      errors.push(`Action ${actionId} references missing field ${fieldId}`);
       continue;
     }
     const value = filtered[fieldId] ?? '';
-    if (field.required && !value.trim()) errors.push(`Preencha o campo “${field.label}”.`);
+    if (field.required && !value.trim()) errors.push(`Fill in the “${field.label}” field.`);
     if (value || field.required) {
-      errors.push(...validateValueAgainstSchema(value, field.schema, `Campo “${field.label}”`).errors);
+      errors.push(...validateValueAgainstSchema(value, field.schema, `Field “${field.label}”`).errors);
     }
   }
   return { valid: errors.length === 0, errors, values: filtered };

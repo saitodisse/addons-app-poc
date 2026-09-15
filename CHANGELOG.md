@@ -1,271 +1,341 @@
-# Histórico de mudanças
+# Changelog
 
-Este arquivo conta, em ordem inversa, como o projeto evoluiu. A leitura rápida mostra o que mudou; os detalhes técnicos registram os pacotes e contratos afetados.
+This file describes, in reverse order, how the project evolved. The quick read shows what changed; the technical details record the affected packages and contracts.
 
-O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
+
+## [1.5.1] - 2026-09-14
+
+### Changed
+
+- The repository documentation, host interface, add-on manifests, diagnostics,
+  scripts, and tests are now written in English.
+- Examples, fixtures, and public-facing messages use consistent English
+  terminology while preserving the protocol and supported language options.
+- Dependency blocking in the host derives its reason from declared services, so
+  it remains compatible with the published protocol package.
 
 ## [1.5.0] - 2026-09-13
 
-### Alterado
+### Changed
 
-- O campo de busca global agora habilita o autocomplete nativo e o histórico do navegador.
+- The global search field now enables native autocomplete and browser history.
 
 ## [1.4.0] - 2026-09-12
 
-### Adicionado
+### Added
 
-- A integração com a Wikipédia agora expõe `content.json` com conteúdo
-  estruturado, metadados da página, mídia, URLs, contagens, origem, duração,
-  identificador da requisição e cabeçalhos da resposta.
-- O host registra no console do navegador e no debug do servidor as
-  informações completas trafegadas entre host, add-on e API da Wikipédia.
-- Resultados da Wikipédia agora abrem em uma página dedicada, com imagem
-  centralizada, título, descrição, resumo e link para o artigo original.
-- Respostas de artigos inexistentes passaram a retornar `404` específico, sem
-  transformar a ausência do artigo em erro `500`.
+- The Wikipedia integration now exposes `content.json` with structured content,
+  page metadata, media, URLs, counts, source, duration, request ID, and response
+  headers.
+- The host records all information exchanged between the host, add-on, and
+  Wikipedia API in the browser console and server debug output.
+- Wikipedia results now open on a dedicated page with a centered image, title,
+  description, summary, and link to the original article.
+- Responses for missing articles now return a specific `404` instead of turning
+  a missing article into a `500` error.
 
-### Alterado
+### Changed
 
-- O descriptor da Wikipédia informa os endpoints estruturados e os metadados
-  disponíveis, mantendo `content.txt` compatível com consumidores existentes.
-- A visualização principal do artigo foi reduzida ao conteúdo essencial; os
-  detalhes completos continuam disponíveis no JSON e no fluxo de debug.
+- The Wikipedia descriptor documents the structured endpoints and available
+  metadata while keeping `content.txt` compatible with existing consumers.
+- The main article view was reduced to essential content; full details remain
+  available in JSON and through the debug flow.
 
 ## [1.3.1] - 2026-09-10
 
-### Corrigido
+### Fixed
 
-- A busca da Wikipédia agora identifica o cliente, repete falhas transitórias
-  `429` e `5xx`, deduplica chamadas simultâneas e mantém cada página em cache
-  por 60 segundos, evitando falhas `500` após recarregar a listagem.
+- Wikipedia search now identifies the client, retries transient `429` and `5xx`
+  failures, deduplicates simultaneous calls, and caches each page for 60 seconds,
+  avoiding `500` failures after reloading the list.
 
 ## [1.3.0] - 2026-09-10
 
-### Adicionado
+### Added
 
-- A busca global agora usa `q` e `page` na URL, permitindo restaurar e
-  compartilhar o termo e a página atual.
-- A tabela oferece **Página anterior**, página atual e **Próxima página** no
-  início e no fim da listagem.
-- A paginação por cursor foi adicionada ao protocolo, ao servidor HTTP, ao
-  cliente do host e à busca da Wikipédia.
-- O host abre o conteúdo textual de um resultado em modal e mostra o conteúdo
-  da Wikipédia diretamente na descrição quando disponível.
+- Global search now uses `q` and `page` in the URL, allowing the term and current
+  page to be restored and shared.
+- The table offers **Previous page**, the current page, and **Next page** at
+  both the beginning and end of the list.
+- Cursor pagination was added to the protocol, HTTP server, host client, and
+  Wikipedia search.
+- The host opens a result's text content in a modal and shows Wikipedia content
+  directly in the description when available.
 
-### Alterado
+### Changed
 
-- A navegação troca a página inteira de resultados, sem acumular a página
-  anterior, e preserva as páginas já visitadas para voltar sem nova consulta.
-- A Wikipédia limita cada página ao máximo permitido pela API de extratos e a
-  busca total a 500 registros.
-- Descrições da listagem são truncadas em 140 caracteres e sua coluna ocupa no
-  máximo metade da largura da janela.
-- O limite de busca configurável aceita campo vazio e usa 10 como padrão.
+- Navigation replaces the entire result page without accumulating the previous
+  page, and preserves visited pages for returning without a new request.
+- Wikipedia limits each page to the maximum allowed by the extracts API and the
+  total search to 500 records.
+- List descriptions are truncated to 140 characters, and their column occupies
+  at most half the window width.
+- The configurable search limit accepts an empty field and uses 10 by default.
 
 ## [1.2.0] - 2026-09-10
 
-### Adicionado
+### Added
 
-- A demonstração ao vivo agora abre e fecha por um ícone de engrenagem em um modal responsivo.
-- Extensões ativas agora possuem rotas dinâmicas dedicadas de detalhe e configuração.
-- O reset de fábrica remove instalações, configurações e estados persistidos do host após confirmação explícita.
+- The live demo now opens and closes through a gear icon in a responsive modal.
+- Active extensions now have dedicated dynamic detail and configuration routes.
+- Factory reset removes the host's persisted installations, configuration, and
+  state after explicit confirmation.
 
-### Alterado
+### Changed
 
-- A home passou a exibir somente a listagem principal; o detalhe da extensão não é repetido nessa tela.
-- A demonstração local foi reduzida aos add-ons mantidos: Markdown, Favoritos, Saúde, Armazenamento local e Wikipédia.
+- The home page now shows only the main listing; extension details are not
+  repeated there.
+- The local demonstration was reduced to the maintained add-ons: Markdown,
+  Favorites, Health, Local Storage, and Wikipedia.
 
-### Removido
+### Removed
 
-- Foram retirados da demonstração os add-ons Hello, Hello PT, Contador, Agregador, Armazenamento da sessão, Debug, Biblioteca, Citações e Poemas.
+- The Hello, Hello PT, Counter, Aggregator, Session Storage, Debug, Library,
+  Web Quotes, and Poems add-ons were removed from the demonstration.
 
 ## [1.1.2] - 2026-09-09
 
-### Alterado
+### Changed
 
-- A home agora ocupa toda a largura disponível e apresenta a demonstração ao vivo em uma barra lateral direita responsiva.
-- A tabela de resultados remove a coluna URL e torna o nome de cada item o link para seu conteúdo.
+- The home page now uses all available width and presents the live demo in a
+  responsive right sidebar.
+- The result table removes the URL column and makes each item's name the link to
+  its content.
 
 ## [1.1.1] - 2026-09-09
 
-### Alterado
+### Changed
 
-- A lateral de extensões agora exibe o limite de resultados de busca para Biblioteca, Citações, Poemas e Wikipédia.
-- O controle da lateral compartilha a mesma configuração persistida da tela de Configurações e continua aplicando o limite à tabela principal.
+- The extension sidebar now shows the search result limit for Library, Quotes,
+  Poems, and Wikipedia.
+- The sidebar control shares the same persisted configuration as Settings and
+  continues applying the limit to the main table.
 
 ## [1.1.0] - 2026-09-08
 
-### Adicionado
+### Added
 
-- Campo de pesquisa fixo no topo do host, com Enter para buscar e Esc para limpar.
-- Tabela central de resultados presente em todas as rotas, inclusive sem add-ons instalados.
-- Normalização de respostas de Citações da Web, Poemas e Wikipédia em linhas com tipo, ID, URL, nome, descrição e emoji ou imagem opcionais.
+- A fixed search field at the top of the host, with Enter to search and Esc to
+  clear.
+- A central result table on every route, including when no add-ons are
+  installed.
+- Normalization of Web Quotes, Poems, and Wikipedia responses into rows with
+  type, ID, URL, name, description, and optional emoji or image.
 
-### Alterado
+### Changed
 
-- Add-ons HTTP ativos que declaram `search` agora são consultados em paralelo, com falhas isoladas mostradas na tabela.
-- Cada add-on de busca ganhou limite configurável de resultados, persistido junto da instalação.
-- A última consulta e suas linhas são persistidas pelo `state-store` ativo sob `host:search:results:v1`.
+- Active HTTP add-ons that declare `search` are now queried in parallel, with
+  isolated failures shown in the table.
+- Each search add-on gained a configurable result limit persisted with the
+  installation.
+- The last query and its rows are persisted by the active `state-store` under
+  `host:search:results:v1`.
 
-### Documentação
+### Documentation
 
-- Arquitetura, PRD, fases, decisões, glossário e READMEs foram atualizados para registrar a busca global e as pendências restantes de catálogo, leitura e validação HTTP completa.
+- Architecture, PRD, phases, decisions, glossary, and READMEs were updated to
+  record global search and the remaining work for generic catalog, reading, and
+  complete HTTP response validation.
 
 ## [1.0.7] - 2026-09-08
 
-### Alterado
+### Changed
 
-- As abas de Armazenamento local e Armazenamento da sessão listam os estados automaticamente ao serem abertas.
-- O painel de JSON agora aparece somente nesses dois provedores, e o Session Storage também permite abrir o valor completo de cada estado.
+- The Local Storage and Session Storage tabs now list states automatically when
+  opened.
+- The JSON panel now appears only for those two providers, and Session Storage
+  also allows opening each state's full value.
 
 ## [1.0.6] - 2026-09-08
 
-### Corrigido
+### Fixed
 
-- O Contador deixou de reler o valor antigo a cada ação quando o `state-store` mediado pelo host criava uma nova ponte. O botão `+1` agora preserva incrementos sucessivos após recarregar a página.
-- O add-on ganhou um teste de regressão que simula a mediação do host e uma instrução própria de teste no README.
+- Counter stopped rereading the old value on every action when the host-mediated
+  `state-store` created a new bridge. The `+1` button now preserves successive
+  increments after a page reload.
+- The add-on gained a regression test simulating host mediation and a dedicated
+  test instruction in its README.
 
 ## [1.0.5] - 2026-09-08
 
-### Alterado
+### Changed
 
-- O add-on passou a se chamar **Saúde dos Add-ons** na interface e nos metadados.
-- Cada resultado agora mostra o nome obtido do manifesto junto do endereço consultado, com um nome local de reserva quando o servidor não responde.
+- The add-on is now called **Add-on Health** in the interface and metadata.
+- Each result now shows the name obtained from the manifest next to the queried
+  address, with a local fallback name when the server does not respond.
 
 ## [1.0.4] - 2026-09-08
 
-### Corrigido
+### Fixed
 
-- O add-on Saúde deixou de consultar apenas os quatro servidores HTTP de texto e passou a verificar os 14 servidores da demonstração, incluindo os add-ons em processo.
-- A declaração `contract.http`, a descrição da aba e os testes do Saúde agora usam a mesma lista completa de manifestos.
+- Health no longer queries only the four text HTTP servers; it now checks the 14
+  demonstration servers, including in-process add-ons.
+- The `contract.http` declaration, tab description, and Health tests now use the
+  same complete manifest list.
 
 ## [1.0.3] - 2026-09-08
 
-### Alterado
+### Changed
 
-- A lateral da demonstração passou a exibir ações nomeadas `Ativar` e `Desativar` para cada add-on, deixando a ativação de Citações e Poemas visível e acionável.
-- Add-ons cujo contrato mudou agora exibem `Revisar e ativar` e levam a pessoa às Configurações, em vez de aceitar um clique que não produziria efeito.
-- A revisão de uma instalação local aparece logo abaixo do add-on escolhido, recebe foco ao abrir e alterna entre `Instalar` e `Fechar`.
+- The demonstration sidebar now shows named **Activate** and **Deactivate**
+  actions for each add-on, making Quotes and Poems activation visible and
+  actionable.
+- Add-ons whose contract changed now show **Review and activate** and take the
+  person to Settings instead of accepting a click that would have no effect.
+- Review of a local installation appears directly below the selected add-on,
+  receives focus when opened, and switches between **Install** and **Close**.
 
 ## [1.0.2] - 2026-09-08
 
-### Documentação
+### Documentation
 
-- Registrado o estado atual da POC, com 136 testes aprovados, build de produção aprovada e limites explícitos da verificação local.
-- Corrigido o planejamento para reconhecer a compatibilidade de versões e a limpeza básica após falha de inicialização como implementadas.
-- Detalhadas as pendências de descarregamento ao desativar ou remover add-ons, recuperação de falhas nos callbacks de limpeza e interface genérica dos recursos HTTP.
-- Alinhados os requisitos e a ordem dos próximos trabalhos: ciclo de vida, experiência HTTP, edição de prioridades, cache e atualização de manifestos, seguidos de isolamento.
+- The current POC state was recorded with 136 passing tests, a passing production
+  build, and explicit limits for local verification.
+- Planning was corrected to recognize version compatibility and basic cleanup
+  after initialization failure as implemented.
+- Remaining work for unloading add-ons when deactivating or removing them,
+  recovery from cleanup callback failures, and a generic HTTP resource interface
+  was detailed.
+- Requirements and the order of upcoming work were aligned: lifecycle, HTTP
+  experience, priority editing, manifest caching and updates, followed by
+  isolation.
 
 ## [1.0.1] - 2026-08-24
 
-### Alterado
+### Changed
 
-- Todos os consumidores do workspace, incluindo host, servidor HTTP e add-ons,
-  passaram a declarar `@addons-poc/protocol@1.0.0` como dependência do npm.
-- O lockfile registra a integridade do pacote publicado, sem links locais para
+- All workspace consumers, including the host, HTTP server, and add-ons, now
+  declare `@addons-poc/protocol@1.0.0` as an npm dependency.
+- The lockfile records the published package integrity without local links to
   `packages/protocol`.
-- A instalação do workspace passou a liberar explicitamente a versão publicada
-  recém-lançada durante a janela de verificação de idade do pnpm.
+- Workspace installation now explicitly allows the newly published version
+  during pnpm's package-age verification window.
 
-### Publicação
+### Publication
 
-- Confirmada a publicação pública de `@addons-poc/protocol@1.0.0` e a
-  instalação em um consumidor limpo.
+- Public publication of `@addons-poc/protocol@1.0.0` and installation in a clean
+  consumer were confirmed.
 
 ## [1.0.0] - 2026-08-24
 
-### Adicionado
+### Added
 
-- `@addons-poc/protocol@1.0.0`, publicado publicamente no npm e licenciado em MIT.
-- Contrato v1 com JSON Schema, faixa SemVer, capacidades, descritores
-  namespaceados, schemas de método, UI, estado, HTTP e logs.
-- Proxy `host.services.use(contrato)`, `state-store` oficial opcional e
-  bloqueio de incompatibilidades, dependências obrigatórias e ciclos.
-- Runtime de loader, registry, status e adaptadores movido para o host.
-- ADR 0001 e validação de empacotamento do protocolo.
-- A tela de Configurações passou a listar os 14 manifestos locais com título,
-  descrição e ações de copiar ou iniciar a instalação.
+- `@addons-poc/protocol@1.0.0`, publicly published to npm under the MIT license.
+- Contract v1 with JSON Schema, SemVer range, capabilities, namespaced
+  descriptors, method schemas, UI, state, HTTP, and logs.
+- `host.services.use(contract)`, the optional official `state-store`, and
+  blocking for incompatibilities, required dependencies, and cycles.
+- Loader, registry, status, and adapter runtime moved to the host.
+- ADR 0001 and protocol packaging validation.
+- The Settings screen now lists the 14 local manifests with titles, descriptions,
+  and actions to copy or start installation.
 
-### Alterado
+### Changed
 
-- Todos os add-ons e o host dependem diretamente de `@addons-poc/protocol`.
-- Todos os manifestos usam somente `contract`; o parser legado foi removido.
-- Serviços de exemplo usam identificadores namespaceados.
-- O loader aceita caminhos relativos somente no manifesto interno do bundle,
-  usando a URL pública do manifesto como `entrypoint` canônico.
-- `pnpm dev` e `pnpm kill-all` cobrem todos os projetos executáveis e suas
-  portas, com comentários de sincronização entre os scripts.
+- All add-ons and the host directly depend on `@addons-poc/protocol`.
+- All manifests use only `contract`; the legacy parser was removed.
+- Example services use namespaced identifiers.
+- The loader accepts relative paths only in the bundle's internal manifest, using
+  the public manifest URL as the canonical `entrypoint`.
+- `pnpm dev` and `pnpm kill-all` cover all executable projects and their ports,
+  with synchronization comments between the scripts.
 
-### Documentação
+### Documentation
 
-- Cada pacote passou a ter README próprio com responsabilidade, contrato,
-  dependências, portas, comandos e limites.
-- `docs/PACKAGES.md` passou a ser o índice operacional e os guias centrais
-  passaram a apontar para ele.
+- Each package gained its own README with responsibility, contract,
+  dependencies, ports, commands, and limits.
+- `docs/PACKAGES.md` became the operational index, and the central guides now
+  point to it.
 
 ## [0.4.1] - 2026-08-23
 
-### Documentação
+### Documentation
 
-- A documentação passou a descrever o caminho já entregue de instalação por URL, revisão de contrato e persistência das escolhas após recarregar a página.
-- Os limites restantes foram corrigidos para destacar a ausência de cache, atualização, descarregamento transacional, negociação de versões e isolamento de código.
-- Os requisitos e as fases agora registram as rotas próprias, a nova revisão de contratos modificados e a mediação de interações declaradas pelo host.
+- Documentation now describes the delivered URL-based installation path,
+  contract review, and persistence of choices after reloading the page.
+- Remaining limits were corrected to highlight the absence of caching, updates,
+  transactional unloading, version negotiation, and code isolation.
+- Requirements and phases now record dedicated routes, new review of changed
+  contracts, and host mediation of declared interactions.
 
 ## [0.4.0] - 2026-08-23
 
-### Adicionado
+### Added
 
-- Cada manifesto passou a declarar um contrato de interação completo: serviços, campos, ações, entradas, saídas, estado, HTTP e logs.
-- As instalações agora mostram, em uma expansão abaixo do add-on, uma explicação legível e o JSON integral do manifesto em estilo terminal.
-- O host inclui add-ons de estado local, sessão e depuração para demonstrar onde cada dado é guardado e qual provedor efetivo o atende.
-- O visualizador `json-highlighter` foi integrado ao host sem destacar caminhos ou abrir modal.
+- Each manifest now declares a complete interaction contract: services, fields,
+  actions, inputs, outputs, state, HTTP, and logs.
+- Installations now show a readable explanation and the full manifest JSON in a
+  terminal-style expansion below the add-on.
+- The host includes local-state, session, and debugging add-ons to demonstrate
+  where each value is stored and which effective provider serves it.
+- The `json-highlighter` viewer was integrated into the host without highlighting
+  paths or opening a modal.
 
-### Alterado
+### Changed
 
-- O host valida o contrato antes de ativar um add-on, restringe os serviços e as entradas de ações ao que foi declarado e exige nova aceitação quando o contrato remoto mudar na mesma URL.
-- Os quatro servidores HTTP passaram a declarar recursos recebidos, dados devolvidos e chamadas externas de forma transparente.
-- A especificação, arquitetura, decisões, glossário e contexto de domínio foram atualizados para registrar o protocolo `contract` 1.0.0 e seus limites observáveis.
+- The host validates the contract before activating an add-on, restricts
+  services and action inputs to what was declared, and requires new acceptance
+  when the remote contract changes at the same URL.
+- The four HTTP servers now transparently declare incoming resources, returned
+  data, and external calls.
+- The specification, architecture, decisions, glossary, and domain context
+  were updated to record protocol `contract` 1.0.0 and its observable limits.
 
 ## [0.3.0] - 2026-08-20
 
-### Documentação
+### Documentation
 
-- As versões técnica e introdutória foram consolidadas em uma única documentação progressiva.
-- Cada assunto agora começa pelo problema e pela visão geral antes de apresentar contratos, fluxos e limitações.
-- As decisões antes reunidas em `docs/docs-17yrs/RESUMO-PLANO.md` passaram a formar `docs/DECISIONS.md`.
-- Referências desatualizadas foram alinhadas ao comportamento atual do código.
+- The technical and introductory versions were consolidated into one progressive
+  documentation set.
+- Each subject now starts with the problem and overview before presenting
+  contracts, flows, and limitations.
+- Decisions previously gathered in the former planning document now form
+  `docs/DECISIONS.md`.
+- Outdated references were aligned with current code behavior.
 
-### Adicionado
+### Added
 
-- Uma base de roteamento por hash, sem dependência externa, para a futura navegação por URLs próprias no host.
-- Uma configuração Docker para executar localmente o serviço OpenViking.
+- A hash-based routing foundation with no external dependency for future
+  host-owned URL navigation.
+- A Docker configuration to run the OpenViking service locally.
 
-### Alterado
+### Changed
 
-- O diretório temporário `temp/` passou a ser ignorado pelo Git.
+- The temporary `temp/` directory is now ignored by Git.
 
 ## [0.2.0] - 2025-08-19
 
-Esta versão ampliou a demonstração: add-ons em processo passaram a compor serviços, e um quarto servidor remoto trouxe conteúdo da Wikipédia.
+This version expanded the demonstration: in-process add-ons began composing
+services, and a fourth remote server brought Wikipedia content.
 
-Os nomes `textFormatter`, `searchProvider`, `healthCheck` e **Extras** abaixo
-descrevem a implementação histórica daquela versão. Na v1, os serviços são
-namespaceados (`addons.markdown.text-formatter`, `addons.aggregator.search-provider`
-e `addons.health.health-check`) e cada domínio permanece em seu próprio pacote.
+The names `textFormatter`, `searchProvider`, `healthCheck`, and **Extras** below
+describe that version's historical implementation. In v1, services are
+namespaced (`addons.markdown.text-formatter`, `addons.aggregator.search-provider`,
+and `addons.health.health-check`), and each domain remains in its own package.
 
-### Adicionado
+### Added
 
-- `@addons/addon-markdown`, então identificado como `textFormatter`, para Markdown e HTML.
-- `@addons/addon-aggregator`, então identificado como `searchProvider`, com busca paralela tolerante a falhas.
-- `@addons/addon-favorites`, com o serviço `addons.favorites` e persistência opcional por `state-store`.
-- `@addons/addon-health`, então identificado como `healthCheck`, para disponibilidade e latência.
-- `@addons/addon-text-wikipedia`, na porta `5294`, com busca e resumos obtidos das APIs da Wikipédia.
-- Helpers de formatação, favoritos e armazenamento de marcadores mantidos nos próprios add-ons.
-- Serviços de infraestrutura registrados pelo host com `addonId: "host"`.
-- A área **Extras** no host, com demonstrações de formatação, busca agregada, favoritos e saúde dos servidores.
+- `@addons/addon-markdown`, then identified as `textFormatter`, for Markdown and
+  HTML.
+- `@addons/addon-aggregator`, then identified as `searchProvider`, with
+  failure-tolerant parallel search.
+- `@addons/addon-favorites`, with the `addons.favorites` service and optional
+  `state-store` persistence.
+- `@addons/addon-health`, then identified as `healthCheck`, for availability and
+  latency.
+- `@addons/addon-text-wikipedia`, on port `5294`, with searches and summaries
+  obtained from Wikipedia APIs.
+- Formatting, favorites, and bookmark-storage helpers kept in their own
+  add-ons.
+- Infrastructure services registered by the host with `addonId: "host"`.
+- The **Extras** area in the host, with formatting, aggregated search, favorites,
+  and server-health demonstrations.
 
-### Alterado
+### Changed
 
-- `pnpm dev` passou a iniciar também o servidor da Wikipédia.
-- O `tsconfig.json` do host passou a usar `noEmit`, evitando JavaScript gerado ao lado dos arquivos TypeScript.
-- A documentação passou a incluir a composição entre add-ons e serviços fornecidos pelo host.
+- `pnpm dev` now also starts the Wikipedia server.
+- The host `tsconfig.json` now uses `noEmit`, avoiding generated JavaScript next
+  to TypeScript files.
+- Documentation now includes composition between add-ons and services provided
+  by the host.

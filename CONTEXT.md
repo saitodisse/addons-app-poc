@@ -1,58 +1,58 @@
-# Protocolo de add-ons
+# Add-on protocol
 
-Este contexto define a linguagem usada para extensões independentes e para o host que as instala. Ele separa o que uma extensão declara do que o host pode verificar e permitir.
+This context defines the language used by independent extensions and the host that installs them. It separates what an extension declares from what the host can verify and allow.
 
-O contrato público vive em `packages/protocol` e é distribuído como
-`@addons-poc/protocol@1.0.0`. Loader, registry e adaptadores são internos de
-`packages/host-app`; implementações e servidores ficam nos demais pacotes. O
-[índice de pacotes](docs/PACKAGES.md) aponta para o README de cada um.
+The public contract lives in `packages/protocol` and is distributed as
+`@addons-poc/protocol@1.0.0`. The loader, registry, and adapters are internal to
+`packages/host-app`; implementations and servers live in the other packages.
+The [package index](docs/PACKAGES.md) points to each package README.
 
-## Linguagem
+## Language
 
-**Declaração de interação**:
-A parte do manifesto que informa as entradas, saídas, armazenamento e demais interações de um add-on. Para interações mediadas pelo host, ela também é a regra que o host usa para permitir ou bloquear o acesso.
-_Evite_: permissões implícitas, capacidades escondidas
+**Interaction declaration**:
+The part of the manifest that describes an add-on's inputs, outputs, storage, and other interactions. For interactions mediated by the host, it is also the rule the host uses to allow or block access.
+_Avoid_: implicit permissions, hidden capabilities
 
-**Contrato do protocolo**:
-Bloco obrigatório `contract` no manifesto. Ele reúne versão/faixa do protocolo,
-capacidades, serviços, UI, estado, HTTP e logs; não existe parser legado.
-_Evite_: contrato separado por formato, cadastro manual no host
+**Protocol contract**:
+The required `contract` block in a manifest. It gathers protocol version/range,
+capabilities, services, UI, state, HTTP, and logs; there is no legacy parser.
+_Avoid_: a contract separated by format, manual registration in the host
 
-**Destino efetivo de estado**:
-Meio de persistência escolhido pelo host para uma chave de estado declarada pelo add-on. Pode ser `localStorage`, `sessionStorage` ou memória e não faz parte da identidade nem da implementação do add-on.
-_Evite_: destino físico declarado pelo add-on
+**Effective state destination**:
+The persistence mechanism selected by the host for a state key declared by an add-on. It may be `localStorage`, `sessionStorage`, or memory, and it is not part of the add-on's identity or implementation.
+_Avoid_: a physical destination declared by the add-on
 
-**Esquema de interação**:
-Subconjunto documentado de JSON Schema usado no contrato de interação para descrever os dados recebidos e devolvidos por uma operação.
-_Evite_: descrição livre de formatos, schema não validado
+**Interaction schema**:
+A documented subset of JSON Schema used in the interaction contract to describe the data received and returned by an operation.
+_Avoid_: free-form format descriptions, an unvalidated schema
 
-**Manifesto compatível**:
-Manifesto que contém um contrato v1 válido, atende ao perfil de capacidades do
-host e não depende de serviço obrigatório ausente. O host recusa instalar
-manifestos incompatíveis.
-_Evite_: contrato ausente, compatibilidade silenciosa
+**Compatible manifest**:
+A manifest that contains a valid v1 contract, meets the host's capability
+profile, and does not depend on a missing required service. The host refuses to
+install incompatible manifests.
+_Avoid_: a missing contract, silent compatibility
 
-**Interação externa declarada**:
-Consulta ou envio feito fora do host, descrito no contrato para transparência. Na arquitetura atual, o host a mostra, mas ainda não a intercepta nem bloqueia.
-_Evite_: interação externa mediada pelo host
+**Declared external interaction**:
+A query or transmission made outside the host and described in the contract for transparency. In the current architecture, the host displays it but does not yet intercept or block it.
+_Avoid_: an external interaction mediated by the host
 
-**Requisição externa declarada**:
-Interação externa que informa origem, método, rota-modelo, finalidade, campos transmitidos e esquema da resposta. A rota-modelo descreve variáveis sem revelar os valores de uma pessoa.
-_Evite_: URL com dados de usuário, destino sem finalidade
+**Declared external request**:
+An external interaction that states its origin, method, route template, purpose, transmitted fields, and response schema. The route template describes variables without revealing a person's values.
+_Avoid_: a URL containing user data, a destination without a purpose
 
-**Classificação de dado**:
-Rótulo `público`, `pessoal` ou `segredo` atribuído a um campo recebido, persistido ou transmitido. O contrato descreve o dado, mas valores `segredo` não são exibidos nem registrados pelo host.
-_Evite_: segredo em manifesto, segredo em log
+**Data classification**:
+The `public`, `personal`, or `secret` label assigned to a received, persisted, or transmitted field. The contract describes the data, but `secret` values are not displayed or recorded by the host.
+_Avoid_: a secret in a manifest, a secret in a log
 
-**Declaração de estado**:
-Parte do contrato que informa a chave ou padrão de chave, esquema, operações permitidas, retenção e gatilho de exclusão de um estado. Quem grava declara uma chave concreta; um provedor de armazenamento pode declarar um padrão que aceita.
-_Evite_: estado sem chave, retenção implícita
+**State declaration**:
+The contract part that describes a state's key or key pattern, schema, allowed operations, retention, and deletion trigger. A writer declares a concrete key; a storage provider may declare a pattern that it accepts.
+_Avoid_: state without a key, implicit retention
 
-**Proxy de serviço**:
-Objeto obtido por `host.services.use(contrato)`. Ele só expõe o descritor
-declarado e valida método, entrada e saída em runtime.
-_Evite_: contrato apenas ilustrativo, capacidade mediada não declarada
+**Service proxy**:
+The object returned by `host.services.use(contract)`. It exposes only the
+declared descriptor and validates the method, input, and output at runtime.
+_Avoid_: a merely illustrative contract, an undeclared mediated capability
 
-**Revisão de contrato**:
-Estado em que uma instalação aguarda uma nova aceitação porque o contrato de interação mudou na mesma URL de manifesto. A extensão permanece desativada até a revisão.
-_Evite_: ampliação silenciosa de capacidade, reativação automática
+**Contract review**:
+The state in which an installation waits for new acceptance because the interaction contract changed at the same manifest URL. The extension remains disabled until review is complete.
+_Avoid_: a silent capability expansion, automatic reactivation

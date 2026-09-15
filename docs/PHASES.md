@@ -1,393 +1,412 @@
-# Fases do projeto
+# Project phases
 
-Construir um sistema extensível de uma vez esconderia riscos demais. Por isso, a POC cresce em degraus: cada fase responde a uma pergunta e deixa uma demonstração verificável.
+Building an extensible system all at once would hide too many risks. That is why the POC grows in steps: each phase answers one question and leaves a verifiable demonstration.
 
-Os estados usados aqui são **Planejado**, **Em Andamento**, **Entregue**, **Parcial**, **Desativado** e **Substituído**.
+The states used here are **Planned**, **In Progress**, **Delivered**, **Partial**, **Deactivated**, and **Replaced**.
 
-O estado atual dos pacotes está detalhado em [`PACKAGES.md`](PACKAGES.md). As fases 1 a 6 preservam a história da POC; quando um nome antigo aparece nelas, ele é histórico e não é mais uma API pública.
+The current state of the packages is detailed in [`PACKAGES.md`](PACKAGES.md). Phases 1 through 6 preserve the POC's history; when an old name appears in them, it is historical and is no longer a public API.
 
-## Mapa da jornada
+## Journey map
 
-| Fase | Pergunta principal | Estado |
+| Phase | Main question | State |
 |---|---|---|
-| 1. Alicerce | Um host consegue receber serviços de add-ons? | Entregue |
-| 2. Substituição | Uma alternativa consegue assumir após uma falha? | Entregue |
-| 3. Servidores | Um add-on pode viver fora do processo do host? | Parcial |
-| 4. Composição | Add-ons conseguem formar capacidades maiores sem importações diretas? | Entregue |
-| 5. Gestão e compatibilidade | O usuário consegue instalar e controlar add-ons remotos? | Parcial |
-| 6. Isolamento | Código não confiável pode ser limitado com segurança? | Planejado |
-| 7. Protocolo público | O contrato pode ser publicado e usado por hosts independentes? | Entregue |
+| 1. Foundation | Can a host receive services from add-ons? | Delivered |
+| 2. Replacement | Can an alternative take over after a failure? | Delivered |
+| 3. Servers | Can an add-on live outside the host process? | Partial |
+| 4. Composition | Can add-ons form larger capabilities without direct imports? | Delivered |
+| 5. Management and compatibility | Can a user install and control remote add-ons? | Partial |
+| 6. Isolation | Can untrusted code be safely limited? | Planned |
+| 7. Public protocol | Can the contract be published and used by independent hosts? | Delivered |
 
-"Parcial" na fase 3 significa que o formato HTTP e a busca genérica estão
-entregues, enquanto catálogo, leitura, cache, atualização e a validação completa
-de respostas ainda não estão. A negociação SemVer e o perfil de capacidades
-foram entregues na fase 7.
+"Partial" in phase 3 means that the HTTP format and generic search are
+delivered, while catalog, reading, caching, updating, and complete response
+validation are not. SemVer negotiation and the capability profile were delivered
+in phase 7.
 
-## Verificação de 08/09/2026
+## Verification on 2026-09-08
 
-Este registro separa a base já demonstrada das pendências para continuar o experimento. O estado geral permanece **Parcial**: o protocolo público e a instalação por URL estão entregues, mas o ciclo de vida e a experiência HTTP ainda precisam ser completados.
+This record separates the already demonstrated foundation from the work needed to continue the experiment. The overall state remains **Partial**: the public protocol and URL installation are delivered, but the lifecycle and HTTP experience still need to be completed.
 
-A verificação usou o código do commit `09ac6da`, versão da POC `1.0.1`, com consumidores de `@addons-poc/protocol@1.0.0` pelo npm. Antes desta atualização documental, o checkout estava na branch `master`, sem alterações locais.
+The verification used commit `09ac6da`, POC version `1.0.1`, with consumers of `@addons-poc/protocol@1.0.0` through npm. Before this documentation update, the checkout was on the `master` branch with no local changes.
 
-A versão `1.0.2` consolida esta revisão documental. Os comandos abaixo foram repetidos na finalização dessa versão, com os mesmos resultados; o protocolo permanece em `1.0.0`.
+Version `1.0.2` consolidates this documentation review. The commands below were repeated while finishing that version with the same results; the protocol remains at `1.0.0`.
 
-| Verificação executada | Resultado |
+| Verification performed | Result |
 |---|---|
-| `pnpm test` | 136 testes passaram em 24 arquivos; inclui a checagem da fronteira do host e a build do protocolo |
-| `pnpm build:host` | TypeScript, checagem da fronteira e build de produção passaram |
-| Inspeção do loader e da gestão de instalações | Confirmadas a limpeza básica após falha de `setup`, a ausência de unload completo e a aba apenas informativa para manifestos sem `entrypoint` |
+| `pnpm test` | 136 tests passed in 24 files; includes the host-boundary check and protocol build |
+| `pnpm build:host` | TypeScript, boundary check, and production build passed |
+| Loader and installation-management inspection | Confirmed basic cleanup after `setup` failure, absence of complete unload, and an informational-only tab for manifests without `entrypoint` |
 
-Não houve nova verificação visual no navegador, consulta ao npm nem verificação do remoto Git. A publicação do protocolo e seu teste em consumidor limpo pertencem à entrega registrada em 24/08 no [changelog](../CHANGELOG.md).
+There was no new browser visual check, npm query, or Git remote check. Protocol publication and clean-consumer testing belong to the delivery recorded on 2026-08-24 in the [changelog](../CHANGELOG.md).
 
-Para reproduzir a demonstração manual, execute `pnpm dev`, abra `http://localhost:5280` e instale `http://localhost:5301/manifest.json` em **Configurações**. Revise e aceite o contrato, abra a aba Hello e recarregue a página. O resultado esperado é a instalação permanecer disponível. Esse roteiro não foi executado nesta verificação.
+To reproduce the manual demonstration, run `pnpm dev`, open `http://localhost:5280`, and install `http://localhost:5301/manifest.json` in **Settings**. Review and accept the contract, open the Hello tab, and reload the page. The expected result is that the installation remains available. This flow was not executed in this verification.
 
-## Verificação da interface de gestão em 08/09/2026
+## Management interface verification on 2026-09-08
 
-### Por que
+### Why
 
-A lateral mostrava um interruptor sem texto e o botão de seleção da linha ficava desabilitado para add-ons inativos. Quando o contrato salvo estava desatualizado, o clique no interruptor também não informava que uma nova revisão era necessária.
+The sidebar showed an unlabeled switch, and the row-selection button was disabled for inactive add-ons. When the stored contract was outdated, clicking the switch also did not explain that a new review was required.
 
-### O que
+### What
 
-A versão `1.0.3` torna as ações visíveis: add-ons prontos mostram `Ativar` ou `Desativar`; contratos pendentes mostram `Revisar e ativar` e encaminham para **Configurações**. A revisão de uma instalação por URL permanece aberta junto do add-on escolhido, recebe foco e alterna entre `Instalar` e `Fechar`.
+Version `1.0.3` makes the actions visible: ready add-ons show **Activate** or
+**Deactivate**; pending contracts show **Review and activate** and send the
+person to **Settings**. Review of a URL installation remains open next to the
+selected add-on, receives focus, and switches between **Install** and **Close**.
 
-### Como
+### How
 
-Com `pnpm dev` em execução, a verificação abriu a rota de um add-on, conferiu os botões de Citações e Poemas, desativou e reativou cada um e simulou uma impressão digital de contrato antiga. O primeiro fluxo terminou em `Ativo`; o segundo exibiu `Revisar e ativar` e navegou para `#/settings`.
+With `pnpm dev` running, the verification opened an add-on route, checked the Web Quotes and Poems buttons, disabled and re-enabled each one, and simulated an old contract fingerprint. The first flow ended in `Active`; the second showed **Review and activate** and navigated to `#/settings`.
 
-## Verificação da lista de Saúde em 08/09/2026
+## Health list verification on 2026-09-08
 
-### Por que
+### Why
 
-A aba Saúde ainda usava uma lista histórica de quatro servidores HTTP, embora `pnpm dev` inicie 14 servidores na demonstração.
+The Health tab still used a historical list of four HTTP servers, although `pnpm dev` starts 14 servers in the demonstration.
 
-### O que
+### What
 
-A versão `1.0.4` centraliza a lista dos 14 manifestos locais no add-on Saúde e usa a mesma lista no código, no contrato HTTP, na descrição da aba e nos testes. A resposta mostra cada servidor com sua latência ou erro.
+Version `1.0.4` centralizes the list of 14 local manifests in the Health add-on and uses the same list in code, the HTTP contract, the tab description, and tests. The response shows each server with its latency or error.
 
-### Como
+### How
 
-Na rota `#/addons/http%3A%2F%2Flocalhost%3A5307%2Fmanifest.json`, a ação **Verificar agora** foi executada com os servidores da demonstração ativos. O resultado passou de `4/4 online` para `14/14 online` e apresentou 14 linhas de estado.
+At `#/addons/http%3A%2F%2Flocalhost%3A5307%2Fmanifest.json`, the **Check now** action was run with the demonstration servers active. The result changed from `4/4 online` to `14/14 online` and displayed 14 state rows.
 
-## Verificação da identificação na lista de Saúde em 08/09/2026
+## Health list identification verification on 2026-09-08
 
-### Por que
+### Why
 
-Os resultados mostravam apenas o endereço, o que dificultava reconhecer qual add-on respondia em cada porta.
+Results showed only the address, which made it difficult to recognize which add-on answered on each port.
 
-### O que
+### What
 
-A versão `1.0.5` renomeia a aba para **Saúde dos Add-ons**. Cada linha mostra o nome lido do manifesto e o endereço consultado, além do estado e da latência; quando o servidor não responde, a lista usa o nome conhecido da demonstração.
+Version `1.0.5` renames the tab **Add-on Health**. Each row shows the name read from the manifest and the queried address, as well as state and latency; when a server does not respond, the list uses the demonstration's known name.
 
-### Como
+### How
 
-Depois de executar **Verificar agora** na rota do add-on Saúde, a lista foi conferida para os 14 servidores. Cada linha apresentou um nome distinto e seu endereço `http://localhost:<porta>`.
+After running **Check now** on the Health add-on route, the list was checked for all 14 servers. Each row showed a distinct name and its `http://localhost:<port>` address.
 
-## Verificação da busca global em 08/09/2026
+## Global search verification on 2026-09-08
 
-### Por que
+### Why
 
-Os recursos de busca já existiam nos servidores HTTP, mas o host só oferecia
-abas informativas. Faltava um ponto de entrada único para consultar extensões
-ativas e comparar suas respostas.
+Search resources already existed on the HTTP servers, but the host offered only
+informational tabs. A single entry point was missing for querying active
+extensions and comparing their responses.
 
-### O que
+### What
 
-A versão `1.1.1` fixa um campo de pesquisa no cabeçalho e mantém uma tabela de
-resultados no início de todas as rotas, inclusive quando não há extensões. Enter
-consulta add-ons que declaram `search`; Esc limpa o campo e a tabela. Citações
-da Web, Poemas e Wikipédia aparecem na mesma listagem com tipo, ID, URL, nome,
-descrição e emoji. Cada extensão de busca tem um limite configurável em
-Configurações e na lateral de extensões. Quando Local Storage ou Session Storage
-está ativo, a consulta e as linhas são salvas pelo `state-store`.
+Version `1.1.1` fixes a search field in the header and keeps a result table at
+the beginning of every route, including when there are no extensions. Enter
+queries add-ons that declare `search`; Esc clears the field and table. Web Quotes,
+Poems, and Wikipedia appear in the same list with type, ID, URL, name,
+description, and emoji. Each search extension has a configurable limit in
+Settings and the extension sidebar. When Local Storage or Session Storage is
+active, the query and rows are saved by `state-store`.
 
-### Como
+### How
 
-Com `pnpm dev` em execução, foram instalados Citações (`5292`), Poemas (`5293`),
-Wikipédia (`5294`) e Local Storage (`5308`). A busca `life` apresentou linhas
-dos três add-ons; a falha isolada de uma origem continua visível sem apagar as
-respostas das outras. O limite de cada add-on apareceu em Configurações, a
-consulta `brasil` foi encontrada em `addons:state:host:search:results:v1` e Esc
-limpou o campo e a tabela. A busca por `life` foi repetida para confirmar as
-linhas de Citações, Poemas e Wikipédia no fluxo real. `pnpm test` passou com
-142 testes em 26 arquivos, `pnpm build:host` gerou a build de produção e a
-checagem de fronteira confirmou que o host não depende de add-ons concretos.
+With `pnpm dev` running, Web Quotes (`5292`), Poems (`5293`), Wikipedia (`5294`),
+and Local Storage (`5308`) were installed. The `life` search showed rows from
+all three add-ons; an isolated source failure remained visible without removing
+the other responses. Each add-on's limit appeared in Settings, the `brazil`
+query was found in `addons:state:host:search:results:v1`, and Esc cleared the
+field and table. The `life` search was repeated to confirm Web Quotes, Poems,
+and Wikipedia rows in the real flow. `pnpm test` passed with 142 tests in 26
+files, `pnpm build:host` produced the production build, and the boundary check
+confirmed that the host does not depend on concrete add-ons.
 
-## Verificação do layout da home em 09/09/2026
+## Home layout verification on 2026-09-09
 
-### Por que
+### Why
 
-A tabela e a demonstração ao vivo dividiam a largura em uma sequência vertical,
-deixando a listagem principal menor do que precisava e repetindo a URL como uma
-coluna extensa.
+The table and live demo split the width into a vertical sequence, making the main listing smaller than necessary and repeating the URL as a wide column.
 
-### O que
+### What
 
-A versão `1.1.2` faz a home ocupar toda a largura disponível. A tabela fica na
-coluna principal e a demonstração ao vivo fica em uma barra lateral direita de
-menor largura; abaixo de 900 px, as duas áreas se empilham. A coluna `URL` foi
-removida da apresentação, e o nome de cada linha abre a URL do conteúdo.
+Version `1.1.2` makes the home page use all available width. The table stays in
+the main column, and the live demo moves to a narrower right sidebar; below 900
+px, both areas stack. The `URL` column was removed from the presentation, and
+each row name opens its content URL.
 
-### Como
+### How
 
-Com `pnpm dev` em execução, a home foi conferida em viewport desktop e mobile.
-No desktop, os resultados ocuparam a coluna principal e a demonstração ficou à
-direita; no mobile, a demonstração apareceu abaixo sem estreitar a tabela. A
-primeira linha confirmou o hyperlink no nome e a ausência do cabeçalho `URL`.
-`pnpm test` passou com 142 testes em 26 arquivos e `pnpm build:host` gerou a
-build de produção.
+With `pnpm dev` running, the home page was checked in desktop and mobile
+viewports. On desktop, results filled the main column and the demo stayed on the
+right; on mobile, the demo appeared below without narrowing the table. The first
+row confirmed the name hyperlink and the absence of the `URL` header. `pnpm test`
+passed with 142 tests in 26 files, and `pnpm build:host` produced the production
+build.
 
-## Verificação da paginação da Wikipédia em 10/09/2026
+## Wikipedia pagination verification on 2026-09-10
 
-### Por que
+### Why
 
-A API de busca da Wikipédia permite muitas ocorrências, mas a API de extratos
-limita quantos artigos podem ser completados em uma resposta. Sem uma página
-com cursor, o host ficava preso à primeira resposta do provedor.
+Wikipedia's search API allows many matches, but the extracts API limits how many articles can be completed in one response. Without a cursor-based page, the host was stuck with the provider's first response.
 
-### O que
+### What
 
-O protocolo público agora aceita `limit` e `cursor` na requisição e devolve
-`pagination.limit`, `pagination.total` e `pagination.next` opcional. O servidor
-comum repassa esses parâmetros; o host guarda um cursor por add-on e oferece
-**Página anterior** e **Próxima página**. Ao navegar, a tabela mostra somente a
-página atual. A Wikipédia usa `list=search` com páginas de até 20 artigos,
-completa cada página usando `exlimit=20` e impõe teto total de 500 registros.
+The public protocol now accepts `limit` and `cursor` in the request and returns
+optional `pagination.limit`, `pagination.total`, and `pagination.next`. The
+shared server forwards these parameters; the host stores one cursor per add-on
+and offers **Previous page** and **Next page**. While navigating, the table shows
+only the current page. Wikipedia uses `list=search` with pages of up to 20
+articles, completes each page with `exlimit=20`, and enforces a total limit of
+500 records.
 
-### Como
+### How
 
-`GET /search/page/Bola.json?limit=500` devolveu 20 metas, `total: 500` e
-`next: "20"`; a página seguinte não repetiu a primeira. Na home, a busca
-`Banho de floresta` exibiu o extrato na coluna **Descrição**, abriu o conteúdo
-no modal pelo link da meta e **Próxima página** substituiu as 20 linhas pela
-página seguinte. **Página anterior** restaurou a página inicial sem nova
-acumulação. Também foi confirmado que `limit=999` continua limitado a 20 por
-página.
+`GET /search/page/Ball.json?limit=500` returned 20 metas, `total: 500`, and
+`next: "20"`; the next page did not repeat the first. On the home page, the
+`Forest bathing` search showed the extract in the **Description** column,
+opened content in the modal through the meta link, and **Next page** replaced
+the 20 rows with the next page. **Previous page** restored the initial page
+without new accumulation. It was also confirmed that `limit=999` remains
+limited to 20 items per page.
 
-## Verificação da persistência do contador em 08/09/2026
+## Counter persistence verification on 2026-09-08
 
-### Por que
+### Why
 
-O botão `+1` voltava a mostrar `1` depois que a página era recarregada. O estado estava no `localStorage`, mas a consulta seguinte ao `state-store` era tratada como uma restauração nova quando o host criava outra ponte de mediação.
+The `+1` button returned to `1` after a page reload. The state was in
+`localStorage`, but the next `state-store` query was treated as a new restoration
+when the host created another mediation bridge.
 
-### O que
+### What
 
-A versão `1.0.6` torna a restauração idempotente durante a vida de cada instância do Contador. O add-on restaura o valor uma vez quando encontra um provedor, mantém o valor em memória para as próximas ações e grava cada resultado atualizado. O teste do pacote simula uma ponte nova a cada consulta para proteger esse fluxo.
+Version `1.0.6` makes restoration idempotent during each Counter instance's
+lifetime. The add-on restores the value once when it finds a provider, keeps the
+value in memory for later actions, and saves each updated result. The package
+test simulates a new bridge on every query to protect this flow.
 
-### Como
+### How
 
-Com `pnpm dev` em execução, a rota `#/addons/http%3A%2F%2Flocalhost%3A5303%2Fmanifest.json` foi aberta com Contador e Armazenamento local ativos. Após recarregar, o botão `+1` foi acionado e mostrou `3` a partir de um valor persistido `2`, mantendo `addons:state:counter:value` em `3`. `pnpm --filter @addons/addon-counter test` e a build do host também passaram.
+With `pnpm dev` running, route
+`#/addons/http%3A%2F%2Flocalhost%3A5303%2Fmanifest.json` was opened with Counter
+and Local Storage active. After reloading, the `+1` button was pressed and
+showed `3` from a persisted value of `2`, leaving
+`addons:state:counter:value` at `3`. `pnpm --filter @addons/addon-counter test`
+and the host build also passed.
 
-## Verificação da inspeção dos estados em 08/09/2026
+## State inspection verification on 2026-09-08
 
-### Por que
+### Why
 
-O painel de detalhes JSON aparecia em qualquer aba, embora só os provedores de armazenamento ofereçam uma lista de estados para inspecionar. A aba de sessão também não carregava seus estados automaticamente nem entregava os valores completos para o host.
+The JSON details panel appeared on every tab, although only storage providers
+offer a list of states to inspect. The session tab also did not load its states
+automatically or expose complete values to the host.
 
-### O que
+### What
 
-A versão `1.0.7` limita o painel `json-details-card` aos add-ons `storage-local` e `storage-session`. As duas abas usam `getSnapshot` para listar os estados assim que são abertas, e cada item da sessão passa a transportar `details` como o armazenamento local já fazia.
+Version `1.0.7` limits the `json-details-card` panel to the `storage-local` and
+`storage-session` add-ons. Both tabs use `getSnapshot` to list states as soon as
+they open, and each session item now carries `details`, as Local Storage already
+did.
 
-### Como
+### How
 
-Nas rotas `#/addons/http%3A%2F%2Flocalhost%3A5308%2Fmanifest.json` e `#/addons/http%3A%2F%2Flocalhost%3A5309%2Fmanifest.json`, os estados apareceram sem acionar **Ver estados**. Um item abriu o JSON com os cabeçalhos `localStorage` e `sessionStorage`; na rota do Contador, `document.querySelector('#json-details-card')` não encontrou painel. Os testes dos dois provedores e a build do host passaram.
+At routes `#/addons/http%3A%2F%2Flocalhost%3A5308%2Fmanifest.json` and
+`#/addons/http%3A%2F%2Flocalhost%3A5309%2Fmanifest.json`, states appeared without
+pressing **View states**. An item opened JSON with `localStorage` and
+`sessionStorage` headers; on the Counter route,
+`document.querySelector('#json-details-card')` found no panel. Tests for both
+providers and the host build passed.
 
-## Fase 7 — Protocolo público v1
+## Phase 7 — Public protocol v1
 
-**Estado: Entregue**
+**State: Delivered**
 
-### Por que
+### Why
 
-Um contrato misturado ao runtime impede publicação e compatibilidade entre hosts.
+A contract mixed with the runtime prevents publication and compatibility between hosts.
 
-### O que foi entregue
+### What was delivered
 
-- `@addons-poc/protocol@1.0.0`, MIT, com ESM, tipos e schema JSON, publicado no npm;
-- seção única `contract` v1 em todos os manifestos;
-- capacidades, SemVer, descritores namespaceados e `state-store` oficial;
-- proxy `host.services.use(contrato)` e validação em runtime;
-- loader, registry, status e adaptadores internos ao host;
-- bloqueio de incompatibilidades, dependências obrigatórias e ciclos;
-- ADR 0001 e documentação alinhada.
+- `@addons-poc/protocol@1.0.0`, MIT, with ESM, types, and JSON schema, published to npm;
+- one `contract` v1 section in every manifest;
+- capabilities, SemVer, namespaced descriptors, and official `state-store`;
+- `host.services.use(contract)` proxy and runtime validation;
+- loader, registry, status, and adapters internal to the host;
+- blocking for incompatibilities, required dependencies, and cycles;
+- ADR 0001 and aligned documentation.
 
-O pacote foi consultado no registry com `npm view` e instalado em um consumidor
-limpo. Os consumidores do workspace agora usam a versão publicada, registrada
-no lockfile por sua integridade.
+The package was queried in the registry with `npm view` and installed in a clean
+consumer. Workspace consumers now use the published version, recorded in the
+lockfile with its integrity.
 
-### Como verificar
+### How to verify
 
-Execute `pnpm check:host-boundary`, `pnpm test`, `pnpm build:host`,
-`npm pack --dry-run` no pacote do protocolo e `npm view
-@addons-poc/protocol@1.0.0`. Para uma nova versão, publique somente o pacote
-com a conta da organização e confirme a instalação em um consumidor limpo.
+Run `pnpm check:host-boundary`, `pnpm test`, `pnpm build:host`, `npm pack --dry-run`
+in the protocol package, and `npm view @addons-poc/protocol@1.0.0`. For a new
+version, publish only with the organization's account and confirm installation
+in a clean consumer.
 
-## Fase 1 — O alicerce
+## Phase 1 — The foundation
 
-**Estado: Entregue**
+**State: Delivered**
 
-### Por que veio primeiro
+### Why it came first
 
-Antes de pensar em rede ou sandbox, era preciso provar a conversa mais básica: um add-on oferece uma capacidade, o host a encontra e a usa.
+Before thinking about networking or sandboxing, the most basic conversation had to be proven: an add-on provides a capability, the host finds it, and uses it.
 
-### O que foi entregue
+### What was delivered
 
-- manifesto e instância de add-on;
-- `HostAPI` com registro, consulta, descarregamento declarado e logs;
-- `ServiceRegistry` com múltiplas implementações e prioridade;
-- validação estrutural do manifesto;
-- portas para carregamento e logs;
-- adaptadores com `fetch`, `import()` e console;
-- add-ons de saudação e contador;
-- host React genérico para instalar extensões por URL;
-- testes do registro, da validação e do loader.
+- add-on manifest and instance;
+- `HostAPI` with registration, lookup, declared unloading, and logs;
+- `ServiceRegistry` with multiple implementations and priority;
+- structural manifest validation;
+- ports for loading and logs;
+- adapters using `fetch`, `import()`, and the console;
+- greeting and counter add-ons;
+- generic React host for installing extensions by URL;
+- registry, validation, and loader tests.
 
-### Como verificar
+### How to verify
 
-Execute `pnpm test`. Para a interface, inicie `pnpm dev`, informe uma URL de manifesto em **Configurações**, revise o contrato e ative a extensão.
+Run `pnpm test`. For the interface, start `pnpm dev`, enter a manifest URL in **Settings**, review the contract, and activate the extension.
 
-### Limite que permaneceu
+### Limit that remained
 
-O host não importa implementações locais: cada extensão precisa publicar seu próprio manifesto e, no formato em processo, seu bundle ESM. O script local `serve-inprocess-addon.mjs` demonstra essa publicação em portas próprias. Ainda não há cache, atualização nem descarregamento completo.
+The host does not import local implementations: each extension must publish its own manifest and, in the in-process format, its ESM bundle. The local `serve-inprocess-addon.mjs` script demonstrates this publication on its own ports. Caching, updating, and complete unloading are still absent.
 
-## Fase 2 — Prioridade e fallback
+## Phase 2 — Priority and fallback
 
-**Estado: Entregue**
+**State: Delivered**
 
-### Por que veio depois
+### Why it came next
 
-Um serviço único funciona em uma demonstração feliz. Um ecossistema real precisa sobreviver quando a implementação preferida falha.
+A single service works in a happy-path demonstration. A real ecosystem must survive when the preferred implementation fails.
 
-### O que foi entregue
+### What was delivered
 
-- interfaces `Greeter` e `Counter`;
-- helper interno de fallback para chamadas síncronas;
-- helper interno de fallback para chamadas assíncronas;
-- `AggregateFallbackError` para reunir falhas;
-- `addon-hello-pt` com prioridade `10`;
-- falha simulada ao receber o nome `error`;
-- `addon-hello` como alternativa de prioridade `0`;
-- testes de ordem, sucesso alternativo e falha total.
+- `Greeter` and `Counter` interfaces;
+- internal fallback helper for synchronous calls;
+- internal fallback helper for asynchronous calls;
+- `AggregateFallbackError` for gathering failures;
+- `addon-hello-pt` with priority `10`;
+- simulated failure when receiving the name `error`;
+- `addon-hello` as the priority `0` alternative;
+- tests for ordering, alternative success, and total failure.
 
-### Como verificar
+### How to verify
 
-Execute os testes de fallback em `@addons-poc/protocol`. Um host pode demonstrar esse fluxo depois de instalar duas extensões compatíveis que publiquem o mesmo serviço com prioridades diferentes.
+Run the fallback tests in `@addons-poc/protocol`. A host can demonstrate this flow after installing two compatible extensions that publish the same service with different priorities.
 
-## Fase 3 — Add-ons como servidores
+## Phase 3 — Add-ons as servers
 
-**Estado: Parcial**
+**State: Partial**
 
-### Por que mudar o formato
+### Why change the format
 
-Nem toda extensão precisa executar dentro do host. Conteúdo remoto e processamento externo se beneficiam de implantação independente e de um contrato HTTP simples.
+Not every extension needs to run inside the host. Remote content and external processing benefit from independent deployment and a simple HTTP contract.
 
-### Parte entregue: protocolo de texto
+### Delivered part: text protocol
 
-- manifesto com `resources`, `types`, `idPrefixes` e `catalogs`;
-- `@addons/addon-server` em JavaScript ESM puro;
-- rotas para manifesto, catálogo, busca, opções de texto e conteúdo;
-- clientes HTTP locais nos add-ons que consomem o formato de texto;
-- formato `{ texts: [{ id, url, lang, name }] }`;
-- CORS para consumo local pelo navegador;
-- Biblioteca de Textos na porta `5291`;
-- Citações na porta `5292`;
-- Poemas na porta `5293`;
-- Wikipédia na porta `5294`;
-- testes do servidor, cliente e handlers.
+- manifest with `resources`, `types`, `idPrefixes`, and `catalogs`;
+- `@addons/addon-server` in plain ESM JavaScript;
+- routes for manifest, catalog, search, text options, and content;
+- local HTTP clients in add-ons that consume the text format;
+- `{ texts: [{ id, url, lang, name }] }` format;
+- CORS for local browser consumption;
+- Text Library on port `5291`;
+- Web Quotes on port `5292`;
+- Poems on port `5293`;
+- Wikipedia on port `5294`;
+- server, client, and handler tests.
 
-### Parte pendente: compatibilidade e experiência genérica
+### Pending part: compatibility and generic experience
 
-- armazenar manifestos em cache com política de atualização;
-- validar completamente as respostas de catálogo, texto e conteúdo além do manifesto (a busca já verifica a forma básica `{ metas }`);
-- transformar catálogo e leitura de um servidor HTTP recém-instalado em uma aba especializada, sem código prévio no host.
+- cache manifests with an update policy;
+- fully validate catalog, text, and content responses beyond the manifest (search already checks the basic `{ metas }` shape);
+- turn catalog and reading from a newly installed HTTP server into a specialized tab without prior host code.
 
-### Como verificar a parte entregue
+### How to verify the delivered part
 
-Execute `pnpm dev`, instale uma das URLs de manifesto das portas `5291` a `5294` e pesquise no campo fixo. O host revisa e preserva o contrato, aplica o limite por add-on e mostra as linhas do recurso `search`; catálogo e leitura genéricos ainda são a próxima etapa.
+Run `pnpm dev`, install one of the manifest URLs on ports `5291` through `5294`, and search in the fixed field. The host reviews and preserves the contract, applies the per-add-on limit, and displays `search` resource rows; generic catalog and reading are still the next step.
 
-## Fase 4 — Composição de serviços
+## Phase 4 — Service composition
 
-**Estado: Entregue**
+**State: Delivered**
 
-### Por que esta fase importa
+### Why this phase matters
 
-Add-ons isolados provam extensibilidade básica. A arquitetura fica mais interessante quando uma capacidade usa outra sem criar importações diretas.
+Isolated add-ons prove basic extensibility. The architecture becomes more interesting when one capability uses another without creating direct imports.
 
-### O que foi entregue
+### What was delivered
 
-| Add-on | Serviço | Composição demonstrada |
+| Add-on | Service | Demonstrated composition |
 |---|---|---|
-| `addon-markdown` | `addons.markdown.text-formatter` | Usa funções puras locais de formatação |
-| `addon-aggregator` | `addons.aggregator.search-provider` | Consulta vários add-ons HTTP em paralelo |
-| `addon-favorites` | `addons.favorites` | Consome `state-store` opcional |
-| `addon-health` | `addons.health.health-check` | Consulta manifestos e mede disponibilidade |
+| `addon-markdown` | `addons.markdown.text-formatter` | Uses local pure formatting functions |
+| `addon-aggregator` | `addons.aggregator.search-provider` | Queries several HTTP add-ons in parallel |
+| `addon-favorites` | `addons.favorites` | Consumes optional `state-store` |
+| `addon-health` | `addons.health.health-check` | Queries manifests and measures availability |
 
-O host ou um add-on de armazenamento pode registrar `state-store`; se ele não
-existir, favoritos degrada para memória temporária.
+The host or a storage add-on may register `state-store`; when it is absent, Favorites degrades to temporary memory.
 
-### Como verificar
+### How to verify
 
-Execute os testes dos pacotes de composição. Um host pode apresentar essas capacidades quando as extensões publicarem abas compatíveis pelo protocolo.
+Run the composition package tests. A host can present these capabilities when the extensions publish protocol-compatible tabs.
 
-## Fase 5 — Gestão e compatibilidade
+## Phase 5 — Management and compatibility
 
-**Estado: Parcial**
+**State: Partial**
 
-### Problema a resolver
+### Problem to solve
 
-Um ecossistema por URL precisa deixar a escolha com a pessoa usuária sem transformar uma instalação em autorização invisível. O host deve lembrar a escolha, mostrar o que o add-on declara e pedir nova revisão se essa declaração mudar.
+A URL-based ecosystem must leave the choice with the user without turning an installation into invisible authorization. The host must remember the choice, show what the add-on declares, and request a new review if that declaration changes.
 
-### Parte entregue
+### Delivered part
 
-- instalação por URL com revisão do manifesto e do contrato de interação;
-- expansão de cada add-on instalado com explicação e JSON completo do manifesto;
-- persistência das URLs, extensões desativadas e impressão digital do contrato aceito;
-- reativação bloqueada quando o contrato muda na mesma URL;
-- validação de serviços, campos, ações e acesso mediado a estado;
-- compatibilidade de versões e capacidades, com bloqueio de dependências obrigatórias ausentes e ciclos;
-- limpeza básica dos serviços registrados quando `setup` falha, coberta por teste do loader.
+- URL installation with manifest and interaction-contract review;
+- expansion for each installed add-on with an explanation and complete manifest JSON;
+- persistence of URLs, disabled extensions, and the accepted contract fingerprint;
+- blocked reactivation when the contract changes at the same URL;
+- validation of services, fields, actions, and mediated state access;
+- version and capability compatibility, with blocking for missing required dependencies and cycles;
+- basic cleanup of registered services when `setup` fails, covered by a loader test.
 
-A limpeza básica chama os callbacks de `onUnload` e depois remove os serviços da URL. Ela ainda não garante recuperação se um desses callbacks lançar uma exceção. Ao desativar ou remover uma instância ativa, a interface limpa o registro de serviços, mas não executa esses callbacks. Veja os detalhes na [arquitetura](ARCHITECTURE.md#loader-e-estados).
+Basic cleanup calls `onUnload` callbacks and then removes services for the URL. It does not yet guarantee recovery if one of those callbacks throws. When disabling or removing an active instance, the interface clears the service registry but does not run these callbacks. See the details in the [architecture](ARCHITECTURE.md#loader-and-states).
 
-### Parte pendente
+### Pending part
 
-- edição de prioridade;
-- cache e atualização de manifestos;
-- mensagens claras para incompatibilidade;
-- ciclo completo de unload;
-- garantir que uma falha em callback de limpeza não impeça os demais callbacks nem a remoção dos serviços.
+- priority editing;
+- manifest caching and updating;
+- clear incompatibility messages;
+- complete unload cycle;
+- ensuring that a cleanup callback failure does not prevent later callbacks or service removal.
 
-### Condição de conclusão
+### Completion condition
 
-A instalação persistente já funciona. Para concluir a fase, o host deve também executar a limpeza completa ao desativar ou remover uma instância, preservar a remoção dos serviços mesmo se um callback falhar, permitir editar prioridades e oferecer cache e atualização de manifestos. URLs inválidas ou incompatíveis devem produzir erros compreensíveis sem alterar os add-ons já ativos.
+Persistent installation already works. To complete the phase, the host must also perform complete cleanup when disabling or removing an instance, preserve service removal even when a callback fails, allow priority editing, and provide manifest caching and updates. Invalid or incompatible URLs must produce understandable errors without changing already active add-ons.
 
-## Fase 6 — Isolamento e confiança
+## Phase 6 — Isolation and trust
 
-**Estado: Planejado**
+**State: Planned**
 
-### Problema a resolver
+### Problem to solve
 
-Fallback trata falhas de serviço, mas não limita o que código em processo pode acessar. Um módulo malicioso ou bloqueante ainda compartilha o contexto do host.
+Fallback handles service failures but does not limit what in-process code can access. A malicious or blocking module still shares the host context.
 
-### Investigação prevista
+### Planned investigation
 
-- comparar Web Worker e `iframe` com origem separada;
-- definir mensagens serializáveis entre host e add-on;
-- limitar tempo, memória e tamanho de resposta quando possível;
-- desenhar permissões por capacidade;
-- estudar integridade, assinatura e origem confiável;
-- restringir CORS e políticas de conteúdo para implantação real;
-- criar limites de falhas e degradação de prioridade.
+- compare Web Worker and `iframe` with a separate origin;
+- define serializable messages between host and add-on;
+- limit time, memory, and response size where possible;
+- design capability-based permissions;
+- study integrity, signatures, and trusted origin;
+- restrict CORS and content policies for real deployment;
+- create failure and priority-degradation limits.
 
-### Condição de conclusão
+### Completion condition
 
-Uma extensão de teste deve falhar, travar ou tentar um acesso não autorizado sem comprometer o restante do host. O mecanismo escolhido precisa ter testes e ameaças documentadas; um `try/catch` isolado não basta.
+A test extension must be able to fail, hang, or attempt unauthorized access without compromising the rest of the host. The selected mechanism needs tests and documented threats; an isolated `try/catch` is not enough.
 
-## Ordem recomendada para o próximo trabalho
+## Recommended order for the next work
 
-1. Completar e testar o ciclo de unload ao desativar ou remover add-ons, incluindo recuperação quando um callback de limpeza falhar.
-2. Completar catálogo e leitura dos recursos HTTP instalados de modo genérico, ampliando a validação das respostas.
-3. Adicionar edição de prioridades e melhorar as mensagens de incompatibilidade.
-4. Adicionar cache e atualização de manifestos, preservando a nova revisão quando o contrato mudar.
-5. Só então escolher o modelo de sandbox.
+1. Complete and test unload when disabling or removing add-ons, including recovery when a cleanup callback fails.
+2. Complete generic catalog and reading for installed HTTP resources, expanding response validation.
+3. Add priority editing and improve incompatibility messages.
+4. Add manifest caching and updating while preserving new review when the contract changes.
+5. Only then choose the sandbox model.
 
-Essa ordem fecha primeiro inconsistências do ciclo de vida, depois adiciona conveniência e, por último, enfrenta o isolamento — o tema mais caro e sensível.
+This order closes lifecycle inconsistencies first, then adds convenience, and finally addresses isolation—the most expensive and sensitive topic.

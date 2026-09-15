@@ -1,6 +1,6 @@
 import type { AddonInstance } from '@addons-poc/protocol';
-import { DEFAULT_SEARCH_LIMIT, getSearchResources, parseSearchLimitInput } from '../search';
-import type { SearchLimitValue } from '../search';
+import { DEFAULT_SEARCH_LIMIT, getSearchLanguages, getSearchResources, parseSearchLimitInput } from '../search';
+import type { SearchLanguages, SearchLimitValue } from '../search';
 
 interface AddonSidebarProps {
   addons: AddonInstance[];
@@ -12,12 +12,14 @@ interface AddonSidebarProps {
   onToggle: (manifestUrl: string) => void;
   onReviewContract: (manifestUrl: string) => void;
   searchLimits: Record<string, SearchLimitValue>;
+  searchLanguages: SearchLanguages;
   onSearchLimitChange: (manifestUrl: string, value: SearchLimitValue) => void;
+  onSearchLanguageChange: (manifestUrl: string, value: string) => void;
 }
 
-export function AddonSidebar({ addons, disabledAddonUrls, pendingContractUrls, selectedManifestUrl, loading, onSelect, onToggle, onReviewContract, searchLimits, onSearchLimitChange }: AddonSidebarProps) {
+export function AddonSidebar({ addons, disabledAddonUrls, pendingContractUrls, selectedManifestUrl, loading, onSelect, onToggle, onReviewContract, searchLimits, searchLanguages, onSearchLimitChange, onSearchLanguageChange }: AddonSidebarProps) {
   return (
-    <aside aria-label="Extensões instaladas" style={{
+    <aside aria-label="Installed add-ons" style={{
       alignSelf: 'start',
       padding: 12,
       border: '1px solid rgba(255,255,255,0.08)',
@@ -25,24 +27,29 @@ export function AddonSidebar({ addons, disabledAddonUrls, pendingContractUrls, s
       background: 'rgba(255,255,255,0.025)',
     }}>
       <h3 style={{ margin: '2px 4px 10px', fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-        Extensões instaladas
+        Installed add-ons
       </h3>
 
       <div style={{ display: 'grid', gap: 4 }}>
         {addons.length === 0 && (
           <p style={{ margin: '4px', color: '#64748b', fontSize: 12, lineHeight: 1.45 }}>
-            Nenhuma extensão instalada.
+            No add-ons installed.
           </p>
         )}
         {addons.map((addon) => {
           const enabled = addon.status === 'ready' && !disabledAddonUrls.includes(addon.manifestUrl);
           const requiresContractReview = pendingContractUrls.includes(addon.manifestUrl);
           const selected = enabled && selectedManifestUrl === addon.manifestUrl;
-          const actionLabel = requiresContractReview ? 'Revisar e ativar' : enabled ? 'Desativar' : 'Ativar';
+          const actionLabel = requiresContractReview ? 'Review and enable' : enabled ? 'Disable' : 'Enable';
           const actionDisabled = loading || addon.status === 'error' || (!requiresContractReview && addon.status !== 'ready');
           const itemDisabled = loading || addon.status !== 'ready';
           const searchTypes = [...new Set(getSearchResources(addon).flatMap((resource) => resource.types))];
+          const addonSearchLanguages = getSearchLanguages(addon);
+          const selectedSearchLanguage = addonSearchLanguages.includes(searchLanguages[addon.manifestUrl] ?? '')
+            ? searchLanguages[addon.manifestUrl]!
+            : addonSearchLanguages[0];
           const searchLimitInputId = `sidebar-search-limit-${encodeURIComponent(addon.manifestUrl)}`;
+          const searchLanguageInputId = `sidebar-search-language-${encodeURIComponent(addon.manifestUrl)}`;
 
           return (
             <div key={addon.manifestUrl} style={{
@@ -58,7 +65,7 @@ export function AddonSidebar({ addons, disabledAddonUrls, pendingContractUrls, s
                     else onToggle(addon.manifestUrl);
                   }}
                   disabled={itemDisabled}
-                  aria-label={`${enabled ? 'Abrir' : actionLabel} ${addon.manifest.name}`}
+                  aria-label={`${enabled ? 'Open' : actionLabel} ${addon.manifest.name}`}
                   title={addon.manifest.description}
                   style={{
                     flex: 1, minWidth: 0, padding: '6px 4px', border: 'none', background: 'transparent', textAlign: 'left',
@@ -69,7 +76,7 @@ export function AddonSidebar({ addons, disabledAddonUrls, pendingContractUrls, s
                     {addon.ui?.title ?? addon.manifest.name}
                   </span>
                   <span style={{ display: 'block', marginTop: 2, color: enabled ? '#64748b' : '#94a3b8', fontSize: 10 }}>
-                    {enabled ? 'Ativo' : addon.status === 'blocked' ? 'Aguardando dependência' : addon.status === 'error' ? 'Com erro' : 'Desativado'}
+                    {enabled ? 'Active' : addon.status === 'blocked' ? 'Awaiting dependency' : addon.status === 'error' ? 'With error' : 'Disabled'}
                   </span>
                 </button>
 
@@ -96,7 +103,7 @@ export function AddonSidebar({ addons, disabledAddonUrls, pendingContractUrls, s
 
               {searchTypes.length > 0 && (
                 <label htmlFor={searchLimitInputId} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 4px 3px', color: '#64748b', fontSize: 10 }}>
-                  <span style={{ flex: 1 }}>Resultados/página ({searchTypes.join(', ')})</span>
+                  <span style={{ flex: 1 }}>Results/page ({searchTypes.join(', ')})</span>
                   <input
                     id={searchLimitInputId}
                     type="number"
@@ -108,9 +115,27 @@ export function AddonSidebar({ addons, disabledAddonUrls, pendingContractUrls, s
                     onClick={(event) => event.currentTarget.select()}
                     onChange={(event) => onSearchLimitChange(addon.manifestUrl, parseSearchLimitInput(event.target.value))}
                     disabled={loading || addon.status !== 'ready'}
-                    aria-label={`Máximo de resultados de busca para ${addon.manifest.name}`}
+                    aria-label={`Maximum search results for ${addon.manifest.name}`}
                     style={{ width: 54, padding: '4px 5px', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, background: 'rgba(0,0,0,0.18)', color: '#cbd5e1', font: 'inherit', fontSize: 11 }}
                   />
+                </label>
+              )}
+
+              {addonSearchLanguages.length > 1 && (
+                <label htmlFor={searchLanguageInputId} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 4px 3px', color: '#64748b', fontSize: 10 }}>
+                  <span style={{ flex: 1 }}>Search language</span>
+                  <select
+                    id={searchLanguageInputId}
+                    value={selectedSearchLanguage}
+                    onChange={(event) => onSearchLanguageChange(addon.manifestUrl, event.target.value)}
+                    disabled={loading || addon.status !== 'ready'}
+                    aria-label={`Search language for ${addon.manifest.name}`}
+                    style={{ minWidth: 116, padding: '4px 5px', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 5, background: '#172033', color: '#cbd5e1', font: 'inherit', fontSize: 11 }}
+                  >
+                    {addonSearchLanguages.map((language) => (
+                      <option key={language} value={language}>{language === 'pt' ? 'Portuguese (pt)' : language === 'en' ? 'English (en)' : language}</option>
+                    ))}
+                  </select>
                 </label>
               )}
             </div>

@@ -1,176 +1,180 @@
-# Arquitetura do addons-app-poc
+# addons-app-poc architecture
 
-**Status: Parcial · Protocolo 1.0.0 publicado**
+**Status: Partial · Protocol 1.0.0 published**
 
-Os READMEs operacionais de cada pacote estão reunidos em [`PACKAGES.md`](PACKAGES.md). Este documento explica a fronteira; os READMEs explicam como executar cada implementação.
+The operational README for each package is collected in [`PACKAGES.md`](PACKAGES.md). This document explains the boundary; the READMEs explain how to run each implementation.
 
-## Por que
+## Why
 
-O host precisa aceitar extensões independentes sem transformar cada exemplo em
-uma dependência da aplicação. A solução é separar a fronteira pública de
-compatibilidade do runtime que executa o host.
+The host must accept independent extensions without turning every example into an application dependency. The solution is to separate the public compatibility boundary from the runtime that executes the host.
 
-## O que
+## What
 
-Há três áreas, com direção de dependência única:
+There are three areas, with one-way dependency flow:
 
 ```text
-add-on em processo ─┐
-add-on HTTP --------┼──► @addons-poc/protocol (contrato e SDK)
-host-app/runtime ----┘
-          host-app ──► protocolo
+in-process add-on ─┐
+HTTP add-on -------┼──► @addons-poc/protocol (contract and SDK)
+host-app/runtime ---┘
+          host-app ──► protocol
 ```
 
-O host não importa, cataloga metadados embutidos nem declara nenhum `addon-*`.
-Cada add-on declara seu contrato e publica uma URL de manifesto. A tela de
-Configurações oferece uma lista de conveniência com URLs locais de
-`manifest.json` e lê apenas `name` e `description` para apresentar cada linha;
-ela não importa bundles nem conhece serviços específicos. Add-ons não importam
-outros add-ons.
+The host does not import add-ons, catalog embedded metadata, or declare any
+`addon-*`. Each add-on declares its contract and publishes a manifest URL. The
+Settings screen offers a convenience list of local `manifest.json` URLs and
+reads only `name` and `description` to present each row; it does not import
+bundles or know specific services. Add-ons do not import other add-ons.
 
-O pacote foi publicado no npm e testado em consumidor limpo. Os pacotes
-consumidores usam `@addons-poc/protocol@1.0.0` do registry, enquanto o código
-fonte em `packages/protocol` permanece no workspace para testes e novas versões.
+The package was published to npm and tested in a clean consumer. Consumer
+packages use `@addons-poc/protocol@1.0.0` from the registry, while the source in
+`packages/protocol` remains in the workspace for tests and new versions.
 
-| Área | Responsabilidade | Pode depender de |
+| Area | Responsibility | May depend on |
 |---|---|---|
-| `packages/protocol` | Tipos, JSON Schema, SemVer, validadores, descritores e SDK | somente regras puras |
-| `packages/host-app/src/runtime` | Loader ESM, registry, status, negociação, prioridade e adaptadores | protocolo e APIs da plataforma |
-| `packages/host-app/src/components` | Gestão, revisão e UI genérica | protocolo e runtime local |
-| `packages/addon-*` | Implementações de domínio e exemplos | protocolo; HTTP também `addon-server` |
+| `packages/protocol` | Types, JSON Schema, SemVer, validators, descriptors, and SDK | pure rules only |
+| `packages/host-app/src/runtime` | ESM loader, registry, status, negotiation, priority, and adapters | protocol and platform APIs |
+| `packages/host-app/src/components` | Management, review, and generic UI | protocol and local runtime |
+| `packages/addon-*` | Domain implementations and examples | protocol; HTTP also uses `addon-server` |
 
-A API pública do protocolo é a entrada `packages/protocol/src/index.ts` e a
-distribuição contém `dist`, schema, README, licença e `package.json`. Fontes auxiliares
-mantidas no workspace para testes de migração não representam uma exportação
-nem recolocam runtime ou helpers de domínio na fronteira pública.
+The protocol's public API is the `packages/protocol/src/index.ts` entry point,
+and the distribution contains `dist`, schema, README, license, and
+`package.json`. Auxiliary sources kept in the workspace for migration tests do
+not represent an export and do not put runtime or domain helpers back into the
+public boundary.
 
-## O contrato público
+## The public contract
 
-`AddonManifest` contém metadados, URL opcional de `entrypoint` e uma única
-seção `contract` v1. O contrato registra:
+`AddonManifest` contains metadata, an optional `entrypoint` URL, and one
+`contract` v1 section. The contract records:
 
-- faixa de protocolo e capacidades obrigatórias/opcionais;
-- serviços fornecidos ou consumidos com versão, métodos e schemas;
-- UI declarativa (`ui.tab`), estado, HTTP e logs;
-- classificação de dados: `public`, `personal` ou `secret`.
+- protocol range and required/optional capabilities;
+- provided or consumed services with versions, methods, and schemas;
+- declarative UI (`ui.tab`), state, HTTP, and logs;
+- data classification: `public`, `personal`, or `secret`.
 
-`validateManifest` recusa contrato ausente, capacidades inválidas, serviços
-sem namespace, métodos incompatíveis e recursos HTTP não descritos. O JSON
-Schema equivalente é empacotado em `@addons-poc/protocol/schema`.
+`validateManifest` rejects a missing contract, invalid capabilities,
+non-namespaced services, incompatible methods, and undescribed HTTP resources.
+The equivalent JSON Schema is packaged in `@addons-poc/protocol/schema`.
 
-## Runtime interno do host
+## Host internal runtime
 
-### Loader e estados
+### Loader and states
 
-`FetchAddonLoader` busca o manifesto, valida protocolo e capacidades, importa o
-bundle ESM apenas depois dessa validação e confere que o `manifest` exportado
-tem o mesmo fingerprint (impressão digital do contrato) do manifesto remoto.
-Falha de import vira uma instância `error`. Se `setup` ou a criação da aba
-falhar, o loader chama os callbacks de `onUnload`, remove os serviços da URL
-com `clearAddon` e devolve uma instância `error`.
+`FetchAddonLoader` fetches the manifest, validates the protocol and capabilities,
+imports the ESM bundle only after validation, and checks that the exported
+`manifest` has the same contract fingerprint as the remote manifest. An import
+failure becomes an `error` instance. If `setup` or tab creation fails, the
+loader calls `onUnload` callbacks, removes services for that URL with
+`clearAddon`, and returns an `error` instance.
 
-Essa recuperação ainda tem um limite: `unloadAll` não captura exceções dos
-callbacks. Se um deles falhar, interrompe os seguintes e impede a chamada de
-`clearAddon` e o retorno normal da instância de erro. O teste
-[`loader.test.ts`](../packages/host-app/src/runtime/loader.test.ts) comprova a
-remoção dos registros após falha de `setup` sem callbacks de limpeza; não
-comprova recuperação quando a própria limpeza falha.
+This recovery still has a limit: `unloadAll` does not catch callback exceptions.
+If one fails, it interrupts the remaining callbacks and prevents `clearAddon`
+and the normal error-instance return. The test
+[`loader.test.ts`](../packages/host-app/src/runtime/loader.test.ts) proves
+registration removal after a `setup` failure without cleanup callbacks; it does
+not prove recovery when cleanup itself fails.
 
-Desativar ou remover uma instância em `App.tsx` limpa seus serviços e reavalia
-dependências, mas não chama os callbacks de `onUnload`. Completar esse ciclo
-de descarregamento é o próximo trabalho registrado em [PHASES.md](PHASES.md).
+Disabling or removing an instance in `App.tsx` clears its services and
+reevaluates dependencies, but does not call `onUnload` callbacks. Completing
+this unload cycle is the next task recorded in [PHASES.md](PHASES.md).
 
-### Registry e prioridade
+### Registry and priority
 
-`ServiceRegistry` vive em `packages/host-app/src/runtime/registry.ts`. Ele
-guarda implementações por identificador, add-on de origem e prioridade. A
-ordenação é determinística (maior prioridade primeiro). O registry não conhece
-React, HTTP ou domínio.
+`ServiceRegistry` lives in `packages/host-app/src/runtime/registry.ts`. It
+stores implementations by identifier, source add-on, and priority. Ordering is
+deterministic (highest priority first). The registry does not know React, HTTP,
+or domain details.
 
-### Proxy de serviços
+### Service proxy
 
-O SDK entrega `host.services.use({ id, version, methods })`. O host só entrega
-um serviço que aparece no contrato do consumidor e aplica a guarda do
-`state-store` às chaves declaradas. Chamadas obrigatórias sem provedor deixam a
-instalação bloqueada e são reavaliadas após uma nova ativação. Dependências
-obrigatórias em ciclo são bloqueadas; fallback é explícito no runtime.
+The SDK provides `host.services.use({ id, version, methods })`. The host only
+provides a service that appears in the consumer's contract and applies the
+`state-store` guard to declared keys. Required calls without a provider leave
+the installation blocked and are reevaluated after a new activation. Required
+dependency cycles are blocked; fallback is explicit in the runtime.
 
-### Revisão e persistência
+### Review and persistence
 
-Configurações guarda URLs, desativação e fingerprint aceito em
-`addons:host-installations:v1`. A mesma URL com contrato alterado volta para
-revisão. O host não mistura essa configuração com o armazenamento de estado
-dos add-ons.
+Settings stores URLs, disabled state, and the accepted fingerprint in
+`addons:host-installations:v1`. The same URL with a changed contract returns to
+review. The host does not mix this configuration with add-on state storage.
 
-O limite de resultados de cada add-on que oferece busca também fica nessa
-configuração, associado à URL do manifesto. Os resultados da busca não entram
-nessa chave: quando há um provedor `state-store`, o host grava a consulta, as
-linhas e os cursores em `host:search:results:v1`, respeitando a mesma fronteira
-opcional de persistência usada pelos add-ons.
+The result limit for each add-on that offers search is also stored in this
+configuration and associated with the manifest URL. Resources that declare
+accepted languages receive a language choice in the same configuration; the
+host sends the selected value as `lang` in HTTP routes and preserves the choice
+in content URLs. Search results do not belong in this key: when a `state-store`
+provider exists, the host stores the query, rows, and cursors under
+`host:search:results:v1`, following the same optional persistence boundary used
+by add-ons.
 
-O mesmo limite é editável na lateral de extensões durante a demonstração; os
-dois controles atualizam a mesma configuração por URL.
+The same limit and language can be edited in the extension sidebar during the
+demo and on the Settings screen; both controls update the same per-URL
+configuration.
 
-## Dois formatos de add-on
+## Two add-on formats
 
-### Em processo
+### In process
 
-O manifesto aponta `entrypoint` HTTP(S). O bundle exporta `manifest`, `setup` e
-`createTab`. O `HostAPI` é deliberadamente pequeno: `services`,
-`registerService`, `onUnload` e `log`. O host renderiza a aba sem conhecer as
-regras internas.
+The manifest points to an HTTP(S) `entrypoint`. The bundle exports `manifest`,
+`setup`, and `createTab`. `HostAPI` is deliberately small: `services`,
+`registerService`, `onUnload`, and `log`. The host renders the tab without
+knowing its internal rules.
 
 ### HTTP
 
-`@addons/addon-server` publica `manifest.json`, catálogo, busca, opções de
-texto e conteúdo. O servidor e o exemplo HTTP restante são ESM puro. Eles
-validam com o protocolo público, mas não importam runtime TypeScript do host.
-I/O externo deve constar em `contract.http`; a v1 torna a declaração visível,
-mas não intercepta `fetch` direto.
+`@addons/addon-server` publishes `manifest.json`, catalog, search, text options,
+and content. The server and the remaining HTTP example use plain ESM. They
+validate with the public protocol but do not import the host's TypeScript
+runtime. External I/O must appear in `contract.http`; v1 makes the declaration
+visible but does not intercept direct `fetch` calls.
 
-No perfil público de texto, `TextPageRequest` leva `limit` e `cursor`, enquanto
-`TextPagination` devolve o tamanho da página, o total conhecido e o cursor
-opaco seguinte. Esses campos são opcionais para que add-ons antigos continuem
-respondendo apenas `{ metas: [...] }`.
+In the public text profile, `TextPageRequest` carries `limit` and `cursor`,
+while `TextPagination` returns the page size, known total, and next opaque
+cursor. These fields are optional so older add-ons can continue responding with
+only `{ metas: [...] }`. A resource may declare `languages` when it offers a
+language choice; the host forwards that choice in the `lang` query parameter,
+and the add-on must preserve it in content links when necessary.
 
-Ao instalar um manifesto sem `entrypoint`, o loader cria uma aba com título e
-descrição. A interface global do host detecta recursos `search` declarados,
-consulta todos os add-ons ativos e transforma cada resposta `metas` em uma
-linha com `type`, `id`, `url`, `name` e `description`, além de `emoji` ou `image`
-quando disponíveis. A URL de conteúdo gerada pelo próprio servidor funciona
-como fallback quando a meta não fornece uma URL. Uma resposta pode trazer
-`pagination.next`; nesse caso o host preserva um cursor por provedor e oferece
-**Página anterior** e **Próxima página**, com a página atual entre os botões, no
-início e no fim da tabela. A troca substitui as linhas pela página solicitada,
-sem acumular a página anterior. O limite configurado por add-on define o tamanho
-solicitado para cada página; a ausência de `next` pelo provedor encerra a
-listagem. Uma falha de uma origem é mostrada na tabela e não impede as demais
-respostas. O termo da busca e a página são mantidos na URL por `nuqs` (`q` e
-`page`). Na home, a tabela ocupa toda a largura disponível.
-A demonstração ao vivo é aberta pelo ícone de
-engrenagem em um modal responsivo; selecionar uma extensão ativa navega para
-uma rota dinâmica de detalhe, no formato `#/addons/<manifesto-codificado>`,
-sem repetir a listagem da home. Para reduzir a largura da listagem, a
-apresentação não cria uma coluna `URL`: o nome da linha recebe o hyperlink para
-a URL preservada no modelo do resultado.
+When installing a manifest without an `entrypoint`, the loader creates a tab
+with its title and description. The host's global interface detects declared
+`search` resources, queries all active add-ons, and turns each `metas` response
+into a row with `type`, `id`, `url`, `name`, and `description`, plus `emoji` or
+`image` when available. The content URL generated by the server acts as a
+fallback when the meta does not provide one. A response may include
+`pagination.next`; in that case, the host preserves one cursor per provider and
+offers **Previous page** and **Next page**, with the current page between them,
+at the beginning and end of the table. Changing pages replaces the rows with
+the requested page without accumulating the previous one. A per-add-on limit
+defines the requested page size; the absence of `next` from a provider ends its
+listing. A source failure is shown in the table and does not prevent other
+responses. The search term and page remain in the URL through `nuqs` (`q` and
+`page`). On the home page, the table uses the full available width.
 
-O adaptador fica em `packages/host-app/src/search.ts` e usa `fetch` diretamente,
-sem adicionar o runtime do host ao protocolo público. O cabeçalho mantém o
-campo de pesquisa fixo: **Enter** inicia a consulta e **Esc** limpa campo e
-resultados. A tabela existe mesmo quando não há add-ons instalados. A forma
-básica `{ metas: [...] }` e a forma opcional de `pagination` são verificadas
-no host; validação completa de todos os recursos HTTP, catálogo e leitura
-continuam pendentes.
+The live demo opens from the gear icon in a responsive modal; selecting an
+active extension navigates to a dynamic detail route in the form
+`#/addons/<encoded-manifest>` without repeating the home listing. To reduce the
+listing width, the presentation does not create a `URL` column: the row name
+receives the hyperlink to the URL preserved in the result model.
 
-## Capacidade oficial opcional
+The adapter lives in `packages/host-app/src/search.ts` and calls `fetch`
+directly, without adding the host runtime to the public protocol. The header
+keeps a fixed search field: **Enter** starts the query and **Esc** clears the
+field and results. The table exists even when no add-ons are installed. The
+basic `{ metas: [...] }` form and optional `pagination` shape are checked in the
+host; complete validation of all HTTP resources, catalog, and reading remains
+pending.
 
-`state-store` é o serviço padrão de persistência. `storage-local` fornece
-`localStorage` com prioridade 10; `storage-session` fornece `sessionStorage`
-com prioridade 0. Consumidores declaram a dependência no contrato e continuam
-em memória quando ela é opcional e não existe.
+## Optional official capability
 
-## Limites de confiança
+`state-store` is the standard persistence service. `storage-local` provides
+`localStorage` with priority 10; `storage-session` provides `sessionStorage`
+with priority 0. Consumers declare the dependency in their contract and remain
+in memory when it is optional and unavailable.
 
-Esta POC aceita plugins confiáveis no mesmo processo. O contrato é governança e
-compatibilidade, não isolamento. Sandbox, iframe/Worker, proxy de rede,
-assinatura criptográfica e bloqueio de APIs globais estão fora da v1.
+## Trust limits
+
+This POC accepts trusted plugins in the same process. The contract provides
+governance and compatibility, not isolation. Sandboxing, iframe/Worker
+execution, a network proxy, cryptographic signatures, and global API blocking
+are outside v1.

@@ -11,7 +11,7 @@ const addonRoot = resolve(workspaceRoot, 'packages', addonDirectory ?? '');
 const packagesRoot = resolve(workspaceRoot, 'packages');
 
 if (!addonDirectory || !Number.isInteger(port) || port < 1 || relative(packagesRoot, addonRoot).startsWith('..')) {
-  throw new Error('Uso: node scripts/serve-inprocess-addon.mjs <diretório-do-addon> <porta>');
+  throw new Error('Usage: node scripts/serve-inprocess-addon.mjs <addon-directory> <port>');
 }
 
 const entryPoint = resolve(addonRoot, 'src/index.ts');
@@ -62,5 +62,5 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(port, '0.0.0.0', () => {
-  console.log(`[addon] ${addonDirectory} em http://localhost:${port}/manifest.json`);
+  console.log(`[addon] ${addonDirectory} at http://localhost:${port}/manifest.json`);
 });

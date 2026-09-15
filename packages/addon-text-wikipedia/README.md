@@ -1,38 +1,61 @@
 # `@addons/addon-text-wikipedia`
 
-Servidor HTTP de resumos da Wikipédia em português.
+HTTP server for Wikipedia summaries in Portuguese.
 
-## Por que existe
+## Why it exists
 
-Demonstra um add-on que declara múltiplos endpoints externos e os apresenta como recursos de texto compatíveis com o mesmo protocolo.
+It demonstrates an add-on that declares multiple external endpoints and presents them as text resources compatible with the same protocol.
 
-## O que oferece
+## What it offers
 
-Publica catálogo aleatório, busca, opções de texto e conteúdo em texto puro para o tipo `page`. A busca usa `list=search` em páginas de até 20 títulos, continua com `sroffset` e limita o total a 500 registros. Cada página completa os extratos em lote pela API da Wikipédia e devolve o conteúdo de cada artigo no campo `description` da meta. Assim, uma busca por `Bola` mostra o conteúdo de `Bola` diretamente na coluna **Descrição** do host; os controles **Página anterior** e **Próxima página** navegam entre páginas sem acumular linhas, e o link técnico `http://localhost:5294/text/page/Bola/content.txt` leva a uma página dedicada que busca também `content.json`, exibindo imagem, descrição, resumo e o link original. Os metadados, headers e observabilidade permanecem no JSON e no debug. O cliente identifica-se perante a API, repete falhas transitórias `429`/`5xx`, deduplica chamadas simultâneas e mantém cada página em cache por 60 segundos. O teto de 20 por página vem do limite de `exlimit` da API de extratos; o teto total de 500 vem do limite de `srlimit` da API de busca. Consulte [`API:Search`](https://www.mediawiki.org/wiki/API%3ASearch/en) e [`Extension:TextExtracts`](https://www.mediawiki.org/wiki/Extension:TextExtracts). `contract.http` registra as chamadas à busca paginada, aos lotes de extratos, à lista de páginas aleatórias e à API de resumo de `https://pt.wikipedia.org`.
+It publishes a random catalog, search, text options, and plain-text content for
+the `page` type. The search resource announces `pt` and `en` languages; the
+host sidebar configuration chooses the Wikipedia domain used for the search and
+keeps the same language when opening an article. Search uses `list=search` in
+pages of up to 20 titles, continues with `sroffset`, and limits the total to 500
+records. Each page completes extracts in batches through the Wikipedia API and
+returns each article's content in the meta `description` field. Thus, a search
+for `Ball` shows the content for `Ball` directly in the host's **Description**
+column; **Previous page** and **Next page** navigate between pages without
+accumulating rows, and the technical link
+`http://localhost:5294/text/page/Ball/content.txt` leads to a dedicated page
+that also fetches `content.json`, displaying the image, description, summary,
+and original link. Metadata, headers, and observability remain available in JSON
+and debug output. The client identifies itself to the API, retries transient
+`429`/`5xx` failures, deduplicates simultaneous calls, and caches each page for
+60 seconds. The per-page limit of 20 comes from the extracts API's `exlimit`;
+the total limit of 500 comes from the search API's `srlimit`. See
+[`API:Search`](https://www.mediawiki.org/wiki/API%3ASearch/en) and
+[`Extension:TextExtracts`](https://www.mediawiki.org/wiki/Extension:TextExtracts).
+`contract.http` records calls to paginated search, extract batches, the random
+page list, and the summary API on `https://pt.wikipedia.org` and
+`https://en.wikipedia.org`.
 
-O manifesto também declara exatamente os campos de cada request e response
-externo. O servidor mantém as últimas 100 trocas com seus corpos completos em
-`http://localhost:5294/debug/traffic.json` e imprime cada evento como JSON no
-terminal do processo. Ao abrir a extensão no host, o mesmo histórico aparece
-terminal do processo; no host, a seção mostra somente um link para esse
-endpoint enquanto a página registra a troca completa no console do DevTools. O
-próprio endpoint de debug fica fora do histórico para não se
-autoalimentar. Corpos, URLs, query e headers não sensíveis são preservados;
-cookies, autenticação, chaves e identificadores de IP aparecem como `[redacted]`.
-A rota `content.txt` continua devolvendo somente texto puro e compatível. A rota
-paralela `http://localhost:5294/text/page/Bola/content.json` devolve o título,
-`displaytitle`, descrição, `extract`/`extract_html`, IDs, idioma e direção,
-revisão, timestamp, links desktop/mobile de página/revisões/edição, thumbnail,
-imagem original, métricas do texto, fonte consultada, headers relevantes e os
-dados de observabilidade (`requestId`, duração e horário da coleta). Os headers
-HTTP `ETag`, `Last-Modified`, `Content-Language` e `Content-Length` também são
-entregues nessa rota. Um artigo inexistente responde 404 específico.
+The manifest also declares the exact fields of every external request and
+response. The server keeps the latest 100 exchanges with complete bodies at
+`http://localhost:5294/debug/traffic.json` and prints each event as JSON in the
+process terminal. When the extension is opened in the host, the same history is
+available in the process terminal; in the host, the section shows only one link
+to that endpoint while the page records the complete exchange in the DevTools
+console. The debug endpoint itself is excluded from the history to avoid feeding
+itself. Bodies, URLs, queries, and non-sensitive headers are preserved; cookies,
+authentication, keys, and IP identifiers appear as `[redacted]`.
 
-## Como executar e testar
+The `content.txt` route still returns only compatible plain text. It accepts
+`?lang=pt` or `?lang=en`, as does the parallel content route. The parallel route
+`http://localhost:5294/text/page/Ball/content.json` returns the title,
+`displaytitle`, description, `extract`/`extract_html`, IDs, language and
+direction, revision, timestamp, desktop/mobile page, revision, and edit links,
+thumbnail, original image, text metrics, queried source, relevant headers, and
+observability data (`requestId`, duration, and collection time). The HTTP
+`ETag`, `Last-Modified`, `Content-Language`, and `Content-Length` headers are
+also delivered by this route. A missing article returns a specific 404.
+
+## How to run and test
 
 ```bash
 pnpm --filter @addons/addon-text-wikipedia test
 pnpm --filter @addons/addon-text-wikipedia serve
 ```
 
-O manifesto fica em `http://localhost:5294/manifest.json`. A implementação está em [`src/handlers.js`](src/handlers.js) e [`src/manifest.js`](src/manifest.js), com o servidor comum [`@addons/addon-server`](../addon-server/README.md).
+The manifest is at `http://localhost:5294/manifest.json`. The implementation is in [`src/handlers.js`](src/handlers.js) and [`src/manifest.js`](src/manifest.js), with the shared server [`@addons/addon-server`](../addon-server/README.md).

@@ -1,18 +1,16 @@
 /**
- * Mata todos os processos do ambiente de desenvolvimento:
- * host-app (:5280), add-on HTTP (:5294) e add-ons em processo
- * (:5304, :5306-5308), incluindo órfãos do dev-all (vite / add-on servers) que
- * tenham sobrado.
- * Uso: pnpm kill-all
- * Envia SIGTERM e, se o processo insistir, SIGKILL.
+ * Stops all development environment processes:
+ * host-app (:5280), HTTP add-on (:5294), and in-process add-ons
+ * (:5304, :5306-5308), including leftover dev-all orphans (Vite / add-on servers).
+ * Usage: pnpm kill-all
+ * Sends SIGTERM and, if a process persists, SIGKILL.
  *
- * A lista de portas e os padrões abaixo precisam acompanhar
- * `ADDON_SERVERS` em `scripts/dev-all.mjs` quando um projeto executável for
- * adicionado, removido ou mudar de porta.
+ * The ports and patterns below must follow `ADDON_SERVERS` in
+ * `scripts/dev-all.mjs` when an executable project is added, removed, or changes port.
  *
- * Ferramentas usadas na ordem: fuser → ss (para descobrir quem escuta na
- * porta) e pgrep (para órfãos do dev-all). O próprio processo e seus
- * ancestrais são sempre excluídos, para o kill-all nunca se auto-matar.
+ * Tools used in order: fuser → ss (to find listeners) and pgrep (for dev-all
+ * orphans). The current process and its ancestors are always excluded so
+ * kill-all never kills itself.
  */
 import { execFileSync } from 'node:child_process';
 
@@ -22,9 +20,9 @@ const PORTS = [
   5304, 5306, 5307, 5308,
 ];
 
-/** PIDs escutando na porta. fuser devolve os PIDs; ss é o fallback. */
+/** PIDs listening on the port. fuser returns PIDs; ss is the fallback. */
 function pidsOnPort(port) {
-  // fuser: `fuser 5294/tcp` → "5294/tcp:  44364" (exit 1 quando não há nada)
+  // fuser: `fuser 5294/tcp` → "5294/tcp:  44364" (exit 1 when empty)
   try {
     const out = execFileSync('fuser', [port + '/tcp'], {
       encoding: 'utf8',
@@ -33,9 +31,9 @@ function pidsOnPort(port) {
     const pids = out.split(/\s+/).map((t) => t.trim()).filter((t) => /^\d+$/.test(t)).map(Number);
     if (pids.length > 0) return pids;
   } catch {
-    /* cai para o ss */
+    /* fall back to ss */
   }
-  // ss: `ss -tlnp` → linhas com ":5294" e users:(("node",pid=44364,fd=21))
+  // ss: `ss -tlnp` → lines with ":5294" and users:(("node",pid=44364,fd=21))
   try {
     const out = execFileSync('ss', ['-tlnp'], { encoding: 'utf8' });
     const line = out.split('\n').find((l) => l.includes(':' + port + ' '));
@@ -48,7 +46,7 @@ function pidsOnPort(port) {
   }
 }
 
-/** PIDs casando com o padrão (órfãos do dev-all que não estejam mais escutando). */
+/** PIDs matching the pattern (dev-all orphans that are no longer listening). */
 function pidsByPattern(pattern) {
   try {
     const out = execFileSync('pgrep', ['-f', pattern], {
@@ -61,7 +59,7 @@ function pidsByPattern(pattern) {
   }
 }
 
-/** Cadeia de ancestrais do processo atual (nunca matar a si mesmo nem o shell do usuário). */
+/** Ancestor chain of the current process (never kill itself or the user's shell). */
 function ancestorChain() {
   const chain = new Set([process.pid]);
   let pid = process.pid;
@@ -98,9 +96,9 @@ for (const port of PORTS) {
   }
 }
 
-// Órfãos do dev-all: o processo coordenador, o Vite, os servidores em
-// processo e os wrappers dos quatro servidores HTTP. Mantenha estes padrões
-// sincronizados com ADDON_SERVERS em dev-all.mjs.
+// dev-all orphans: the coordinator process, Vite, in-process servers, and the
+// wrappers for the five HTTP servers. Keep these patterns synchronized with
+// ADDON_SERVERS in dev-all.mjs.
 for (const pattern of [
   'dev-all\\.mjs',
   'serve-inprocess-addon\\.mjs',
@@ -113,37 +111,37 @@ for (const pattern of [
 }
 
 if (pids.size === 0) {
-  console.log(`[kill-all] Nada rodando nas portas ${PORTS.join('/')}. Tudo limpo.`);
+  console.log(`[kill-all] Nothing is running on ports ${PORTS.join('/')}. All clear.`);
   process.exit(0);
 }
 
-console.log('[kill-all] Encerrando processos: ' + [...pids].join(', '));
+console.log('[kill-all] Stopping processes: ' + [...pids].join(', '));
 for (const pid of pids) {
   try {
     process.kill(pid, 'SIGTERM');
   } catch {
-    /* já morreu */
+    /* already exited */
   }
 }
 
 await new Promise((r) => setTimeout(r, 1500));
 
-const sobreviventes = [...pids].filter(alive);
-for (const pid of sobreviventes) {
-  console.log('[kill-all] SIGKILL no processo ' + pid);
+const survivors = [...pids].filter(alive);
+for (const pid of survivors) {
+  console.log('[kill-all] SIGKILL on process ' + pid);
   try {
     process.kill(pid, 'SIGKILL');
   } catch {
-    /* já morreu */
+    /* already exited */
   }
 }
 
 await new Promise((r) => setTimeout(r, 500));
 
-const restantes = [...pids].filter(alive);
-if (restantes.length === 0) {
-  console.log('[kill-all] Pronto. Todos os processos do dev foram encerrados.');
+const remaining = [...pids].filter(alive);
+if (remaining.length === 0) {
+  console.log('[kill-all] Done. All development processes have stopped.');
 } else {
-  console.error('[kill-all] Ainda vivos: ' + restantes.join(', '));
+  console.error('[kill-all] Still running: ' + remaining.join(', '));
   process.exit(1);
 }

@@ -1,9 +1,14 @@
 /**
- * Cliente da API pública da Wikipédia (busca paginada + extratos + resumo REST v1).
- * O fetch é injetável para testes — o mesmo padrão usado no protocolo.
+ * Public Wikipedia API client (paginated search + extracts + REST v1 summary).
+ * Fetch is injectable for tests, following the same pattern used by the protocol.
  */
 export const MAX_SEARCH_RESULTS = 500;
 export const MAX_SEARCH_PAGE_SIZE = 20;
+export const WIKIPEDIA_LANGUAGES = ['pt', 'en'];
+
+export function normalizeWikipediaLanguage(value) {
+  return WIKIPEDIA_LANGUAGES.includes(value) ? value : 'pt';
+}
 const EXTRACT_BATCH_SIZE = MAX_SEARCH_PAGE_SIZE;
 const MAX_API_RETRIES = 2;
 const RETRY_BASE_DELAY_MS = 250;
@@ -29,7 +34,7 @@ const SENSITIVE_HEADERS = new Set([
 ]);
 
 export class WikipediaApiError extends Error {
-  constructor(status, message = `API externa respondeu HTTP ${status}`) {
+  constructor(status, message = `External API responded with HTTP ${status}`) {
     super(message);
     this.name = 'WikipediaApiError';
     this.status = status;
@@ -89,7 +94,8 @@ export function createWikipediaApi({
   nowFn = () => Date.now(),
   onTraffic = () => {},
 } = {}) {
-  const api = `https://${lang}.wikipedia.org`;
+  const language = normalizeWikipediaLanguage(lang);
+  const api = `https://${language}.wikipedia.org`;
   const searchCache = new Map();
   const searchInFlight = new Map();
   let requestSequence = 0;
@@ -103,7 +109,7 @@ export function createWikipediaApi({
         ...event,
       });
     } catch (error) {
-      console.error('[wikipedia-api] observador de tráfego falhou', error);
+      console.error('[wikipedia-api] traffic observer failed', error);
     }
   }
 
@@ -131,7 +137,7 @@ export function createWikipediaApi({
       const body = await response.json();
       return { body, bodyText: JSON.stringify(body) };
     }
-    throw new Error('Resposta da API externa não oferece um corpo JSON legível');
+    throw new Error('External API response does not provide a readable JSON body');
   }
 
   async function readResponseBody(response) {
@@ -245,7 +251,7 @@ export function createWikipediaApi({
       }
       await sleepFn(retryDelayMs);
     }
-    throw new Error('Não foi possível consultar a API externa');
+    throw new Error('Unable to query the external API');
   }
 
   function titleKey(title) {
@@ -271,7 +277,7 @@ export function createWikipediaApi({
           extracts.set(titleKey(page.title), page.extract);
         }
       } catch {
-        // A falha externa não deve apagar os resultados já encontrados.
+        // An external failure must not discard results already found.
       }
     }
     return results.map((result) => {
@@ -286,7 +292,7 @@ export function createWikipediaApi({
   function parseCursor(cursor) {
     if (cursor === undefined) return 0;
     const offset = Number(cursor);
-    if (!Number.isSafeInteger(offset) || offset < 0) throw new Error('Cursor de busca inválido');
+    if (!Number.isSafeInteger(offset) || offset < 0) throw new Error('Invalid search cursor');
     return offset;
   }
 
@@ -311,8 +317,6 @@ export function createWikipediaApi({
       `&srnamespace=0&srlimit=${pageLimit}&sroffset=${offset}&srinfo=totalhits&srprop=snippet&format=json&origin=*`;
       const data = await getJson(url, 'search');
 
-    console.log({data})
-
     const entries = Array.isArray(data?.query?.search) ? data.query.search : [];
     const results = await addExtracts(entries
       .filter((entry) => typeof entry?.title === 'string')
@@ -329,7 +333,10 @@ export function createWikipediaApi({
   }
 
   return {
-    /** Busca em páginas de até 20 itens, com no máximo 500 resultados totais. */
+    /** Language currently selected for this client instance. */
+    language,
+
+    /** Searches pages of up to 20 items, with at most 500 total results. */
     async search(query, { limit = MAX_SEARCH_PAGE_SIZE, cursor } = {}) {
       const offset = parseCursor(cursor);
       const pageLimit = Math.min(MAX_SEARCH_PAGE_SIZE, Math.max(1, Math.round(limit)));
@@ -355,7 +362,7 @@ export function createWikipediaApi({
       }
     },
 
-    /** Artigos aleatórios (list=random), também com cursor de continuação. */
+    /** Random articles (list=random), also with a continuation cursor. */
     async random(count = 10, cursor) {
       const limit = Math.min(MAX_SEARCH_RESULTS, Math.max(1, Math.round(count)));
       const url =
@@ -368,13 +375,13 @@ export function createWikipediaApi({
       };
     },
 
-    /** Resumo de um artigo (REST v1 page-summary). */
+    /** Article summary (REST v1 page-summary). */
     async summary(title) {
       const url = `${api}/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
       return getJson(url, 'summary');
     },
 
-    /** Resumo e metadados da troca HTTP do endpoint REST de resumo. */
+    /** Summary and HTTP exchange metadata from the REST summary endpoint. */
     async summaryDetails(title) {
       const url = `${api}/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
       return getJson(url, 'summary', { includeDetails: true });

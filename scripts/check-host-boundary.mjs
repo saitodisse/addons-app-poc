@@ -26,10 +26,10 @@ for (const file of await sourceFiles(sourceRoot.pathname)) {
 
 if (addonDependencies.length || imports.length) {
   const problems = [
-    addonDependencies.length && `dependências: ${addonDependencies.join(', ')}`,
+    addonDependencies.length && `dependencies: ${addonDependencies.join(', ')}`,
     imports.length && `imports: ${imports.join(', ')}`,
   ].filter(Boolean).join('; ');
-  throw new Error(`O host deve depender apenas do protocolo, nunca de implementações de add-on (${problems}).`);
+  throw new Error(`The host may depend only on the protocol, never on add-on implementations (${problems}).`);
 }
 
-console.log('Fronteira do host verificada: nenhuma dependência ou import de add-on.');
+console.log('Host boundary verified: no add-on dependency or import.');

@@ -23,7 +23,7 @@ class HostAPIImpl implements HostAPI {
   }
 
   registerService<T>(serviceId: string, instance: T, priority?: number): void {
-    // O registro recebe apenas capacidades anunciadas no manifesto.
+    // The registry receives only capabilities announced in the manifest.
     assertProvidedService(this._manifest.contract, serviceId);
     if (!this._registeredServices.includes(serviceId)) {
       this._registeredServices.push(serviceId);
@@ -67,16 +67,16 @@ export class FetchAddonLoader implements AddonLoaderPort {
     try {
       const response = await fetch(manifestUrl);
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status} ao buscar manifesto`);
+        throw new Error(`HTTP ${response.status} while fetching the manifest`);
       }
       const data = await response.json();
       const validation = validateManifest(data);
       if (!validation.valid) {
-        throw new Error(`Manifest inválido: ${validation.errors.join(', ')}`);
+        throw new Error(`Invalid manifest: ${validation.errors.join(', ')}`);
       }
       manifest = data as AddonManifest;
     } catch (error) {
-      this.logger.log('error', `Falha ao carregar manifesto: ${(error as Error).message}`);
+      this.logger.log('error', `Failed to load manifest: ${(error as Error).message}`);
       return {
         manifest: null as unknown as AddonManifest,
         manifestUrl,
@@ -89,11 +89,11 @@ export class FetchAddonLoader implements AddonLoaderPort {
     let module: AddonModule;
     try {
       if (!manifest.entrypoint) {
-        throw new Error('Manifesto em-processo deve declarar entrypoint');
+        throw new Error('In-process manifest must declare an entrypoint');
       }
       module = await this.importFn(manifest.entrypoint);
     } catch (error) {
-      this.logger.log('error', `Falha ao importar bundle: ${(error as Error).message}`);
+      this.logger.log('error', `Failed to import bundle: ${(error as Error).message}`);
       return {
         manifest,
         manifestUrl,
@@ -104,7 +104,7 @@ export class FetchAddonLoader implements AddonLoaderPort {
     }
 
     if (!module.manifest || typeof module.setup !== 'function' || typeof module.createTab !== 'function') {
-      const err = new Error('Add-on deve exportar manifest, setup e createTab');
+      const err = new Error('Add-on must export manifest, setup, and createTab');
       this.logger.log('error', err.message);
       return {
         manifest,
@@ -117,7 +117,7 @@ export class FetchAddonLoader implements AddonLoaderPort {
 
     try {
       if (getInteractionContractFingerprint(module.manifest.contract) !== getInteractionContractFingerprint(manifest.contract)) {
-        throw new Error('O contrato de interação do bundle diverge do manifesto instalado');
+        throw new Error('The bundle interaction contract differs from the installed manifest');
       }
       const hostAPI = new HostAPIImpl(this.registry, manifestUrl, this.logger, manifest);
       await module.setup(hostAPI);
@@ -125,9 +125,9 @@ export class FetchAddonLoader implements AddonLoaderPort {
       const tabValidation = validateTabContract(manifest as unknown as Record<string, unknown>, tab);
       if (!tabValidation.valid) {
         this.registry.clearAddon(manifestUrl);
-        throw new Error(`A aba diverge do contrato: ${tabValidation.errors.join(', ')}`);
+        throw new Error(`The tab differs from the contract: ${tabValidation.errors.join(', ')}`);
       }
-      this.logger.log('info', `Add-on ${manifest.id} carregado com sucesso`);
+      this.logger.log('info', `Add-on ${manifest.id} loaded successfully`);
       return {
         manifest,
         manifestUrl,
@@ -136,7 +136,7 @@ export class FetchAddonLoader implements AddonLoaderPort {
         ui: tab,
       };
     } catch (error) {
-      this.logger.log('error', `Falha no setup do add-on: ${(error as Error).message}`);
+      this.logger.log('error', `Add-on setup failed: ${(error as Error).message}`);
       return {
         manifest,
         manifestUrl,

@@ -1,222 +1,222 @@
-# Requisitos do produto
+# Product requirements
 
-**Status: Parcial** · **Versão da POC: 1.2.0** · **Protocolo publicado: 1.0.0**
+**Status: Partial** · **POC version: 1.2.0** · **Published protocol: 1.0.0**
 
-Este documento define o que a prova de conceito precisa demonstrar. Ele não descreve um produto comercial pronto; descreve as perguntas técnicas que o experimento deve responder e as evidências esperadas para cada resposta.
+This document defines what the proof of concept must demonstrate. It does not describe a finished commercial product; it describes the technical questions the experiment must answer and the evidence expected for each answer.
 
-## Por que construir esta POC
+## Why build this POC
 
-Aplicativos extensíveis costumam escolher entre dependências compiladas junto com o produto e marketplaces controlados por uma autoridade central. As duas opções são úteis, mas não atendem bem a uma extensão que precisa ser publicada e substituída de forma independente.
+Extensible applications usually choose between dependencies compiled with the product and marketplaces controlled by a central authority. Both options are useful, but neither serves an extension that needs to be published and replaced independently particularly well.
 
-A hipótese deste projeto é simples:
+This project's hypothesis is simple:
 
-> Um host pode descobrir capacidades por manifesto, consumir implementações sem conhecer seus detalhes e continuar funcionando quando uma delas falhar.
+> A host can discover capabilities through a manifest, consume implementations without knowing their details, and keep working when one of them fails.
 
-A POC existe para testar essa hipótese com código executável, não apenas com diagramas.
+The POC exists to test this hypothesis with runnable code, not diagrams alone.
 
-## O que está sendo validado
+## What is being validated
 
-O experimento precisa provar sete ideias:
+The experiment must prove seven ideas:
 
-1. **Declaração:** um manifesto descreve a identidade, os metadados e as capacidades do add-on.
-2. **Desacoplamento:** o host consulta serviços por contrato, sem depender da implementação em cada ponto de uso.
-3. **Substituição:** mais de um add-on pode oferecer o mesmo serviço com prioridade previsível.
-4. **Degradação:** uma falha pode levar o sistema a uma alternativa sem derrubar o restante.
-5. **Independência operacional:** um add-on pode funcionar como servidor HTTP fora do processo do host.
-6. **Revisão consciente:** antes de ativar uma URL, a pessoa consegue ler as interações declaradas; uma mudança posterior exige nova aceitação.
-7. **Fronteira pública:** hosts e add-ons dependem de `@addons-poc/protocol@1.0.0`, enquanto loader, registry e adaptadores ficam internos ao host.
+1. **Declaration:** a manifest describes an add-on's identity, metadata, and capabilities.
+2. **Decoupling:** the host queries services through a contract without depending on an implementation at each point of use.
+3. **Replacement:** more than one add-on can provide the same service with predictable priority.
+4. **Degradation:** a failure can move the system to an alternative without taking down the rest.
+5. **Operational independence:** an add-on can run as an HTTP server outside the host process.
+6. **Conscious review:** before activating a URL, a person can read the declared interactions; a later change requires new acceptance.
+7. **Public boundary:** hosts and add-ons depend on `@addons-poc/protocol@1.0.0`, while the loader, registry, and adapters remain internal to the host.
 
-## Contrato público v1
+## Public contract v1
 
-Todo manifesto usa uma única seção `contract` com faixa SemVer, capacidades,
-descritores de serviços namespaceados, UI declarativa, estado, HTTP e logs.
-`validateManifest` e o schema publicado recusam o formato legado. O acesso de
-serviço é `host.services.use(contrato)`, com negociação de método e versão.
+Every manifest uses one `contract` section with a SemVer range, capabilities,
+namespaced service descriptors, declarative UI, state, HTTP, and logs.
+`validateManifest` and the published schema reject the legacy format. Service
+access is `host.services.use(contract)`, with method and version negotiation.
 
-O host bloqueia capacidades incompatíveis, serviços obrigatórios ausentes e
-ciclos obrigatórios antes de importar o bundle. `state-store` é uma capacidade
-oficial opcional. O protocolo declara I/O externo, mas não promete sandbox.
+The host blocks incompatible capabilities, missing required services, and
+required cycles before importing a bundle. `state-store` is an official
+optional capability. The protocol declares external I/O but does not promise
+sandboxing.
 
-A distribuição do protocolo está publicada como `@addons-poc/protocol@1.0.0`.
-Host e add-ons consomem essa versão pelo registry; o pacote fonte permanece no
-workspace para testes e manutenção.
+The protocol distribution is published as `@addons-poc/protocol@1.0.0`. The
+host and add-ons consume this version from the registry; the source package
+remains in the workspace for tests and maintenance.
 
-## Para quem a demonstração serve
+## Who the demonstration serves
 
-| Perfil | Pergunta que a POC ajuda a responder |
+| Profile | Question the POC helps answer |
 |---|---|
-| Pessoa que mantém o protocolo | A fronteira pública é pequena, clara e testável? |
-| Pessoa que cria add-ons | É possível oferecer uma capacidade sem conhecer detalhes internos do host? |
-| Pessoa que mantém o host | É possível ativar, consultar e substituir capacidades de modo previsível? |
-| Pessoa que avalia arquitetura | Os formatos em processo e HTTP podem conviver sem se confundir? |
+| Protocol maintainer | Is the public boundary small, clear, and testable? |
+| Add-on author | Can a capability be provided without knowing the host's internal details? |
+| Host maintainer | Can capabilities be activated, queried, and replaced predictably? |
+| Architecture reviewer | Can the in-process and HTTP formats coexist without being confused? |
 
-## Experiência demonstrada
+## Demonstrated experience
 
-Ao iniciar o projeto, o leitor deve conseguir abrir um host vazio, instalar URLs compatíveis e percorrer uma história completa definida pelos add-ons escolhidos:
+When starting the project, the reader should be able to open an empty host, install compatible URLs, and follow a complete story defined by the selected add-ons:
 
-1. instalar uma extensão por URL;
-2. revisar seu contrato antes da ativação;
-3. usar somente os campos e ações que a extensão declarou;
-4. desativar, reativar ou remover a instalação;
-5. reencontrar a instalação após recarregar a página;
-6. pedir nova revisão quando o contrato daquela mesma URL mudar.
+1. install an extension by URL;
+2. review its contract before activation;
+3. use only the fields and actions the extension declared;
+4. disable, re-enable, or remove the installation;
+5. find the installation again after reloading the page;
+6. request a new review when that URL's contract changes.
 
-Quando há add-ons HTTP de busca ativos, a mesma tela mantém um campo de
-pesquisa no topo. Enter consulta as extensões, Esc limpa a consulta e a
-listagem central reúne as respostas em linhas com tipo, ID, URL, nome e
-descrição. Quando uma resposta oferece `pagination.next`, a pessoa pode
-carregar a próxima página sem reiniciar a consulta. Um provedor de
-`state-store` pode preservar a consulta, as linhas e os cursores entre
-recarregamentos.
+When active HTTP search add-ons exist, the same screen keeps a search field at
+the top. Enter queries the extensions, Esc clears the query, and the central
+list gathers responses into rows with type, ID, URL, name, and description. When
+a response provides `pagination.next`, a person can load the next page without
+restarting the query. A `state-store` provider may preserve the query, rows, and
+cursors across reloads.
 
-## Requisitos funcionais
+## Functional requirements
 
-Os estados significam: **Entregue** quando o comportamento está implementado no escopo indicado; **Parcial** quando uma parte funciona, mas ainda há uma lacuna relevante; **Planejado** quando a POC ainda não implementa o requisito.
+The states mean: **Delivered** when the behavior is implemented in the stated scope; **Partial** when part of it works but a meaningful gap remains; **Planned** when the POC does not implement the requirement yet.
 
-### Núcleo do protocolo
+### Protocol core
 
-| ID | Requisito | Estado | Evidência atual |
+| ID | Requirement | State | Current evidence |
 |---|---|---|---|
-| F1.1 | Definir um manifesto comum | Entregue | `AddonManifest` e `validateManifest` |
-| F1.2 | Validar o manifesto antes do consumo | Entregue | Testes de validação no `protocol` |
-| F1.3 | Registrar serviços por identificador | Entregue | `packages/host-app/src/runtime/registry.ts: ServiceRegistry.register` |
-| F1.4 | Consultar uma ou todas as implementações | Entregue | `ServiceRegistry.get` e `getAll`, internos ao host |
-| F1.5 | Ordenar implementações por prioridade | Entregue | Ordenação decrescente no registro |
-| F1.6 | Limpar serviços por add-on | Entregue | `ServiceRegistry.clearAddon`, interno ao host |
-| F1.7 | Expor um `HostAPI` pequeno | Entregue | `services`, `registerService`, `onUnload` e `log` |
-| F1.8 | Representar carregamento e erro | Entregue | `AddonInstance` e `AddonStatus` |
+| F1.1 | Define a shared manifest | Delivered | `AddonManifest` and `validateManifest` |
+| F1.2 | Validate the manifest before consumption | Delivered | Validation tests in `protocol` |
+| F1.3 | Register services by identifier | Delivered | `packages/host-app/src/runtime/registry.ts: ServiceRegistry.register` |
+| F1.4 | Query one or all implementations | Delivered | `ServiceRegistry.get` and `getAll`, internal to the host |
+| F1.5 | Order implementations by priority | Delivered | Descending order in the registry |
+| F1.6 | Clear services by add-on | Delivered | `ServiceRegistry.clearAddon`, internal to the host |
+| F1.7 | Expose a small `HostAPI` | Delivered | `services`, `registerService`, `onUnload`, and `log` |
+| F1.8 | Represent loading and error | Delivered | `AddonInstance` and `AddonStatus` |
 
-### Add-ons em processo
+### In-process add-ons
 
-| ID | Requisito | Estado | Evidência atual |
+| ID | Requirement | State | Current evidence |
 |---|---|---|---|
-| F2.1 | Exportar `manifest`, `setup` e `createTab` | Entregue | Add-ons locais de exemplo |
-| F2.2 | Carregar manifesto e bundle por URL | Entregue | `FetchAddonLoader` e testes com mocks |
-| F2.3 | Instalar uma URL arbitrária pela interface | Entregue | Configurações valida o manifesto, pede revisão, oferece URLs locais com `name`/`description` lidos genericamente e usa `FetchAddonLoader` quando há `entrypoint` |
-| F2.4 | Não deixar falha de setup derrubar o host | Entregue | Loader devolve instância em `error` quando a limpeza termina sem exceção; falha na própria limpeza está em F2.8 |
-| F2.5 | Remover registros parciais após falha de setup | Entregue | Teste do loader comprova `clearAddon` após falha de setup sem callbacks de limpeza; falha em callback está em F2.8 |
-| F2.6 | Executar callbacks de descarregamento | Parcial | Loader chama callbacks quando a ativação falha; desativar ou remover instâncias ativas ainda não os executa |
-| F2.7 | Demonstrar serviços de saudação e contador | Parcial | Os exemplos de saudação e contador foram removidos; o host continua desacoplado das implementações |
-| F2.8 | Concluir a limpeza mesmo se um callback falhar | Planejado | Exceção em `unloadAll` pode impedir callbacks seguintes, `clearAddon` e o retorno de uma instância em `error` |
+| F2.1 | Export `manifest`, `setup`, and `createTab` | Delivered | Local example add-ons |
+| F2.2 | Load the manifest and bundle by URL | Delivered | `FetchAddonLoader` and mock-based tests |
+| F2.3 | Install an arbitrary URL through the interface | Delivered | Settings validates the manifest, requests review, offers local URLs with generically read `name`/`description`, and uses `FetchAddonLoader` when `entrypoint` exists |
+| F2.4 | Keep a setup failure from taking down the host | Delivered | Loader returns an `error` instance when cleanup finishes without exception; cleanup failure is F2.8 |
+| F2.5 | Remove partial registrations after setup failure | Delivered | Loader test proves `clearAddon` after setup failure without cleanup callbacks; callback failure is F2.8 |
+| F2.6 | Run unload callbacks | Partial | Loader calls callbacks when activation fails; disabling or removing active instances still does not run them |
+| F2.7 | Demonstrate greeting and counter services | Partial | Greeting and counter examples were removed; the host remains decoupled from implementations |
+| F2.8 | Finish cleanup even when a callback fails | Planned | An exception in `unloadAll` can prevent later callbacks, `clearAddon`, and returning an `error` instance |
 
-### Prioridade, fallback e composição
+### Priority, fallback, and composition
 
-| ID | Requisito | Estado | Evidência atual |
+| ID | Requirement | State | Current evidence |
 |---|---|---|---|
-| F3.1 | Tentar implementações síncronas em ordem | Entregue | helper interno de fallback coberto pelos testes do protocolo |
-| F3.2 | Tentar implementações assíncronas em ordem | Entregue | helper interno de fallback coberto pelos testes do protocolo |
-| F3.3 | Reunir falhas quando nenhuma opção funciona | Entregue | `AggregateFallbackError` coberto pelos testes do protocolo |
-| F3.4 | Definir descritores TypeScript para serviços | Entregue | `ServiceInteraction`, schemas de entrada/saída e `services.use` |
-| F3.5 | Permitir infraestrutura fornecida pelo host | Entregue | `state-store` opcional, com prioridade entre provedores |
-| F3.6 | Permitir composição sem importação direta | Entregue | Favoritos, agregador e health check |
+| F3.1 | Try synchronous implementations in order | Delivered | Internal fallback helper covered by protocol tests |
+| F3.2 | Try asynchronous implementations in order | Delivered | Internal fallback helper covered by protocol tests |
+| F3.3 | Gather failures when no option works | Delivered | `AggregateFallbackError` covered by protocol tests |
+| F3.4 | Define TypeScript descriptors for services | Delivered | `ServiceInteraction`, input/output schemas, and `services.use` |
+| F3.5 | Allow infrastructure provided by the host | Delivered | Optional `state-store`, with priority between providers |
+| F3.6 | Allow composition without direct imports | Delivered | Favorites, aggregator, and health check |
 
-### Add-ons HTTP de texto
+### HTTP text add-ons
 
-| ID | Requisito | Estado | Evidência atual |
+| ID | Requirement | State | Current evidence |
 |---|---|---|---|
-| F4.1 | Declarar `resources`, `types` e `catalogs` dentro de `contract` | Entregue | Manifesto HTTP canônico restante da Wikipédia |
-| F4.2 | Servir manifesto e recursos por rotas estáveis | Entregue | `@addons/addon-server` |
-| F4.3 | Liberar acesso do host pelo navegador | Entregue | Cabeçalhos CORS e resposta a `OPTIONS` |
-| F4.4 | Consumir catálogo, busca e opções de texto | Entregue | Clientes HTTP locais dos add-ons agregador e health |
-| F4.5 | Entregar conteúdo sob demanda por URL | Entregue | Payload `texts` e rota `content.txt` |
-| F4.6 | Demonstrar conteúdo embutido | Entregue | Biblioteca de Textos |
-| F4.7 | Demonstrar processamento externo | Entregue | Citações, PoetryDB e Wikipédia |
-| F4.8 | Tolerar uma origem indisponível na busca agregada | Entregue | `Promise.allSettled` no agregador |
-| F4.9 | Armazenar manifesto em cache | Planejado | O cliente busca novamente |
-| F4.10 | Explorar recursos HTTP instalados pela interface genérica | Entregue | `SearchResultsTable` e `search.ts` consultam recursos `search` de add-ons ativos; limites por add-on, paginação opcional com cursor, Enter/Esc e persistência no `state-store` |
-| F4.11 | Validar respostas dos recursos HTTP além do manifesto | Parcial | O host rejeita payloads de busca sem `metas`; schemas completos de catálogo, texto e conteúdo ainda estão pendentes |
+| F4.1 | Declare `resources`, `types`, and `catalogs` inside `contract` | Delivered | Remaining canonical Wikipedia HTTP manifest |
+| F4.2 | Serve the manifest and resources through stable routes | Delivered | `@addons/addon-server` |
+| F4.3 | Allow browser access from the host | Delivered | CORS headers and `OPTIONS` response |
+| F4.4 | Consume catalog, search, and text options | Delivered | Local HTTP clients for the aggregator and health add-ons |
+| F4.5 | Deliver content on demand by URL | Delivered | `texts` payload and `content.txt` route |
+| F4.6 | Demonstrate embedded content | Delivered | Text Library |
+| F4.7 | Demonstrate external processing | Delivered | Quotes, PoetryDB, and Wikipedia |
+| F4.8 | Tolerate an unavailable source in aggregated search | Delivered | `Promise.allSettled` in the aggregator |
+| F4.9 | Cache the manifest | Planned | The client fetches it again |
+| F4.10 | Explore HTTP resources installed through the generic interface | Delivered | `SearchResultsTable` and `search.ts` query `search` resources from active add-ons; per-add-on limits, optional cursor pagination, Enter/Esc, and `state-store` persistence |
+| F4.11 | Validate HTTP resource responses beyond the manifest | Partial | The host rejects search payloads without `metas`; complete catalog, text, and content schemas are still pending |
 
-### Gestão, compatibilidade e isolamento
+### Management, compatibility, and isolation
 
-| ID | Requisito | Estado | Evidência atual |
+| ID | Requirement | State | Current evidence |
 |---|---|---|---|
-| F5.1 | Mostrar add-ons ativos e seus estados | Entregue | Área de gestão do host |
-| F5.2 | Ativar e remover add-ons instalados por URL | Entregue | `AddonManager` |
-| F5.3 | Persistir add-ons escolhidos | Entregue | `addons:host-installations:v1` preserva URLs, extensões desativadas e contratos aceitos |
-| F5.4 | Escolher provedores por prioridade explícita | Entregue | `priority` no descritor e ordenação determinística no registry interno |
-| F5.5 | Negociar versão do protocolo e capacidades | Entregue | `checkContractCompatibility` antes do `import()` |
-| F5.6 | Isolar código em Worker ou iframe | Planejado | Add-ons em processo compartilham o contexto do host |
-| F5.7 | Aplicar política de confiança e permissões | Planejado | Não há assinatura, autorização ou consentimento por capacidade |
-| F5.8 | Dar rota própria a cada extensão ativa | Entregue | Hash codifica a URL do manifesto em `#/addons/<url>` |
-| F5.9 | Pedir nova revisão quando o contrato mudar | Entregue | Impressão digital do contrato bloqueia a reativação até nova aceitação |
-| F5.10 | Mediar interações internas declaradas | Entregue | Proxy valida serviço, entrada, saída, campos, ações, estado e logs |
-| F5.11 | Editar prioridades pela interface | Planejado | A ordem atual vem dos descritores; não há editor no host |
-| F5.12 | Definir uma política de atualização de manifestos | Planejado | Persistência de URLs e contratos aceitos não constitui uma política de atualização |
+| F5.1 | Show active add-ons and their states | Delivered | Host management area |
+| F5.2 | Activate and remove add-ons installed by URL | Delivered | `AddonManager` |
+| F5.3 | Persist selected add-ons | Delivered | `addons:host-installations:v1` preserves URLs, disabled extensions, and accepted contracts |
+| F5.4 | Choose providers by explicit priority | Delivered | `priority` in the descriptor and deterministic ordering in the internal registry |
+| F5.5 | Negotiate protocol version and capabilities | Delivered | `checkContractCompatibility` before `import()` |
+| F5.6 | Isolate code in a Worker or iframe | Planned | In-process add-ons share the host context |
+| F5.7 | Apply a trust and permission policy | Planned | There is no signature, authorization, or per-capability consent |
+| F5.8 | Give each active extension its own route | Delivered | Hash encodes the manifest URL in `#/addons/<url>` |
+| F5.9 | Request a new review when the contract changes | Delivered | Contract fingerprint blocks reactivation until new acceptance |
+| F5.10 | Mediate declared internal interactions | Delivered | Proxy validates service, input, output, fields, actions, state, and logs |
+| F5.11 | Edit priorities through the interface | Planned | Current order comes from descriptors; the host has no editor |
+| F5.12 | Define a manifest update policy | Planned | Persisting URLs and accepted contracts is not an update policy |
 
-O [registro de verificação de 08/09/2026](PHASES.md#verificação-de-08092026)
-documenta os testes, a build e os limites da conferência local. A ordem do
-próximo trabalho também está em `PHASES.md`.
+The [2026-09-08 verification record](PHASES.md#verification-on-2026-09-08)
+documents the tests, build, and limits of the local review. The next work order
+is also in `PHASES.md`.
 
-## Requisitos não funcionais
+## Non-functional requirements
 
-### Clareza do protocolo
+### Protocol clarity
 
-Uma pessoa deve conseguir compreender o caminho de um add-on lendo o manifesto, o `HostAPI` público e a descrição do `ServiceRegistry` interno do host. A documentação começa simples e aprofunda progressivamente.
+A person should be able to understand an add-on's path by reading the manifest, the public `HostAPI`, and the host's internal `ServiceRegistry` description. Documentation starts simply and deepens progressively.
 
-### Testabilidade
+### Testability
 
-Regras centrais devem funcionar sem rede real. Funções de `fetch` e armazenamento precisam ser injetáveis ou substituíveis nos testes.
+Core rules must work without a real network. Fetch and storage functions must be injectable or replaceable in tests.
 
-### Dependências controladas
+### Controlled dependencies
 
-O `@addons-poc/protocol` não deve depender de React ou Vite. O `@addons/addon-server` deve permanecer sem dependências externas de runtime.
+`@addons-poc/protocol` must not depend on React or Vite. `@addons/addon-server` must remain free of external runtime dependencies.
 
-### Compatibilidade
+### Compatibility
 
-Add-ons em processo usam ESM. O host de demonstração depende de navegadores modernos capazes de executar a aplicação React e usar `fetch` e `localStorage`.
+In-process add-ons use ESM. The demonstration host depends on modern browsers capable of running the React application and using `fetch` and `localStorage`.
 
-### Honestidade operacional
+### Operational honesty
 
-Falhas, segurança e isolamento devem ser descritos de acordo com o comportamento atual. Uma capacidade planejada não pode aparecer como entregue apenas porque o tipo ou a intenção já existem.
+Failures, security, and isolation must be described according to current behavior. A planned capability must not appear delivered merely because its type or intention already exists.
 
-## Casos de uso
+## Use cases
 
-### Criar um add-on em processo
+### Create an in-process add-on
 
-Uma pessoa escolhe ou define um descritor de serviço dentro de `contract`, cria um manifesto com `entrypoint`, exporta um `setup` e registra sua implementação pelo `HostAPI`. Depois, gera um bundle ESM e o hospeda junto do manifesto.
+A person chooses or defines a service descriptor inside `contract`, creates a manifest with `entrypoint`, exports `setup`, and registers the implementation through `HostAPI`. They then create an ESM bundle and host it alongside the manifest.
 
-A tela **Configurações** aceita uma URL HTTP ou HTTPS, valida o manifesto, mostra o contrato e chama `FetchAddonLoader` para importar o bundle ESM após a aceitação. O `host-app` não tem dependência de implementação, catálogo embutido nem caminho especial para add-ons do workspace. Para desenvolvimento local, cada pacote em processo pode publicar `manifest.json` e `bundle.js` com seu próprio comando `serve`.
+The **Settings** screen accepts an HTTP or HTTPS URL, validates the manifest, shows the contract, and calls `FetchAddonLoader` to import the ESM bundle after acceptance. `host-app` has no implementation dependency, embedded catalog, or special path for workspace add-ons. For local development, each in-process package can publish `manifest.json` and `bundle.js` with its own `serve` command.
 
-### Criar um add-on HTTP
+### Create an HTTP add-on
 
-Uma pessoa escreve um manifesto com `contract.resources`, implementa handlers de catálogo, busca, texto e conteúdo, e entrega tudo ao `createAddonServer`. O host precisa apenas da URL base para iniciar a conversa. Se o manifesto declarar `search`, a busca global do host consulta a extensão sem código específico para ela.
+A person writes a manifest with `contract.resources`, implements catalog, search, text, and content handlers, and passes them to `createAddonServer`. The host needs only the base URL to start the conversation. If the manifest declares `search`, the host's global search queries the extension without add-on-specific code.
 
-### Usar fallback
+### Use fallback
 
-Duas implementações registram o mesmo serviço. O runtime interno ordena pela maior prioridade e o helper de fallback, mantido como implementação interna testada, tenta a próxima quando a anterior lança uma exceção. A API pública do add-on continua sendo `host.services.use(contrato)`; o consumidor não importa o registry nem o helper.
+Two implementations register the same service. The internal runtime orders them by highest priority, and the tested internal fallback helper tries the next one when the previous one throws. The public add-on API remains `host.services.use(contract)`; the consumer does not import the registry or helper.
 
-### Ler um texto remoto
+### Read a remote text
 
-O host busca o manifesto, consulta uma busca e mostra os metadados na tabela central. Para leitura completa, o fluxo futuro buscará um catálogo ou uma opção em `/text/...json` e só então baixará a URL de conteúdo. O servidor de origem pode consultar outra API antes de responder, sem mudar o contrato visto pelo host.
+The host fetches the manifest, queries a search, and shows metadata in the central table. For full reading, the future flow will fetch a catalog or option from `/text/...json` and only then download the content URL. The source server may query another API before responding without changing the contract seen by the host.
 
-## Critérios de sucesso da POC
+## POC success criteria
 
-A hipótese principal é considerada demonstrada quando todas estas evidências permanecem verdadeiras:
+The main hypothesis is considered demonstrated when all of this evidence remains true:
 
-- dois add-ons oferecem `greeter` com prioridades diferentes;
-- o fallback usa a alternativa depois de uma falha simulada;
-- um erro de carregamento vira estado observável em vez de encerrar o host;
-- um serviço pode consumir infraestrutura do host pelo registro;
-- um servidor HTTP compatível é descoberto por manifesto;
-- catálogo, busca, opções de texto e conteúdo funcionam de ponta a ponta pelo cliente HTTP do protocolo;
-- pelo menos uma origem externa é transformada no contrato comum;
-- a busca agregada continua útil quando uma origem falha;
-- uma busca global consulta Citações, Poemas e Wikipédia e conserva linhas quando uma origem falha;
-- os resultados podem ser preservados por um `state-store` ativo;
-- uma URL compatível pode ser revisada, instalada e restaurada depois de recarregar;
-- uma mudança de contrato na mesma URL mantém a extensão desativada até nova aceitação;
-- serviços, campos de ação e estado não declarados são recusados antes de uso pelo host;
-- os testes dos pacotes passam sem depender dos servidores externos reais.
+- two add-ons provide `greeter` with different priorities;
+- fallback uses the alternative after a simulated failure;
+- a loading error becomes an observable state instead of closing the host;
+- a service can consume host infrastructure through the registry;
+- a compatible HTTP server is discovered through a manifest;
+- catalog, search, text options, and content work end to end through the protocol HTTP client;
+- at least one external source is transformed into the shared contract;
+- aggregated search remains useful when one source fails;
+- global search queries Web Quotes, Poems, and Wikipedia and preserves rows when one source fails;
+- results can be preserved by an active `state-store`;
+- a compatible URL can be reviewed, installed, and restored after reloading;
+- a contract change at the same URL keeps the extension disabled until new acceptance;
+- undeclared services, action fields, and state are rejected before host use;
+- package tests pass without relying on real external servers.
 
-## Fora do escopo atual
+## Out of current scope
 
-- marketplace ou catálogo público com backend;
-- autenticação e autorização;
-- auditoria ou assinatura criptográfica de add-ons;
-- publicação automática no npm sem credenciais da organização;
-- suporte a Service Worker ou WebAssembly;
-- sandbox pronto para produção;
-- garantia de disponibilidade das APIs públicas de exemplo;
-- ranking, cache e busca sofisticada;
-- verificação criptográfica de origem, permissões de rede e sandbox de código em processo;
-- interface visual final de produto.
+- marketplace or public catalog with a backend;
+- authentication and authorization;
+- add-on auditing or cryptographic signatures;
+- automatic npm publication without organization credentials;
+- Service Worker or WebAssembly support;
+- production-ready sandboxing;
+- availability guarantees for example public APIs;
+- ranking, caching, and sophisticated search;
+- cryptographic origin verification, network permissions, and in-process code sandboxing;
+- final product visual design.

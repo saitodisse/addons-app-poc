@@ -21,8 +21,8 @@ export interface LocalManifestSuggestion {
 function fallbackSuggestion(port: number): LocalManifestSuggestion {
   return {
     manifestUrl: localManifestUrl(port),
-    title: `Manifesto local (porta ${port})`,
-    description: 'URL local de manifesto da demonstração.',
+    title: `Local manifest (port ${port})`,
+    description: 'Local demonstration manifest URL.',
   };
 }
 
@@ -40,9 +40,9 @@ function textField(value: unknown): string | undefined {
 }
 
 /**
- * Lê apenas os metadados públicos do manifesto. O host não importa bundles
- * nem mantém uma lista de nomes de add-ons; cada servidor continua sendo a
- * fonte do próprio título e descrição.
+ * Reads only the manifest's public metadata. The host does not import bundles
+ * or maintain a list of add-on names; each server remains the source of its
+ * own title and description.
  */
 export async function loadLocalManifestSuggestions(
   fetcher: ManifestFetcher = (url) => fetch(url),

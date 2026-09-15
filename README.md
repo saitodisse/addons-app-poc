@@ -1,186 +1,184 @@
 # addons-app-poc
 
-Imagine um aplicativo que ganha novas capacidades sem precisar ser reconstruído toda vez. Um desenvolvedor publica uma extensão, informa seu endereço e o aplicativo passa a usá-la. Se essa extensão falhar, outra pode assumir o trabalho.
+Imagine an application that gains new capabilities without being rebuilt every time. A developer publishes an extension, provides its address, and the application starts using it. If that extension fails, another one can take over.
 
-O **addons-app-poc** existe para experimentar essa ideia. Ele é uma prova de conceito, ou **POC**: um laboratório pequeno, executável e testável, criado para descobrir se uma arquitetura funciona antes de levá-la a um produto real.
+The **addons-app-poc** exists to explore this idea. It is a proof of concept, or **POC**: a small, runnable, testable laboratory created to find out whether an architecture works before taking it to a real product.
 
-## O problema que queremos resolver
+## The problem we want to solve
 
-Plugins costumam depender do código principal ou de uma loja central. No primeiro caso, adicionar uma capacidade exige alterar e reconstruir o aplicativo. No segundo, quem cria uma extensão depende da aprovação e da infraestrutura de um intermediário.
+Plugins often depend on the main codebase or a central store. In the first case, adding a capability requires changing and rebuilding the application. In the second, an extension author depends on an intermediary's approval and infrastructure.
 
-Este projeto explora um terceiro caminho: add-ons independentes, descritos por um manifesto e identificados pelo endereço desse manifesto. O aplicativo principal, chamado **host**, conhece os contratos do sistema, mas não precisa conhecer os detalhes de cada implementação.
+This project explores a third path: independent add-ons described by a manifest and identified by that manifest's address. The main application, called the **host**, knows the system contracts but does not need to know the details of each implementation.
 
-Essa ideia foi inspirada no protocolo de add-ons do Stremio. A inspiração está nas fronteiras técnicas — manifesto, recursos HTTP e descoberta por URL — e não no tipo de conteúdo distribuído.
+This idea was inspired by Stremio's add-on protocol. The inspiration lies in the technical boundaries—manifest, HTTP resources, and URL-based discovery—not in the type of content distributed.
 
-## O que você pode ver funcionando
+## What you can see working
 
-O projeto demonstra dois formatos de add-on que convivem no mesmo protocolo:
+The project demonstrates two add-on formats that coexist under the same protocol:
 
-1. **Add-on em processo:** é um módulo JavaScript carregado pelo host a partir da URL declarada no manifesto. Durante a inicialização, ele registra os serviços que seu contrato permite.
-2. **Add-on HTTP:** é um servidor independente. Clientes de exemplo consultam catálogos, buscas e textos por rotas HTTP. O host instala seu manifesto e agrega as respostas do recurso `search` em uma tabela global, sem conhecer a implementação de cada extensão.
+1. **In-process add-on:** a JavaScript module loaded by the host from the URL declared in the manifest. During initialization, it registers the services allowed by its contract.
+2. **HTTP add-on:** an independent server. Example clients query catalogs, searches, and texts through HTTP routes. The host installs its manifest and combines `search` resource responses into a global table without knowing each extension's implementation.
 
-O runtime e os testes também demonstram **prioridade** e **fallback**. Quando dois add-ons oferecem o mesmo serviço, o registry interno ordena as implementações e a operação de fallback tenta a próxima quando a anterior falha. Os helpers de fallback são internos à implementação do runtime; a API pública do add-on continua sendo `host.services.use(contrato)`.
+The runtime and tests also demonstrate **priority** and **fallback**. When two add-ons provide the same service, the internal registry orders the implementations and the fallback operation tries the next one when the previous one fails. Fallback helpers are internal to the runtime; the public add-on API remains `host.services.use(contract)`.
 
-Em **Configurações**, uma pessoa pode informar a URL de um manifesto, revisar o contrato do protocolo e só então instalar o add-on. A escolha, as extensões desativadas e a aceitação do contrato sobrevivem ao recarregamento da página. Cada extensão ativa ganha uma rota própria na barra lateral.
+In **Settings**, a person can enter a manifest URL, review the protocol contract, and only then install the add-on. The choice, disabled extensions, and contract acceptance survive a page reload. Each active extension gets its own route in the sidebar.
 
-## Visão rápida da arquitetura
+## Quick architecture overview
 
 ```text
-                        contratos e regras
+                        contracts and rules
                     ┌──────────────────────┐
                     │ @addons-poc/protocol │
-                    │ contrato v1, schema,│
-                    │ validação e SDK      │
+                    │ contract v1, schema,│
+                    │ validation and SDK  │
                     └──────────┬───────────┘
                                │
              ┌─────────────────┴─────────────────┐
              │                                   │
     ┌────────▼────────┐                 ┌────────▼────────┐
     │    Host App     │                 │     Add-ons     │
-    │ React, gestão e │                 │ em processo ou  │
-    │ demonstrações   │                 │ servidores HTTP │
+    │ React, manager  │                 │ in-process or   │
+    │ and demos       │                 │ HTTP servers    │
     └─────────────────┘                 └─────────────────┘
 ```
 
-`@addons-poc/protocol` é a fronteira pública de compatibilidade. O runtime do host (loader, registro, estados e adaptadores) fica em `packages/host-app/src/runtime`; add-ons não dependem do host nem uns dos outros. Os add-ons HTTP usam `@addons/addon-server`, um servidor Node.js sem dependências externas de runtime.
+`@addons-poc/protocol` is the public compatibility boundary. The host runtime (loader, registry, states, and adapters) lives in `packages/host-app/src/runtime`; add-ons do not depend on the host or on one another. HTTP add-ons use `@addons/addon-server`, a Node.js server with no external runtime dependencies.
 
-## Como executar
+## How to run
 
-Você precisa de Node.js e `pnpm`. Na raiz do projeto, execute:
+You need Node.js and `pnpm`. From the project root, run:
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-O comando inicia o host em `http://localhost:5280`, um servidor de texto e quatro add-ons em processo. Cada um publica seu próprio manifesto e bundle; o host não os serve.
+The command starts the host at `http://localhost:5280`, one text server, and four in-process add-ons. Each one publishes its own manifest and bundle; the host does not serve them.
 
-| Porta | Add-on | Origem do conteúdo |
+| Port | Add-on | Content source |
 |---:|---|---|
-| `5294` | Wikipédia | APIs da Wikipédia |
+| `5294` | Wikipedia | Wikipedia APIs |
 
-Os add-ons em processo restantes usam as portas `5304`, `5306`, `5307` e `5308`. Por exemplo, `http://localhost:5304/manifest.json` publica o add-on Markdown. Cada add-on em processo aceita `pnpm --filter @addons/<nome> serve` para ser executado separadamente.
+The remaining in-process add-ons use ports `5304`, `5306`, `5307`, and `5308`. For example, `http://localhost:5304/manifest.json` publishes the Markdown add-on. Each in-process add-on can be run separately with `pnpm --filter @addons/<name> serve`.
 
-A aba **Saúde dos Add-ons** consulta os cinco manifestos restantes da demonstração, mede a latência de cada servidor e mostra o nome, o endereço e o estado de cada um.
+The **Add-on Health** tab queries the five remaining manifests in the demonstration, measures each server's latency, and shows its name, address, and state.
 
-No WSL2, abra `http://localhost:5280` manualmente no navegador do Windows. O servidor já escuta em `0.0.0.0` e o script evita tentar abrir um navegador dentro do Linux.
+In WSL2, open `http://localhost:5280` manually in the Windows browser. The server already listens on `0.0.0.0`, and the script avoids trying to open a browser inside Linux.
 
-Para encerrar os processos iniciados pelo modo de desenvolvimento:
+To stop the processes started by development mode:
 
 ```bash
 pnpm kill-all
 ```
 
-### Outros comandos úteis
+### Other useful commands
 
-| Comando | O que faz |
+| Command | What it does |
 |---|---|
-| `pnpm dev:host` | Inicia apenas o host |
-| `pnpm dev:addons` | Inicia apenas os add-ons HTTP |
-| `pnpm --filter @addons/addon-markdown serve` | Empacota e serve apenas o add-on Markdown em `5304` |
-| `pnpm test` | Executa os testes de todos os pacotes |
-| `pnpm build:host` | Gera a build de produção do host |
+| `pnpm dev:host` | Starts only the host |
+| `pnpm dev:addons` | Starts only the HTTP add-ons |
+| `pnpm --filter @addons/addon-markdown serve` | Bundles and serves only the Markdown add-on on `5304` |
+| `pnpm test` | Runs tests for all packages |
+| `pnpm build:host` | Creates the host production build |
 
-### Protocolo publicado no npm
+### Protocol published to npm
 
-O pacote público fica em `packages/protocol` e está disponível como
-`@addons-poc/protocol@1.0.0`. Todos os consumidores do workspace usam essa
-versão publicada; o lockfile registra o pacote do registry, não um link local.
-Para confirmar o artefato e testar um consumidor:
+The public package lives in `packages/protocol` and is available as
+`@addons-poc/protocol@1.0.0`. All workspace consumers use this published
+version; the lockfile records the registry package, not a local link. To confirm
+the artifact and test a consumer:
 
 ```bash
 npm view @addons-poc/protocol@1.0.0 version dist.tarball
 npm install @addons-poc/protocol@1.0.0
 ```
 
-Para publicar uma versão futura, confirme a conta e a propriedade do escopo
-`@addons-poc` antes de usar `npm publish --access public`; não existe fallback
-automático para outro nome.
+Before publishing a future version, confirm the account and ownership of the
+`@addons-poc` scope before using `npm publish --access public`; there is no
+automatic fallback to another name.
 
-## Como explorar o host
+## How to explore the host
 
-O host inicia sem add-ons embutidos. Em **Configurações**, informe a URL de um manifesto:
+The host starts without embedded add-ons. In **Settings**, enter a manifest URL:
 
-- revise o contrato do protocolo antes de instalar;
-- aceite o contrato para ativar a extensão;
-- abra a rota criada na barra lateral;
-- desative, remova ou recarregue a página para conferir a persistência da escolha.
+- review the protocol contract before installing;
+- accept the contract to activate the extension;
+- open the route created in the sidebar;
+- disable, remove, or reload the page to check that the choice persists.
 
-A mesma tela exibe URLs locais de `manifest.json` como atalho. Os títulos e
-resumos são lidos genericamente de cada manifesto, sem carregar o bundle:
-**Copiar** preenche o campo de URL e **Instalar** preenche o campo e inicia a
-revisão do contrato.
+The same screen shows local `manifest.json` URLs as shortcuts. Titles and
+descriptions are read generically from each manifest without loading its bundle:
+**Copy** fills in the URL field, and **Install** fills in the field and starts
+contract review.
 
-No topo do host existe uma busca fixa. Pressione **Enter** para consultar todos
-os add-ons HTTP ativos que declaram `search`; pressione **Esc** para limpar o
-campo e a tabela. A home mantém somente a listagem principal; a demonstração ao
-vivo abre pelo ícone de engrenagem em um modal. Cada extensão ativa no modal
-abre uma rota dedicada com seu detalhe/configuração, no formato
-`#/addons/<manifesto-codificado>`. Cada linha normalizada mostra tipo, ID, nome e
-descrição; ao clicar no nome, o host abre um modal e carrega a URL do conteúdo,
-com emoji ou imagem quando o manifesto ou a resposta oferecerem esse dado. Em
-Configurações, cada add-on de busca pode definir seu limite de resultados entre
-1 e 500. O host oferece **Página anterior** e **Próxima página** quando o add-on
-devolve um cursor de continuação; ao trocar de página, a tabela é substituída
-pelos itens daquela página. O termo `q` e a página `page` ficam na URL por meio
-de `nuqs`, permitindo compartilhar e restaurar a busca. A Wikipédia usa páginas
-de até 20 artigos (limite da API de extratos) e encerra a busca em 500 registros;
-o extrato de cada artigo aparece diretamente na coluna **Descrição**.
-Com um provedor `state-store` ativo, a consulta, a página, as linhas e os
-cursores ficam persistidos.
+The host has a fixed search field at the top. Press **Enter** to query all
+active HTTP add-ons that declare `search`; press **Esc** to clear the field and
+table. The home page keeps only the main listing; the live demo opens from the
+gear icon in a modal. Each active extension in the modal opens a dedicated route
+with its detail/configuration, in the form `#/addons/<encoded-manifest>`. Each
+normalized row shows type, ID, name, and description; clicking a name opens a
+modal and loads the content URL, with an emoji or image when the manifest or
+response provides one. In Settings, each search add-on can set its result limit
+between 1 and 500. The host offers **Previous page** and **Next page** when the
+add-on returns a continuation cursor; changing pages replaces the table with
+that page's items. The `q` term and `page` number stay in the URL through
+`nuqs`, allowing searches to be shared and restored. Wikipedia uses pages of up
+to 20 articles (the extracts API limit) and stops at 500 records; each article's
+extract appears directly in the **Description** column. With an active
+`state-store` provider, the query, page, rows, and cursors are persisted.
 
-O servidor HTTP iniciado por `pnpm dev` continua disponível como exemplo independente em `http://localhost:5294/manifest.json`; o host não o conhece nem o inclui em sua build.
+The HTTP server started by `pnpm dev` remains available as an independent example at `http://localhost:5294/manifest.json`; the host neither knows it in advance nor includes it in its build.
 
-## Pacotes do projeto
+## Project packages
 
-| Pacote | Responsabilidade |
+| Package | Responsibility |
 |---|---|
-| [`@addons-poc/protocol`](packages/protocol/README.md) | Contrato v1, JSON Schema, SemVer, descritores de serviço, validadores e SDK de autoria |
-| [`@addons/host-app`](packages/host-app/README.md) | Aplicativo React genérico que instala e apresenta add-ons por URL |
-| [`@addons/addon-server`](packages/addon-server/README.md) | Servidor HTTP para add-ons de texto |
-| [`@addons/addon-markdown`](packages/addon-markdown/README.md) | Serviço namespaceado de Markdown |
-| [`@addons/addon-favorites`](packages/addon-favorites/README.md) | Serviço namespaceado de favoritos |
-| [`@addons/addon-health`](packages/addon-health/README.md) | Verificação dos servidores remotos |
-| [`@addons/addon-storage-local`](packages/addon-storage-local/README.md) | Serviço oficial opcional `state-store` no `localStorage` |
-| [`@addons/addon-text-wikipedia`](packages/addon-text-wikipedia/README.md) | Resumos e buscas na Wikipédia por HTTP |
+| [`@addons-poc/protocol`](packages/protocol/README.md) | Contract v1, JSON Schema, SemVer, service descriptors, validators, and authoring SDK |
+| [`@addons/host-app`](packages/host-app/README.md) | Generic React application that installs and presents add-ons by URL |
+| [`@addons/addon-server`](packages/addon-server/README.md) | HTTP server for text add-ons |
+| [`@addons/addon-markdown`](packages/addon-markdown/README.md) | Namespaced Markdown service |
+| [`@addons/addon-favorites`](packages/addon-favorites/README.md) | Namespaced favorites service |
+| [`@addons/addon-health`](packages/addon-health/README.md) | Remote server health checks |
+| [`@addons/addon-storage-local`](packages/addon-storage-local/README.md) | Optional official `state-store` service using `localStorage` |
+| [`@addons/addon-text-wikipedia`](packages/addon-text-wikipedia/README.md) | HTTP Wikipedia summaries and searches |
 
-## Onde continuar a leitura
+## Where to continue reading
 
-Toda a documentação usa a mesma progressão: começa com a explicação mais simples e aprofunda apenas depois.
+All documentation follows the same progression: it starts with the simplest explanation and goes deeper only afterward.
 
-1. [`docs/PLANNING.md`](docs/PLANNING.md) conta como o problema e a solução evoluíram.
-2. [`docs/PRD.md`](docs/PRD.md) define o que a POC precisa provar.
-3. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) explica os componentes, os fluxos e as limitações atuais.
-4. [`docs/DECISIONS.md`](docs/DECISIONS.md) registra as decisões e suas consequências.
-5. [`docs/MANIFEST-SPEC.md`](docs/MANIFEST-SPEC.md) especifica os dois formatos de manifesto.
-6. [`docs/PHASES.md`](docs/PHASES.md) mostra o que foi entregue e o que ainda está planejado.
-7. [`docs/GLOSSARY.md`](docs/GLOSSARY.md) define os termos usados no projeto.
-8. [`docs/PACKAGES.md`](docs/PACKAGES.md) reúne o README e o comando de cada pacote.
+1. [`docs/PLANNING.md`](docs/PLANNING.md) tells how the problem and solution evolved.
+2. [`docs/PRD.md`](docs/PRD.md) defines what the POC must prove.
+3. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) explains the components, flows, and current limitations.
+4. [`docs/DECISIONS.md`](docs/DECISIONS.md) records decisions and their consequences.
+5. [`docs/MANIFEST-SPEC.md`](docs/MANIFEST-SPEC.md) specifies the two manifest formats.
+6. [`docs/PHASES.md`](docs/PHASES.md) shows what has been delivered and what is still planned.
+7. [`docs/GLOSSARY.md`](docs/GLOSSARY.md) defines the terms used in the project.
+8. [`docs/PACKAGES.md`](docs/PACKAGES.md) gathers each package's README and command.
 
-## Contrato público v1
+## Public contract v1
 
-Todo manifesto tem uma única seção `contract` com versão do protocolo, faixa
-SemVer, capacidades, descritores de serviços, UI declarativa, estado, HTTP e
-logs. O schema publicável está em `@addons-poc/protocol/schema`. Serviços que
-não são oficiais usam nomes namespaceados, como `addons.hello.greeter`.
+Every manifest has a single `contract` section with protocol version, SemVer
+range, capabilities, service descriptors, declarative UI, state, HTTP, and
+logs. The publishable schema is in `@addons-poc/protocol/schema`. Services that
+are not official use namespaced names such as `addons.hello.greeter`.
 
-`host.services.use({ id, version, methods })` devolve uma proxy tipada e
-mediada. A entrada e a saída declaradas são verificadas no ponto de uso. O
-host escolhe provedores por prioridade e deixa fallback explícito. Um serviço
-obrigatório ausente bloqueia a instalação até surgir um provedor compatível;
-ciclos obrigatórios também são bloqueados.
+`host.services.use({ id, version, methods })` returns a typed, mediated proxy.
+Declared input and output are checked at the point of use. The host chooses
+providers by priority and makes fallback explicit. A missing required service
+blocks installation until a compatible provider appears; required cycles are
+also blocked.
 
-## Limites atuais
+## Current limits
 
-Esta POC prova o protocolo, mas ainda não é uma plataforma pronta para produção. Cada add-on precisa publicar seu próprio manifesto e bundle ou servidor HTTP. Ainda faltam descarregamento completo ao desativar ou remover add-ons, catálogo e leitura genéricos dos recursos HTTP, validação completa das respostas, edição de prioridades, cache e atualização de manifestos, sandbox e proxy de rede.
+This POC proves the protocol, but it is not yet a production-ready platform. Each add-on must publish its own manifest and bundle or HTTP server. Complete unload when disabling or removing add-ons, generic catalog and reading for HTTP resources, complete response validation, priority editing, manifest caching and updates, sandboxing, and network proxying are still missing.
 
-A versão `1.2.0` mantém a busca global e os limites por add-on da versão anterior, ocupa toda a largura disponível na home, abre a demonstração ao vivo em um modal acionado pelo ícone de engrenagem e transforma o nome de cada resultado em link para o conteúdo. As extensões ativas usam rotas dedicadas de detalhe no formato `#/addons/<manifesto-codificado>`. A [verificação da inspeção dos estados em 08/09/2026](docs/PHASES.md#verificação-da-inspeção-dos-estados-em-08092026) registra o carregamento inicial, a abertura dos detalhes em Local e Sessão e a ocultação do painel nas demais abas. A [verificação da busca global](docs/PHASES.md#verificação-da-busca-global-em-08092026) registra a tabela, os limites por add-on e a persistência. O próximo passo recomendado é completar o descarregamento, incluindo falhas nos callbacks de limpeza, e depois concluir catálogo e leitura HTTP genéricos.
+Version `1.2.0` keeps the previous version's global search and per-add-on limits, uses the full width available on the home page, opens the live demo in a gear-triggered modal, and turns each result name into a content link. Active extensions use dedicated detail routes in the form `#/addons/<encoded-manifest>`. The [state inspection verification from 2026-09-08](docs/PHASES.md#state-inspection-verification-on-2026-09-08) records initial loading, opening Local and Session details, and hiding the panel in other tabs. The [global search verification](docs/PHASES.md#global-search-verification-on-2026-09-08) records the table, per-add-on limits, and persistence. The recommended next step is to complete unload, including failures in cleanup callbacks, and then finish generic HTTP catalog and reading support.
 
-Plugins são confiáveis e podem chamar APIs globais. O manifesto registra I/O
-externo para revisão, mas a v1 não oferece sandbox, proxy de rede, `onUnload`
-mediado ou bloqueio de `fetch` direto. Esses limites são intencionais e estão
-detalhados na documentação.
+Plugins are trusted and may call global APIs. The manifest records external I/O
+for review, but v1 does not provide sandboxing, a network proxy, mediated
+`onUnload`, or direct `fetch` blocking. These limits are intentional and are
+explained in the documentation.
 
-## Licença
+## License
 
 MIT.

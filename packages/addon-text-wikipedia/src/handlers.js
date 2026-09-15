@@ -1,10 +1,10 @@
-import { createWikipediaApi } from './api.js';
+import { createWikipediaApi, normalizeWikipediaLanguage } from './api.js';
 
-/** Instância única do cliente externo (com fetch nativo). */
+/** Single external client instance (using native fetch). */
 const api = createWikipediaApi();
 
 function articleNotFound(id) {
-  const error = new Error(`Artigo não encontrado: ${id}`);
+  const error = new Error(`Article not found: ${id}`);
   error.status = 404;
   error.code = 'ARTICLE_NOT_FOUND';
   return error;
@@ -47,13 +47,24 @@ function optionalFields(fields) {
   return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
 }
 
-function articleMetadata(type, id, summary) {
+function localizedContentPath(type, title, language, extension) {
+  const path = `/text/${type}/${encodeURIComponent(title)}/content.${extension}`;
+  return language ? `${path}?lang=${encodeURIComponent(language)}` : path;
+}
+
+function selectedLanguage(page, apiOverride) {
+  const value = page?.lang ?? apiOverride?.language;
+  return value ? normalizeWikipediaLanguage(value) : undefined;
+}
+
+function articleMetadata(type, id, summary, language) {
   const title = summary.title ?? id;
+  const selected = language ? normalizeWikipediaLanguage(language) : undefined;
   return optionalFields({
     id: title,
-    url: `/text/${type}/${encodeURIComponent(title)}/content.txt`,
-    contentJsonUrl: `/text/${type}/${encodeURIComponent(title)}/content.json`,
-    lang: summary.lang ?? 'pt',
+    url: localizedContentPath(type, title, selected, 'txt'),
+    contentJsonUrl: localizedContentPath(type, title, selected, 'json'),
+    lang: summary.lang ?? language ?? 'pt',
     name: title,
     displaytitle: summary.displaytitle,
     description: summary.description,
@@ -87,13 +98,14 @@ function byteLength(value) {
   return Buffer.byteLength(value ?? '', 'utf8');
 }
 
-function toMeta(title, description = '') {
-  return {
+function toMeta(title, description = '', language) {
+  return optionalFields({
     id: title,
     type: 'page',
     name: title,
     description: description || undefined,
-  };
+    url: localizedContentPath('page', title, language, 'txt'),
+  });
 }
 
 export async function catalog(type, catalogId, page, apiOverride = api) {
@@ -101,11 +113,12 @@ export async function catalog(type, catalogId, page, apiOverride = api) {
     apiOverride = page;
     page = undefined;
   }
-  if (catalogId === 'aleatorios') {
+  if (catalogId === 'random') {
     const result = await apiOverride.random(page?.limit ?? 10, page?.cursor);
     const titles = Array.isArray(result) ? result : result.titles;
     const pagination = Array.isArray(result) ? undefined : result.pagination;
-    return { metas: titles.map((t) => toMeta(t)), ...(pagination ? { pagination } : {}) };
+    const language = selectedLanguage(page, apiOverride);
+    return { metas: titles.map((t) => toMeta(t, '', language)), ...(pagination ? { pagination } : {}) };
   }
   return { metas: [] };
 }
@@ -118,13 +131,14 @@ export async function search(type, query, page, apiOverride = api) {
   const result = await apiOverride.search(query, page);
   const results = Array.isArray(result) ? result : result.results;
   const pagination = Array.isArray(result) ? undefined : result.pagination;
-  return { metas: results.map((r) => toMeta(r.title, r.description)), ...(pagination ? { pagination } : {}) };
+  const language = selectedLanguage(page, apiOverride);
+  return { metas: results.map((r) => toMeta(r.title, r.description, language)), ...(pagination ? { pagination } : {}) };
 }
 
 export async function text(type, id, apiOverride = api) {
   const summary = await loadSummary(id, apiOverride);
   return {
-    texts: [articleMetadata(type, id, summary)],
+    texts: [articleMetadata(type, id, summary, apiOverride.language)],
   };
 }
 
@@ -133,19 +147,20 @@ export async function content(type, id, apiOverride = api) {
   return `${summary.title ?? id}\n\n${summary.extract}`;
 }
 
-/** Entrega o resumo, metadados, mídia e a proveniência da coleta. */
+/** Returns the summary, metadata, media, and collection provenance. */
 export async function contentJson(type, id, apiOverride = api) {
   const details = await loadSummaryDetails(id, apiOverride);
   const summary = details.body;
   const title = summary.title ?? id;
   const text = `${title}\n\n${summary.extract}`;
   const upstreamHeaders = details.response?.headers ?? {};
+  const language = normalizeWikipediaLanguage(apiOverride.language ?? summary.lang ?? 'pt');
   const sourceUrl = details.request?.url
-    ?? `https://pt.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(id)}`;
+    ?? `https://${language}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(id)}`;
   const sourceHeaders = optionalFields({
     ETag: headerValue(upstreamHeaders, 'etag') ?? (summary.revision ? `W/\"${summary.revision}\"` : undefined),
     'Last-Modified': headerValue(upstreamHeaders, 'last-modified') ?? timestampHeader(summary.timestamp),
-    'Content-Language': headerValue(upstreamHeaders, 'content-language') ?? summary.lang ?? 'pt',
+    'Content-Language': headerValue(upstreamHeaders, 'content-language') ?? summary.lang ?? language,
     'Content-Length': headerValue(upstreamHeaders, 'content-length')
       ?? String(byteLength(details.response?.bodyText ?? JSON.stringify(summary))),
   });
@@ -162,7 +177,7 @@ export async function contentJson(type, id, apiOverride = api) {
     pageid: summary.pageid,
     wikibase_item: summary.wikibase_item,
     namespace: summary.namespace,
-    lang: summary.lang ?? sourceHeaders['Content-Language'],
+    lang: summary.lang ?? sourceHeaders['Content-Language'] ?? language,
     dir: summary.dir,
     revision: summary.revision,
     timestamp: summary.timestamp,
@@ -179,8 +194,8 @@ export async function contentJson(type, id, apiOverride = api) {
       encoding: 'utf-8',
     },
     source: {
-      name: 'Wikipédia REST API',
-      provider: 'Wikipédia',
+      name: 'Wikipedia REST API',
+      provider: 'Wikipedia',
       origin: new URL(sourceUrl).origin,
       url: sourceUrl,
       headers: sourceHeaders,

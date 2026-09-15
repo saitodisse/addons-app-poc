@@ -2,17 +2,32 @@ import { describe, expect, it, vi } from 'vitest';
 import { createWikipediaApi } from './api.js';
 
 describe('createWikipediaApi', () => {
-  it('registra a requisição enviada e a resposta completa recebida', async () => {
+  it('queries the Wikipedia domain in the selected language', async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: {},
+      json: async () => ({ title: 'Language', extract: 'Summary' }),
+    });
+    const api = createWikipediaApi({ lang: 'en', fetchFn });
+
+    await api.summary('Language');
+
+    expect(fetchFn).toHaveBeenCalledWith('https://en.wikipedia.org/api/rest_v1/page/summary/Language');
+    expect(api.language).toBe('en');
+  });
+
+  it('records the sent request and the complete response received', async () => {
     const onTraffic = vi.fn();
     const fetchFn = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       headers: { 'content-type': 'application/json' },
-      json: async () => ({ title: 'Bola', extract: 'Resumo completo' }),
+      json: async () => ({ title: 'Ball', extract: 'Complete summary' }),
     });
     const api = createWikipediaApi({ fetchFn, onTraffic });
 
-    await expect(api.summary('São Paulo')).resolves.toEqual({ title: 'Bola', extract: 'Resumo completo' });
+    await expect(api.summary('New York')).resolves.toEqual({ title: 'Ball', extract: 'Complete summary' });
 
     expect(onTraffic).toHaveBeenCalledTimes(1);
     expect(onTraffic).toHaveBeenCalledWith(expect.objectContaining({
@@ -21,11 +36,11 @@ describe('createWikipediaApi', () => {
       operation: 'summary',
       request: expect.objectContaining({
         method: 'GET',
-        url: 'https://pt.wikipedia.org/api/rest_v1/page/summary/S%C3%A3o%20Paulo',
-        path: '/api/rest_v1/page/summary/S%C3%A3o%20Paulo',
+        url: 'https://pt.wikipedia.org/api/rest_v1/page/summary/New%20York',
+        path: '/api/rest_v1/page/summary/New%20York',
         queryString: '',
         query: {},
-        pathParameters: { title: 'São Paulo' },
+        pathParameters: { title: 'New York' },
         headers: { 'User-Agent': expect.any(String), Accept: 'application/json' },
         body: null,
       }),
@@ -33,27 +48,27 @@ describe('createWikipediaApi', () => {
         status: 200,
         ok: true,
         headers: { 'content-type': 'application/json' },
-        body: { title: 'Bola', extract: 'Resumo completo' },
-        bodyText: '{"title":"Bola","extract":"Resumo completo"}',
+        body: { title: 'Ball', extract: 'Complete summary' },
+        bodyText: '{"title":"Ball","extract":"Complete summary"}',
       }),
     }));
   });
 
-  it('redige cabeçalhos sensíveis sem esconder os demais dados da resposta', async () => {
+  it('redacts sensitive headers without hiding the other response data', async () => {
     const onTraffic = vi.fn();
     const fetchFn = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       headers: {
         'content-type': 'application/json',
-        'set-cookie': 'session=nao-expor',
+        'set-cookie': 'session=do-not-expose',
         'x-client-ip': '192.0.2.10',
       },
-      json: async () => ({ title: 'Bola' }),
+      json: async () => ({ title: 'Ball' }),
     });
     const api = createWikipediaApi({ fetchFn, onTraffic });
 
-    await api.summary('Bola');
+    await api.summary('Ball');
 
     expect(onTraffic).toHaveBeenCalledWith(expect.objectContaining({
       response: expect.objectContaining({
@@ -66,8 +81,8 @@ describe('createWikipediaApi', () => {
     }));
   });
 
-  it('retorna detalhes da resposta para montar o conteúdo estruturado', async () => {
-    const rawBody = JSON.stringify({ title: 'Brasil', extract: 'Resumo' });
+  it('returns response details for building structured content', async () => {
+    const rawBody = JSON.stringify({ title: 'Brazil', extract: 'Summary' });
     const fetchFn = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -80,10 +95,10 @@ describe('createWikipediaApi', () => {
     });
     const api = createWikipediaApi({ fetchFn, nowFn: () => 1000 });
 
-    await expect(api.summaryDetails('Brasil')).resolves.toMatchObject({
-      body: { title: 'Brasil', extract: 'Resumo' },
+    await expect(api.summaryDetails('Brazil')).resolves.toMatchObject({
+      body: { title: 'Brazil', extract: 'Summary' },
       requestId: 'wikipedia-api-1',
-      request: { url: 'https://pt.wikipedia.org/api/rest_v1/page/summary/Brasil' },
+      request: { url: 'https://pt.wikipedia.org/api/rest_v1/page/summary/Brazil' },
       response: {
         status: 200,
         headers: {
@@ -98,22 +113,22 @@ describe('createWikipediaApi', () => {
     });
   });
 
-  it('preserva status 404 da API externa', async () => {
+  it('preserves the external API 404 status', async () => {
     const fetchFn = vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
       headers: {},
-      json: async () => ({ title: 'Inexistente' }),
+      json: async () => ({ title: 'Missing' }),
     });
     const api = createWikipediaApi({ fetchFn });
 
-    await expect(api.summary('Inexistente')).rejects.toMatchObject({
+    await expect(api.summary('Missing')).rejects.toMatchObject({
       name: 'WikipediaApiError',
       status: 404,
     });
   });
 
-  it('repete a busca quando a Wikipédia responde 429 de forma transitória', async () => {
+  it('retries the search when Wikipedia transiently responds with 429', async () => {
     const fetchFn = vi.fn()
       .mockResolvedValueOnce({
         ok: false,
@@ -125,54 +140,54 @@ describe('createWikipediaApi', () => {
         json: async () => ({
           query: {
             searchinfo: { totalhits: 1 },
-            search: [{ title: 'Bola' }],
+            search: [{ title: 'Ball' }],
           },
         }),
       })
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          query: { pages: { bola: { title: 'Bola', extract: 'Extrato de Bola' } } },
+          query: { pages: { ball: { title: 'Ball', extract: 'Extract of Ball' } } },
         }),
       });
     const api = createWikipediaApi({ fetchFn, sleepFn: vi.fn().mockResolvedValue(undefined) });
 
-    await expect(api.search('Bola', { limit: 3 })).resolves.toMatchObject({
-      results: [{ title: 'Bola', description: 'Bola\n\nExtrato de Bola' }],
+    await expect(api.search('Ball', { limit: 3 })).resolves.toMatchObject({
+      results: [{ title: 'Ball', description: 'Ball\n\nExtract of Ball' }],
       pagination: { limit: 3 },
     });
     expect(fetchFn).toHaveBeenCalledTimes(3);
   });
 
-  it('deduplica buscas iguais em andamento', async () => {
+  it('deduplicates identical searches in progress', async () => {
     const fetchFn = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           query: {
             searchinfo: { totalhits: 1 },
-            search: [{ title: 'Bola' }],
+            search: [{ title: 'Ball' }],
           },
         }),
       })
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          query: { pages: { bola: { title: 'Bola', extract: 'Extrato de Bola' } } },
+          query: { pages: { ball: { title: 'Ball', extract: 'Extract of Ball' } } },
         }),
       });
     const api = createWikipediaApi({ fetchFn });
 
     const [first, second] = await Promise.all([
-      api.search('Bola', { limit: 3 }),
-      api.search('Bola', { limit: 3 }),
+      api.search('Ball', { limit: 3 }),
+      api.search('Ball', { limit: 3 }),
     ]);
 
     expect(first).toEqual(second);
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
-  it('busca uma página e completa a descrição com extratos em lote', async () => {
+  it('searches a page and completes its description with batch extracts', async () => {
     const fetchFn = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
@@ -180,7 +195,7 @@ describe('createWikipediaApi', () => {
           continue: { sroffset: 20 },
           query: {
             searchinfo: { totalhits: 42 },
-            search: [{ title: 'Primeiro' }, { title: 'Segundo' }],
+            search: [{ title: 'First' }, { title: 'Second' }],
           },
         }),
       })
@@ -189,39 +204,39 @@ describe('createWikipediaApi', () => {
         json: async () => ({
           query: {
             pages: {
-              second: { title: 'Segundo', extract: 'Extrato 2' },
-              first: { title: 'Primeiro', extract: 'Extrato 1' },
+              second: { title: 'Second', extract: 'Extract 2' },
+              first: { title: 'First', extract: 'Extract 1' },
             },
           },
         }),
       });
     const api = createWikipediaApi({ fetchFn });
 
-    await expect(api.search('Bola')).resolves.toEqual({
+    await expect(api.search('Ball')).resolves.toEqual({
       results: [
-        { title: 'Primeiro', description: 'Primeiro\n\nExtrato 1', url: '' },
-        { title: 'Segundo', description: 'Segundo\n\nExtrato 2', url: '' },
+        { title: 'First', description: 'First\n\nExtract 1', url: '' },
+        { title: 'Second', description: 'Second\n\nExtract 2', url: '' },
       ],
       pagination: { limit: 20, total: 42, next: '20' },
     });
     expect(fetchFn).toHaveBeenNthCalledWith(1, expect.stringContaining('list=search'));
     expect(fetchFn).toHaveBeenNthCalledWith(1, expect.stringContaining('srlimit=20'));
-    expect(fetchFn).toHaveBeenNthCalledWith(2, expect.stringContaining('titles=Primeiro%7CSegundo'));
+    expect(fetchFn).toHaveBeenNthCalledWith(2, expect.stringContaining('titles=First%7CSecond'));
     expect(fetchFn).toHaveBeenNthCalledWith(2, expect.stringContaining('exlimit=20'));
   });
 
-  it('usa o cursor da página anterior e limita o total a 500 itens', async () => {
+  it('uses the previous page cursor and limits the total to 500 items', async () => {
     const fetchFn = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          query: { searchinfo: { totalhits: 900 }, search: [{ title: 'Último' }] },
+          query: { searchinfo: { totalhits: 900 }, search: [{ title: 'Last' }] },
         }),
       })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ query: { pages: {} } }) });
     const api = createWikipediaApi({ fetchFn });
 
-    const result = await api.search('Bola', { limit: 500, cursor: '480' });
+    const result = await api.search('Ball', { limit: 500, cursor: '480' });
 
     expect(result.pagination).toEqual({ limit: 20, total: 500 });
     expect(fetchFn).toHaveBeenNthCalledWith(1, expect.stringContaining('sroffset=480'));

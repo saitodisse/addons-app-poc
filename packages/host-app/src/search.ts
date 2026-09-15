@@ -50,6 +50,10 @@ export interface SearchLimits {
   [manifestUrl: string]: SearchLimitValue | undefined;
 }
 
+export interface SearchLanguages {
+  [manifestUrl: string]: string | undefined;
+}
+
 export interface SearchClient {
   search(baseUrl: string, type: string, query: string, page?: TextPageRequest): Promise<TextSearchPayload>;
 }
@@ -78,7 +82,7 @@ async function fetchJson(url: string): Promise<unknown> {
       durationMs: Date.now() - startedAt,
     });
     logged = true;
-    if (!response.ok) throw new Error(`HTTP ${response.status} em ${url}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status} at ${url}`);
     return body;
   } catch (error) {
     if (!logged) {
@@ -166,7 +170,7 @@ export interface SearchResultDetails {
 
 type StructuredContentFetcher = (url: string) => Promise<Pick<Response, 'ok' | 'status' | 'text'> & { headers?: Headers }>;
 
-/** Calcula a rota paralela de metadados para uma URL content.txt. */
+/** Computes the parallel metadata route for a content.txt URL. */
 export function contentJsonUrlFromContentUrl(url: string): string {
   try {
     const parsed = new URL(url);
@@ -179,7 +183,7 @@ export function contentJsonUrlFromContentUrl(url: string): string {
   }
 }
 
-/** Busca o conteúdo estruturado que alimenta a página dedicada do resultado. */
+/** Fetches the structured content used by the result's dedicated page. */
 export async function fetchSearchResultDetails(
   contentUrl: string,
   fetchFn: StructuredContentFetcher = (requestUrl) => fetch(requestUrl, { headers: { Accept: 'application/json' }}),
@@ -217,8 +221,8 @@ export async function fetchSearchResultDetails(
       durationMs: details.durationMs,
     });
     logged = true;
-    if (!response.ok) throw new Error(`HTTP ${response.status} em ${url}`);
-    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('A resposta estruturada do resultado é inválida.');
+    if (!response.ok) throw new Error(`HTTP ${response.status} at ${url}`);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('The result structured response is invalid.');
     return details;
   } catch (error) {
     if (!logged) {
@@ -243,7 +247,7 @@ export async function fetchSearchResultDetails(
   }
 }
 
-/** Busca o texto compatível quando um add-on antigo não oferece content.json. */
+/** Fetches compatible text when an older add-on does not provide content.json. */
 export async function fetchSearchResultContent(
   url: string,
   fetchFn: TextFetcher = (requestUrl) => fetch(requestUrl, { headers: { Accept: 'text/plain' } }),
@@ -264,7 +268,7 @@ export async function fetchSearchResultContent(
       durationMs: Date.now() - startedAt,
     });
     logged = true;
-    if (!response.ok) throw new Error(`HTTP ${response.status} em ${url}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status} at ${url}`);
     return body;
   } catch (error) {
     if (!logged) {
@@ -282,7 +286,7 @@ export async function fetchSearchResultContent(
   }
 }
 
-/** Adaptador de busca usado pelo host; os servidores continuam independentes. */
+/** Search adapter used by the host; servers remain independent. */
 export function createFetchSearchClient(): SearchClient {
   return {
     async search(baseUrl, type, query, page) {
@@ -290,6 +294,7 @@ export function createFetchSearchClient(): SearchClient {
       const params = new URLSearchParams();
       if (page?.limit !== undefined) params.set('limit', String(page.limit));
       if (page?.cursor) params.set('cursor', page.cursor);
+      if (page?.lang) params.set('lang', page.lang);
       const queryString = params.toString();
       return (await fetchJson(queryString ? `${url}?${queryString}` : url)) as TextSearchPayload;
     },
@@ -297,9 +302,9 @@ export function createFetchSearchClient(): SearchClient {
 }
 
 interface ExtendedTextMeta extends TextMeta {
-  /** Extensões podem oferecer uma URL pública própria para o resultado. */
+  /** Add-ons may provide their own public URL for the result. */
   url?: string;
-  /** Extensões podem escolher um emoji ou uma imagem para a linha. */
+  /** Add-ons may choose an emoji or an image for the row. */
   emoji?: string;
   image?: string;
 }
@@ -310,6 +315,11 @@ function isSearchResource(resource: AddonResource): boolean {
 
 export function getSearchResources(addon: AddonInstance): AddonResource[] {
   return (addon.manifest.contract.resources ?? []).filter(isSearchResource);
+}
+
+/** Languages announced by the add-on's search resources, in manifest order. */
+export function getSearchLanguages(addon: AddonInstance): string[] {
+  return [...new Set(getSearchResources(addon).flatMap((resource) => resource.languages ?? []).filter((language): language is string => typeof language === 'string' && language.trim().length > 0))];
 }
 
 export function isSearchableAddon(addon: AddonInstance, disabledManifestUrls: readonly string[] = []): boolean {
@@ -352,11 +362,13 @@ function absoluteUrl(value: string | undefined, fallback: string, baseUrl: strin
   }
 }
 
-function fallbackResultUrl(baseUrl: string, type: string, id: string): string {
-  return new URL(
+function fallbackResultUrl(baseUrl: string, type: string, id: string, language?: string): string {
+  const url = new URL(
     `text/${encodeURIComponent(type)}/${encodeURIComponent(id)}/content.txt`,
     baseUrl,
-  ).href;
+  );
+  if (language) url.searchParams.set('lang', language);
+  return url.href;
 }
 
 function normalizeMeta(
@@ -364,13 +376,14 @@ function normalizeMeta(
   addon: AddonInstance,
   type: string,
   baseUrl: string,
+  language?: string,
 ): SearchResultRow | undefined {
   if (meta == null || (typeof meta.id !== 'string' && typeof meta.id !== 'number') || typeof meta.name !== 'string') {
     return undefined;
   }
   const id = String(meta.id);
   const resultType = typeof meta.type === 'string' && meta.type.trim() ? meta.type : type;
-  const fallbackUrl = fallbackResultUrl(baseUrl, resultType, id);
+  const fallbackUrl = fallbackResultUrl(baseUrl, resultType, id, language);
   const description = typeof meta.description === 'string' && meta.description.trim()
     ? meta.description.trim()
     : typeof meta.author === 'string' && meta.author.trim()
@@ -402,15 +415,15 @@ function normalizeMeta(
 
 function assertSearchPayload(value: unknown): { metas: ExtendedTextMeta[]; pagination?: TextPagination } {
   if (!value || typeof value !== 'object' || !Array.isArray((value as { metas?: unknown }).metas)) {
-    throw new Error('Resposta de busca inválida: esperava uma lista metas');
+    throw new Error('Invalid search response: expected a metas list');
   }
   const pagination = (value as { pagination?: unknown }).pagination;
   if (pagination !== undefined) {
-    if (!pagination || typeof pagination !== 'object') throw new Error('Resposta de busca inválida: pagination deve ser um objeto');
+    if (!pagination || typeof pagination !== 'object') throw new Error('Invalid search response: pagination must be an object');
     const page = pagination as { limit?: unknown; total?: unknown; next?: unknown };
-    if (typeof page.limit !== 'number' || !Number.isSafeInteger(page.limit) || page.limit < 1) throw new Error('Resposta de busca inválida: pagination.limit');
-    if (page.total !== undefined && (typeof page.total !== 'number' || !Number.isSafeInteger(page.total) || page.total < 0)) throw new Error('Resposta de busca inválida: pagination.total');
-    if (page.next !== undefined && typeof page.next !== 'string') throw new Error('Resposta de busca inválida: pagination.next');
+    if (typeof page.limit !== 'number' || !Number.isSafeInteger(page.limit) || page.limit < 1) throw new Error('Invalid search response: pagination.limit');
+    if (page.total !== undefined && (typeof page.total !== 'number' || !Number.isSafeInteger(page.total) || page.total < 0)) throw new Error('Invalid search response: pagination.total');
+    if (page.next !== undefined && typeof page.next !== 'string') throw new Error('Invalid search response: pagination.next');
   }
   return value as { metas: ExtendedTextMeta[]; pagination?: TextPagination };
 }
@@ -419,7 +432,7 @@ function paginationKey(manifestUrl: string, type: string): string {
   return `${manifestUrl}::${type}`;
 }
 
-/** Consulta os add-ons HTTP ativos que declaram `search` e normaliza suas linhas. */
+/** Queries active HTTP add-ons that declare `search` and normalizes their rows. */
 export async function searchActiveAddons(
   addons: AddonInstance[],
   disabledManifestUrls: readonly string[],
@@ -427,11 +440,16 @@ export async function searchActiveAddons(
   limits: SearchLimits = {},
   client: SearchClient = createFetchSearchClient(),
   previousPagination: SearchPagination = {},
+  languages: SearchLanguages = {},
 ): Promise<SearchCollection> {
   const providers = addons.filter((addon) => isSearchableAddon(addon, disabledManifestUrls));
   const outcomes = await Promise.all(providers.map(async (addon) => {
     const baseUrl = addonBaseUrl(addon.manifestUrl);
     const pageLimit = clampSearchLimit(limits[addon.manifestUrl]);
+    const supportedLanguages = getSearchLanguages(addon);
+    const language = supportedLanguages.includes(languages[addon.manifestUrl] ?? '')
+      ? languages[addon.manifestUrl]
+      : supportedLanguages[0];
     const types = [...new Set(getSearchResources(addon).flatMap((resource) => resource.types))];
     const typeOutcomes = await Promise.allSettled(
       types.map(async (type) => {
@@ -444,6 +462,7 @@ export async function searchActiveAddons(
         const payload = assertSearchPayload(await client.search(baseUrl, type, query, {
           limit: pageLimit,
           ...(previous?.next ? { cursor: previous.next } : {}),
+          ...(language ? { lang: language } : {}),
         }));
         return { type, key, metas: payload.metas, pagination: payload.pagination, skipped: false };
       }),
@@ -457,7 +476,7 @@ export async function searchActiveAddons(
       if (outcome.status === 'rejected') {
         failures.push({
           addonName: addon.manifest.name,
-          message: (outcome.reason as Error)?.message ?? 'A busca falhou.',
+          message: (outcome.reason as Error)?.message ?? 'The search failed.',
         });
         const previous = previousPagination[failedKey];
         if (previous) pagination[failedKey] = previous;
@@ -471,7 +490,7 @@ export async function searchActiveAddons(
       }
       const beforeRows = rows.length;
       for (const meta of outcome.value.metas) {
-        const row = normalizeMeta(meta, addon, outcome.value.type, baseUrl);
+        const row = normalizeMeta(meta, addon, outcome.value.type, baseUrl, language);
         if (row) rows.push(row);
         if (rows.length >= pageLimit) break;
       }
@@ -500,7 +519,7 @@ export interface SearchPageLoadResult {
   collection: SearchCollection;
 }
 
-/** Carrega uma página numerada, avançando pelos cursores quando necessário. */
+/** Loads a numbered page, advancing through cursors when necessary. */
 export async function searchPage(
   addons: AddonInstance[],
   disabledManifestUrls: readonly string[],
@@ -509,6 +528,7 @@ export async function searchPage(
   limits: SearchLimits = {},
   client: SearchClient = createFetchSearchClient(),
   cachedPages: Map<number, SearchCollection> = new Map(),
+  languages: SearchLanguages = {},
 ): Promise<SearchPageLoadResult> {
   const targetPage = Number.isSafeInteger(page) && page > 0 ? page : 1;
   let previousPagination: SearchPagination = {};
@@ -524,6 +544,7 @@ export async function searchPage(
       limits,
       client,
       previousPagination,
+      languages,
     );
     if (!cached) cachedPages.set(currentPage, collection);
     previousPagination = collection.pagination;

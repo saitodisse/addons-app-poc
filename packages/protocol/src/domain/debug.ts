@@ -1,6 +1,6 @@
 export type AddonLogLevel = 'info' | 'warn' | 'error';
 
-/** Evento estruturado que uma extensão pode enviar para a extensão de debug. */
+/** Structured event an add-on can send to the debug add-on. */
 export interface DebugEntry {
   addonId: string;
   level: AddonLogLevel;
@@ -9,7 +9,7 @@ export interface DebugEntry {
   timestamp: number;
 }
 
-/** Serviço opcional de observabilidade em tempo de execução. */
+/** Optional runtime observability service. */
 export interface DebugLog {
   record(entry: DebugEntry): void;
   list(): DebugEntry[];

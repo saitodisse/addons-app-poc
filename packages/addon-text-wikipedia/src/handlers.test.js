@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { catalog, search, text, content, contentJson } from './handlers.js';
 
-/** API falsa: simula busca paginada + random + summary sem rede. */
+/** Fake API: simulates paginated search + random + summary without a network. */
 function fakeApi() {
   const searchCalls = [];
   return {
@@ -10,27 +10,27 @@ function fakeApi() {
       searchCalls.push({ query, page });
       return {
         results: [
-        { title: 'Brasil', description: 'Brasil\n\nConteúdo de Brasil', url: 'https://x/Brasil' },
-        { title: 'Brasília', description: 'Brasília\n\nConteúdo de Brasília', url: 'https://x/Brasília' },
+        { title: 'Brazil', description: 'Brazil\n\nContent of Brazil', url: 'https://x/Brazil' },
+        { title: 'Brasilia', description: 'Brasilia\n\nContent of Brasilia', url: 'https://x/Brasilia' },
         ],
         pagination: { limit: 20, total: 2 },
       };
     },
     async random() {
-      return ['Chuva', 'Mar'];
+      return ['Rain', 'Sea'];
     },
     async summary(title) {
-      if (title === 'Inexistente') return { title, extract: '' };
+      if (title === 'Missing') return { title, extract: '' };
       return {
         title,
-        extract: 'Extrato de ' + title,
+        extract: 'Extract of ' + title,
         lang: 'pt',
         description: 'd',
-        displaytitle: `Título ${title}`,
+        displaytitle: `Title ${title}`,
         pageid: 123,
         revision: '456',
         timestamp: '2026-09-12T12:00:00Z',
-        content_urls: { desktop: { page: 'https://pt.wikipedia.org/wiki/Brasil' } },
+        content_urls: { desktop: { page: 'https://pt.wikipedia.org/wiki/Brazil' } },
         thumbnail: { source: 'https://upload.wikimedia.org/thumb.jpg' },
         originalimage: { source: 'https://upload.wikimedia.org/original.jpg' },
       };
@@ -40,8 +40,8 @@ function fakeApi() {
       return {
         body: {
           ...summary,
-          displaytitle: `Título ${title}`,
-          extract_html: `<p>Extrato de ${title}</p>`,
+          displaytitle: `Title ${title}`,
+          extract_html: `<p>Extract of ${title}</p>`,
           pageid: 123,
           wikibase_item: 'Q123',
           namespace: { id: 0, text: '' },
@@ -49,10 +49,10 @@ function fakeApi() {
           revision: '456',
           timestamp: '2026-09-12T12:00:00Z',
           tid: 'tid-123',
-          titles: { canonical: title, normalized: title, display: `Título ${title}` },
+          titles: { canonical: title, normalized: title, display: `Title ${title}` },
           content_urls: {
-            desktop: { page: 'https://pt.wikipedia.org/wiki/Brasil', revisions: 'https://pt.wikipedia.org/w/index.php?title=Brasil&action=history', edit: 'https://pt.wikipedia.org/w/index.php?title=Brasil&action=edit' },
-            mobile: { page: 'https://pt.m.wikipedia.org/wiki/Brasil', revisions: 'https://pt.m.wikipedia.org/w/index.php?title=Brasil&action=history', edit: 'https://pt.m.wikipedia.org/w/index.php?title=Brasil&action=edit' },
+            desktop: { page: 'https://pt.wikipedia.org/wiki/Brazil', revisions: 'https://pt.wikipedia.org/w/index.php?title=Brazil&action=history', edit: 'https://pt.wikipedia.org/w/index.php?title=Brazil&action=edit' },
+            mobile: { page: 'https://pt.m.wikipedia.org/wiki/Brazil', revisions: 'https://pt.m.wikipedia.org/w/index.php?title=Brazil&action=history', edit: 'https://pt.m.wikipedia.org/w/index.php?title=Brazil&action=edit' },
           },
           thumbnail: { source: 'https://upload.wikimedia.org/thumb.jpg', width: 100, height: 50 },
           originalimage: { source: 'https://upload.wikimedia.org/original.jpg', width: 200, height: 100 },
@@ -69,7 +69,7 @@ function fakeApi() {
             'content-length': '789',
             'content-type': 'application/json',
           },
-          bodyText: '{"title":"Brasil"}',
+          bodyText: '{"title":"Brazil"}',
         },
         durationMs: 37,
         collectedAt: '2026-09-12T12:00:00.037Z',
@@ -79,52 +79,63 @@ function fakeApi() {
 }
 
 describe('Wikipedia add-on handlers', () => {
-  it('search usa o limite ampliado e coloca o conteúdo na descrição', async () => {
+  it('includes the selected language in result URLs', async () => {
     const api = fakeApi();
-    const res = await search('page', 'brasil', api);
-    expect(api.searchCalls).toEqual([{ query: 'brasil', page: undefined }]);
-    expect(res.metas.map((m) => m.name)).toEqual(['Brasil', 'Brasília']);
+    api.language = 'en';
+
+    const res = await search('page', 'brazil', { lang: 'en' }, api);
+
+    expect(res.metas[0]).toMatchObject({
+      url: '/text/page/Brazil/content.txt?lang=en',
+    });
+  });
+
+  it('search uses the expanded limit and puts content in the description', async () => {
+    const api = fakeApi();
+    const res = await search('page', 'brazil', api);
+    expect(api.searchCalls).toEqual([{ query: 'brazil', page: undefined }]);
+    expect(res.metas.map((m) => m.name)).toEqual(['Brazil', 'Brasilia']);
     expect(res.metas[0].type).toBe('page');
-    expect(res.metas[0].description).toBe('Brasil\n\nConteúdo de Brasil');
+    expect(res.metas[0].description).toBe('Brazil\n\nContent of Brazil');
     expect(res.metas[0].description).not.toContain('content.txt');
     expect(res.pagination).toEqual({ limit: 20, total: 2 });
   });
 
-  it('repassa limite e cursor ao cliente externo', async () => {
+  it('passes the limit and cursor to the external client', async () => {
     const api = fakeApi();
-    const res = await search('page', 'brasil', { limit: 20, cursor: '20' }, api);
+    const res = await search('page', 'brazil', { limit: 20, cursor: '20' }, api);
 
-    expect(api.searchCalls).toEqual([{ query: 'brasil', page: { limit: 20, cursor: '20' } }]);
+    expect(api.searchCalls).toEqual([{ query: 'brazil', page: { limit: 20, cursor: '20' } }]);
     expect(res.metas).toHaveLength(2);
   });
 
-  it('catalog aleatorios devolve títulos aleatórios', async () => {
-    const res = await catalog('page', 'aleatorios', fakeApi());
-    expect(res.metas.map((m) => m.name)).toEqual(['Chuva', 'Mar']);
+  it('random catalog returns random titles', async () => {
+    const res = await catalog('page', 'random', fakeApi());
+    expect(res.metas.map((m) => m.name)).toEqual(['Rain', 'Sea']);
   });
 
-  it('text monta item com url relativa de conteúdo', async () => {
-    const res = await text('page', 'Brasil', fakeApi());
-    expect(res.texts[0].url).toBe('/text/page/Brasil/content.txt');
-    expect(res.texts[0].contentJsonUrl).toBe('/text/page/Brasil/content.json');
-    expect(res.texts[0].name).toBe('Brasil');
+  it('text builds an item with a relative content URL', async () => {
+    const res = await text('page', 'Brazil', fakeApi());
+    expect(res.texts[0].url).toBe('/text/page/Brazil/content.txt');
+    expect(res.texts[0].contentJsonUrl).toBe('/text/page/Brazil/content.json');
+    expect(res.texts[0].name).toBe('Brazil');
     expect(res.texts[0]).toMatchObject({ pageid: 123, revision: '456', timestamp: '2026-09-12T12:00:00Z' });
     expect(res.texts[0].content_urls).toBeDefined();
     expect(res.texts[0].thumbnail).toBeDefined();
     expect(res.texts[0].originalimage).toBeDefined();
   });
 
-  it('text lança erro quando não há extrato', async () => {
-    await expect(text('page', 'Inexistente', fakeApi())).rejects.toThrow('Artigo não encontrado');
+  it('text throws when no extract is available', async () => {
+    await expect(text('page', 'Missing', fakeApi())).rejects.toThrow('Article not found');
   });
 
-  it('content devolve título + extrato', async () => {
-    const body = await content('page', 'Brasil', fakeApi());
-    expect(body).toBe('Brasil\n\nExtrato de Brasil');
+  it('content returns title + extract', async () => {
+    const body = await content('page', 'Brazil', fakeApi());
+    expect(body).toBe('Brazil\n\nExtract of Brazil');
   });
 
-  it('contentJson devolve metadados, conteúdo, fonte e observabilidade', async () => {
-    const result = await contentJson('page', 'Brasil', fakeApi());
+  it('contentJson returns metadata, content, source, and observability', async () => {
+    const result = await contentJson('page', 'Brazil', fakeApi());
 
     expect(result.headers).toEqual({
       ETag: '"etag-456"',
@@ -132,13 +143,13 @@ describe('Wikipedia add-on handlers', () => {
       'Content-Language': 'pt',
     });
     expect(result.body).toMatchObject({
-      id: 'Brasil',
+      id: 'Brazil',
       type: 'page',
-      title: 'Brasil',
-      displaytitle: 'Título Brasil',
+      title: 'Brazil',
+      displaytitle: 'Title Brazil',
       description: 'd',
-      extract: 'Extrato de Brasil',
-      extract_html: '<p>Extrato de Brasil</p>',
+      extract: 'Extract of Brazil',
+      extract_html: '<p>Extract of Brazil</p>',
       pageid: 123,
       wikibase_item: 'Q123',
       namespace: { id: 0, text: '' },
@@ -151,16 +162,16 @@ describe('Wikipedia add-on handlers', () => {
       thumbnail: expect.any(Object),
       originalimage: expect.any(Object),
       content: {
-        text: 'Brasil\n\nExtrato de Brasil',
+        text: 'Brazil\n\nExtract of Brazil',
         charCount: 25,
         wordCount: 4,
         contentType: 'text/plain',
         encoding: 'utf-8',
       },
       source: {
-        provider: 'Wikipédia',
+        provider: 'Wikipedia',
         origin: 'https://pt.wikipedia.org',
-        url: 'https://pt.wikipedia.org/api/rest_v1/page/summary/Brasil',
+        url: 'https://pt.wikipedia.org/api/rest_v1/page/summary/Brazil',
         headers: {
           ETag: '"etag-456"',
           'Last-Modified': 'Sat, 12 Sep 2026 12:00:00 GMT',
@@ -177,11 +188,11 @@ describe('Wikipedia add-on handlers', () => {
     });
   });
 
-  it('marca artigo ausente com status 404', async () => {
-    await expect(contentJson('page', 'Inexistente', fakeApi())).rejects.toMatchObject({
+  it('marks a missing article with status 404', async () => {
+    await expect(contentJson('page', 'Missing', fakeApi())).rejects.toMatchObject({
       status: 404,
       code: 'ARTICLE_NOT_FOUND',
-      message: 'Artigo não encontrado: Inexistente',
+      message: 'Article not found: Missing',
     });
   });
 });

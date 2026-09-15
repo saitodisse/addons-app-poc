@@ -15,7 +15,7 @@ function manifest(id: string, services: ServiceInteraction[]): AddonManifest {
     version: '1.0.0',
     name: id,
     description: id,
-    author: 'Teste',
+    author: 'Test team',
     license: 'MIT',
     entrypoint: `https://example.test/${id}/bundle.js`,
     contract: {
@@ -32,7 +32,7 @@ function manifest(id: string, services: ServiceInteraction[]): AddonManifest {
 }
 
 function service(id: string, role: ServiceInteraction['role'], version: string): ServiceInteraction {
-  return { id, role, version, name: id, description: id, methods: [{ id: 'run', description: 'Executa.' }] };
+  return { id, role, version, name: id, description: id, methods: [{ id: 'run', description: 'Runs the service.' }] };
 }
 
 function setupFetch(addonManifest: AddonManifest): void {
@@ -44,7 +44,7 @@ function moduleFor(addonManifest: AddonManifest, setup: AddonModule['setup'] = (
 }
 
 describe('FetchAddonLoader', () => {
-  it('bloqueia antes do import quando falta serviço obrigatório', async () => {
+  it('blocks before import when a required service is missing', async () => {
     const addonManifest = manifest('consumer', [service('addons.missing.runner', 'consumes', '^1.0.0')]);
     setupFetch(addonManifest);
     const importFn = vi.fn();
@@ -53,11 +53,11 @@ describe('FetchAddonLoader', () => {
     const instance = await loader.load('https://example.test/consumer/manifest.json');
 
     expect(instance.status).toBe('blocked');
-    expect(instance.blockReason).toContain('Serviço obrigatório ausente');
+    expect(instance.blockReason).toContain('Missing required service');
     expect(importFn).not.toHaveBeenCalled();
   });
 
-  it('reativa o mesmo consumidor quando um provedor compatível surge', async () => {
+  it('reactivates the same consumer when a compatible provider appears', async () => {
     const consumerManifest = manifest('consumer', [service('addons.shared.runner', 'consumes', '^1.0.0')]);
     const registry = new ServiceRegistry();
     setupFetch(consumerManifest);
@@ -70,7 +70,7 @@ describe('FetchAddonLoader', () => {
     expect(blocked.status).toBe('blocked');
 
     registry.register('addons.shared.runner', { run: () => 'ok' }, 'provider', 10, {
-      id: 'addons.shared.runner', role: 'provides', version: '1.0.0', name: 'runner', description: 'runner', methods: [{ id: 'run', description: 'Executa.' }],
+      id: 'addons.shared.runner', role: 'provides', version: '1.0.0', name: 'runner', description: 'runner', methods: [{ id: 'run', description: 'Runs the service.' }],
     });
     setupFetch(consumerManifest);
     const ready = await loader.load('https://example.test/consumer/manifest.json');
@@ -78,13 +78,13 @@ describe('FetchAddonLoader', () => {
     expect(ready.status).toBe('ready');
   });
 
-  it('limpa registros parciais quando setup falha', async () => {
+  it('clears partial registrations when setup fails', async () => {
     const addonManifest = manifest('provider', [service('addons.provider.runner', 'provides', '1.0.0')]);
     setupFetch(addonManifest);
     const registry = new ServiceRegistry();
     const module = moduleFor(addonManifest, (host) => {
       host.registerService('addons.provider.runner', { run: () => 'ok' });
-      throw new Error('setup falhou');
+      throw new Error('setup failed');
     });
     const loader = new FetchAddonLoader(registry, { log() {} }, async () => module);
 
@@ -94,7 +94,7 @@ describe('FetchAddonLoader', () => {
     expect(registry.has('addons.provider.runner')).toBe(false);
   });
 
-  it('aceita manifesto do bundle com entrypoint relativo ao projeto', async () => {
+  it('accepts a bundle manifest with a project-relative entrypoint', async () => {
     const remoteManifest = manifest('markdown', [service('addons.markdown.text-formatter', 'provides', '1.0.0')]);
     const bundleManifest = { ...remoteManifest, entrypoint: '/packages/addon-markdown/dist/bundle.js' };
     setupFetch(remoteManifest);
@@ -107,7 +107,7 @@ describe('FetchAddonLoader', () => {
     expect(instance.error).toBeUndefined();
   });
 
-  it('busca cada manifesto uma única vez ao restaurar vários add-ons', async () => {
+  it('fetches each manifest only once when restoring multiple add-ons', async () => {
     const addonManifest = manifest('http-addon', [service('addons.http-addon.runner', 'provides', '1.0.0')]);
     const manifestUrl = 'https://example.test/http-addon/manifest.json';
     setupFetch(addonManifest);

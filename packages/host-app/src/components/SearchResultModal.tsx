@@ -39,7 +39,7 @@ export function SearchResultModal({ result, content, loading, error, onClose }: 
       <div className="host-search-result-modal" role="dialog" aria-modal="true" aria-labelledby="search-result-title">
         <header className="host-search-result-header">
           <div>
-            <span className="host-search-result-kicker">Conteúdo do resultado</span>
+            <span className="host-search-result-kicker">Result content</span>
             <h2 id="search-result-title">{result.name}</h2>
             <p>{result.sourceAddonName} · {result.type}</p>
           </div>
@@ -47,8 +47,8 @@ export function SearchResultModal({ result, content, loading, error, onClose }: 
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            aria-label="Fechar conteúdo"
-            title="Fechar conteúdo"
+            aria-label="Close content"
+            title="Close content"
             className="host-search-result-close"
           >
             ×
@@ -56,8 +56,8 @@ export function SearchResultModal({ result, content, loading, error, onClose }: 
         </header>
 
         <div className="host-search-result-body" aria-busy={loading}>
-          {loading && <p role="status">Carregando conteúdo…</p>}
-          {error && <p role="alert">Não foi possível carregar o conteúdo: {error}</p>}
+          {loading && <p role="status">Loading content…</p>}
+          {error && <p role="alert">Could not load content: {error}</p>}
           {!loading && !error && content !== null && <pre>{content}</pre>}
         </div>
       </div>

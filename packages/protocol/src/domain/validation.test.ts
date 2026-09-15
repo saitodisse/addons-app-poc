@@ -12,11 +12,11 @@ const processInteractions = {
   version: '1.0.0' as const,
   protocol: { version: '1.0.0' as const, range: '^1.0.0' },
   capabilities: { required: [], optional: ['registry.services', 'ui.tab', 'logs', 'state-store'] },
-  services: [{ id: 'addons.hello.greeter', role: 'provides' as const, version: '1.0.0', name: 'Greeter', description: 'Cria saudações.', methods: [{ id: 'greet', description: 'Saúda um nome.', receives: stringPayload('Nome.'), returns: stringPayload('Saudação.') }] }],
+  services: [{ id: 'addons.hello.greeter', role: 'provides' as const, version: '1.0.0', name: 'Greeter', description: 'Creates greetings.', methods: [{ id: 'greet', description: 'Greets a name.', receives: stringPayload('Name.'), returns: stringPayload('Greeting.') }] }],
   ui: {
-    title: 'Hello', body: 'Uma saudação.',
-    fields: [{ id: 'name', label: 'Nome', description: 'Nome para a saudação.', required: true, schema: stringPayload('Nome informado.').schema }],
-    actions: [{ id: 'greet', label: 'Saudar', description: 'Cria uma saudação.', receives: ['name'], returns: stringPayload('Saudação criada.') }],
+    title: 'Hello', body: 'A greeting.',
+    fields: [{ id: 'name', label: 'Name', description: 'Name for the greeting.', required: true, schema: stringPayload('Provided name.').schema }],
+    actions: [{ id: 'greet', label: 'Greet', description: 'Creates a greeting.', receives: ['name'], returns: stringPayload('Created greeting.') }],
   },
   state: [],
   http: [],
@@ -27,26 +27,26 @@ const validManifest = defineAddonManifest({
   id: 'hello',
   version: '1.0.0',
   name: 'Hello Add-on',
-  description: 'Um add-on simples',
+  description: 'A simple add-on',
   author: 'Joaquim',
   license: 'MIT',
-  ui: { title: 'Hello', body: 'Uma saudação.' },
+  ui: { title: 'Hello', body: 'A greeting.' },
   entrypoint: 'https://example.com/bundle.js',
   services: [
-    { id: 'addons.hello.greeter', version: '1.0.0', name: 'Greeter', description: 'Saudação' },
+    { id: 'addons.hello.greeter', version: '1.0.0', name: 'Greeter', description: 'Greeting' },
   ],
   contract: processInteractions,
 });
 
-// Manifesto estilo Stremio: add-on servido por HTTP com resources (como o Torrentio)
+// Stremio-style manifest: add-on served over HTTP with resources (like Torrentio).
 const stremioManifest = defineAddonManifest({
-  id: 'text-biblioteca',
+  id: 'text-library',
   version: '1.0.0',
-  name: 'Biblioteca de Textos',
-  description: 'Catálogo e busca de textos',
-  author: 'Equipe AC',
+  name: 'Text Library',
+  description: 'Text catalog and search',
+  author: 'AC Team',
   license: 'MIT',
-  ui: { title: 'Biblioteca', body: 'Textos para leitura.' },
+  ui: { title: 'Library', body: 'Texts to read.' },
   resources: [
     { name: 'catalog', types: ['text'], idPrefixes: [] },
     { name: 'search', types: ['text'], idPrefixes: [] },
@@ -55,19 +55,19 @@ const stremioManifest = defineAddonManifest({
   types: ['text'],
   idPrefixes: [],
   catalogs: [
-    { type: 'text', id: 'classicos', name: 'Textos Clássicos' },
+    { type: 'text', id: 'classics', name: 'Classic Texts' },
   ],
   contract: {
     version: '1.0.0' as const,
     protocol: { version: '1.0.0' as const, range: '^1.0.0' },
     capabilities: { required: [], optional: ['registry.services', 'ui.tab', 'logs', 'state-store'] },
     services: [],
-    ui: { title: 'Biblioteca', body: 'Textos.', fields: [], actions: [] },
+    ui: { title: 'Library', body: 'Texts.', fields: [], actions: [] },
     state: [],
     http: [
-      { id: 'catalog', direction: 'incoming' as const, method: 'GET' as const, path: '/catalog/{type}/{catalogId}.json', purpose: 'Lista textos.', resource: 'catalog', returns: stringPayload('Itens do catálogo.') },
-      { id: 'search', direction: 'incoming' as const, method: 'GET' as const, path: '/search/{type}/{query}.json', purpose: 'Busca textos.', resource: 'search', receives: stringPayload('Termo buscado.'), returns: stringPayload('Itens encontrados.') },
-      { id: 'text', direction: 'incoming' as const, method: 'GET' as const, path: '/text/{type}/{id}.json', purpose: 'Lista versões do texto.', resource: 'text', receives: stringPayload('Identificador do texto.'), returns: stringPayload('Versões do texto.') },
+      { id: 'catalog', direction: 'incoming' as const, method: 'GET' as const, path: '/catalog/{type}/{catalogId}.json', purpose: 'Lists texts.', resource: 'catalog', returns: stringPayload('Catalog items.') },
+      { id: 'search', direction: 'incoming' as const, method: 'GET' as const, path: '/search/{type}/{query}.json', purpose: 'Searches texts.', resource: 'search', receives: stringPayload('Searched term.'), returns: stringPayload('Found items.') },
+      { id: 'text', direction: 'incoming' as const, method: 'GET' as const, path: '/text/{type}/{id}.json', purpose: 'Lists text versions.', resource: 'text', receives: stringPayload('Text identifier.'), returns: stringPayload('Text versions.') },
     ],
     logs: [],
   },
@@ -88,13 +88,13 @@ describe('validateManifest', () => {
 
   it('returns invalid for a manifest without services nor resources', () => {
     const result = validateManifest({
-      id: 'vazio',
+      id: 'empty',
       version: '1.0.0',
-      name: 'Vazio',
-      description: 'Sem serviços nem recursos',
+      name: 'Empty',
+      description: 'No services or resources',
       author: 'X',
       license: 'MIT',
-      ui: { title: 'Vazio', body: 'Sem capacidade.' },
+      ui: { title: 'Empty', body: 'No capability.' },
     });
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.includes('services') || e.includes('resources') || e.includes('contract'))).toBe(true);
@@ -118,10 +118,19 @@ describe('validateManifest', () => {
     expect(result.errors.some(e => e.includes('resources'))).toBe(true);
   });
 
+  it('returns invalid when resource languages are not a non-empty list', () => {
+    const result = validateManifest({
+      ...stremioManifest,
+      contract: { ...stremioManifest.contract, resources: [{ name: 'search', types: ['text'], languages: [''] }] },
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.includes('languages'))).toBe(true);
+  });
+
   it('returns invalid when catalogs reference an unknown type', () => {
     const result = validateManifest({
       ...stremioManifest,
-      contract: { ...stremioManifest.contract, catalogs: [{ type: 'filme', id: 'top', name: 'Filmes' }] },
+      contract: { ...stremioManifest.contract, catalogs: [{ type: 'movie', id: 'top', name: 'Movies' }] },
     });
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.includes('catalogs'))).toBe(true);
@@ -185,7 +194,7 @@ describe('validateManifest', () => {
         ...validManifest.contract,
         services: [
           ...validManifest.contract.services,
-          { id: 'addons.shared.search', role: 'consumes', version: '^1.0.0', name: 'Search', description: 'Busca compartilhada.', methods: [] },
+          { id: 'addons.shared.search', role: 'consumes', version: '^1.0.0', name: 'Search', description: 'Shared search.', methods: [] },
         ],
       },
     });
@@ -201,20 +210,20 @@ describe('validateManifest', () => {
       },
     });
     expect(result.valid).toBe(false);
-    expect(result.errors.some((error) => error.includes('versão exata'))).toBe(true);
+    expect(result.errors.some((error) => error.includes('exact version'))).toBe(true);
   });
 
   it('returns invalid when the interaction contract is absent', () => {
     const { contract: _contract, ...withoutContract } = validManifest;
     const result = validateManifest(withoutContract);
     expect(result.valid).toBe(false);
-    expect(result.errors).toContain("Campo 'contract' é obrigatório");
+    expect(result.errors).toContain("Field 'contract' is required");
   });
 
   it('returns invalid when legacy fields are placed outside contract', () => {
-    const result = validateManifest({ ...validManifest, ui: { title: 'legado', body: 'não usar' } });
+    const result = validateManifest({ ...validManifest, ui: { title: 'legacy', body: 'do not use' } });
     expect(result.valid).toBe(false);
-    expect(result.errors.some((error) => error.includes('legado'))).toBe(true);
+    expect(result.errors.some((error) => error.toLowerCase().includes('legacy'))).toBe(true);
   });
 
   it('returns invalid when a tab action receives a field that was not declared', () => {
@@ -234,15 +243,15 @@ describe('validateManifest', () => {
 
   it('returns invalid when the executable tab introduces an undeclared action', () => {
     const result = validateTabContract(validManifest as unknown as Record<string, unknown>, {
-      fields: [{ id: 'name', label: 'Nome', required: true }],
-      actions: [{ id: 'remove', label: 'Remover' }],
+      fields: [{ id: 'name', label: 'Name', required: true }],
+      actions: [{ id: 'remove', label: 'Remove' }],
     });
     expect(result.valid).toBe(false);
-    expect(result.errors.some((error) => error.includes('ação não presente'))).toBe(true);
+    expect(result.errors.some((error) => error.includes('action not present'))).toBe(true);
   });
 
   it('passes only the fields declared by an action to the add-on', () => {
-    const input = validateTabActionInput(processInteractions, 'greet', { name: 'Ana', ignored: 'não enviar' });
+    const input = validateTabActionInput(processInteractions, 'greet', { name: 'Ana', ignored: 'do not send' });
     expect(input).toEqual({ valid: true, errors: [], values: { name: 'Ana' } });
   });
 
@@ -257,11 +266,11 @@ describe('validateManifest', () => {
     };
     const access = createContractServiceAccess({ get: <T,>() => stateStore as unknown as T }, {
       ...processInteractions,
-      services: [...processInteractions.services, { id: 'state-store', role: 'consumes', version: '1.0.0', name: 'State store', description: 'Estado opcional.', methods: [{ id: 'get', description: 'Lê.' }, { id: 'set', description: 'Grava.' }] }],
-      state: [{ id: 'tab', description: 'Estado da aba.', key: 'hello:tab', operations: ['read', 'write'], value: stringPayload('Estado da aba.'), retention: 'Temporário.', deletionTrigger: 'Limpeza.', fallback: 'memory' }],
+      services: [...processInteractions.services, { id: 'state-store', role: 'consumes', version: '1.0.0', name: 'State store', description: 'Optional state.', methods: [{ id: 'get', description: 'Reads.' }, { id: 'set', description: 'Writes.' }] }],
+      state: [{ id: 'tab', description: 'Tab state.', key: 'hello:tab', operations: ['read', 'write'], value: stringPayload('Tab state.'), retention: 'Temporary.', deletionTrigger: 'Cleanup.', fallback: 'memory' }],
     });
     const guarded = access.use<typeof stateStore>({ id: 'state-store' })!;
     await guarded.set('hello:tab', 'ok');
-    expect(() => guarded.set('other:tab', 'bloqueado')).toThrow('Operação de estado não declarada');
+    expect(() => guarded.set('other:tab', 'blocked')).toThrow('State operation not declared');
   });
 });

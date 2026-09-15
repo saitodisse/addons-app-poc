@@ -1,25 +1,25 @@
 /**
- * Sobe o host-app e cada add-on como processo independente.
- * Uso: pnpm dev
- * Portas: host-app :5280 · add-on HTTP :5294 · add-ons em processo :5304, :5306-5308
+ * Starts host-app and each add-on as an independent process.
+ * Usage: pnpm dev
+ * Ports: host-app :5280 · HTTP add-on :5294 · in-process add-ons :5304, :5306-5308
  *
- * Quando um projeto com script `serve` for adicionado, removido ou mudar de
- * porta, atualize esta lista e sincronize `PORTS` e os padrões de órfãos em
+ * When a project with a `serve` script is added, removed, or changes its port,
+ * update this list and synchronize `PORTS` and the orphan patterns in
  * `scripts/kill-all.mjs`.
  */
 import { spawn } from 'node:child_process';
 
 const OPEN_BROWSER = process.argv.includes('--open');
 
-// No WSL não há navegador com GUI — o browser fica no Windows.
-// Detecta WSL e só abre o navegador fora dele (Linux com desktop).
+// WSL has no GUI browser; the browser runs on Windows.
+// Detect WSL and open the browser only outside it (Linux with a desktop).
 const isWSL = Boolean(
   process.env.WSL_DISTRO_NAME || process.env.WSL_INTEROP || process.env.WSLENV,
 );
 
-// Todos os pacotes executáveis restantes da demonstração. Pacotes de contrato e
-// bibliotecas compartilhadas não entram porque não têm um servidor próprio.
-// Mantenha esta lista sincronizada com PORTS/padrões em kill-all.mjs.
+// All remaining executable demonstration packages. Contract packages and
+// shared libraries are excluded because they have no own server.
+// Keep this list synchronized with PORTS/patterns in kill-all.mjs.
 const ADDON_SERVERS = [
   { packageName: '@addons/addon-text-wikipedia', port: 5294 },
   { packageName: '@addons/addon-markdown', port: 5304 },
@@ -47,8 +47,8 @@ const children = [
 ];
 
 if (isWSL) {
-  console.log('[dev] WSL detectado — abra o navegador do Windows em:');
-  console.log('[dev]   http://localhost:5280/  (aba 📄 Textos)');
+  console.log('[dev] WSL detected — open a Windows browser at:');
+  console.log('[dev]   http://localhost:5280/  (📄 Text tab)');
 }
 
 function shutdown(signal) {
@@ -63,7 +63,7 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 for (const child of children) {
   child.on('exit', (code) => {
     if (code !== 0) {
-      console.error(`[dev] processo encerrou com código ${code}`);
+      console.error(`[dev] process exited with code ${code}`);
     }
   });
 }

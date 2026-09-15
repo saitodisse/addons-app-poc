@@ -3,23 +3,23 @@ import { createFavoritesService, createOptionalStateFavoritesService, manifest }
 import { MemoryBookmarkStore } from './memory-bookmark-store';
 
 describe('createFavoritesService', () => {
-  it('lista, adiciona e remove usando uma store', async () => {
+  it('lists, adds, and removes using a store', async () => {
     const s = new MemoryBookmarkStore();
     const fav = createFavoritesService(s);
-    await fav.add('Um conto', 'http://x');
+    await fav.add('A story', 'http://x');
     const list = await fav.list();
-    expect(list.map((b) => b.title)).toContain('Um conto');
+    expect(list.map((b) => b.title)).toContain('A story');
     expect(list[0].id).toBeTruthy();
     expect(list[0].createdAt).toBeGreaterThan(0);
   });
 
-  it('degrada a memoria quando o store está ausente', async () => {
-    const fav = createFavoritesService(); // sem store → memória interna
-    await fav.add('Sobrevivente');
-    expect((await fav.list()).map((b) => b.title)).toContain('Sobrevivente');
+  it('falls back to memory when the store is absent', async () => {
+    const fav = createFavoritesService(); // no store -> internal memory
+    await fav.add('Survivor');
+    expect((await fav.list()).map((b) => b.title)).toContain('Survivor');
   });
 
-  it('remove devuelve true/false', async () => {
+  it('remove returns true/false', async () => {
     const fav = createFavoritesService();
     const saved = await fav.add('x');
     expect(await fav.remove(saved.id)).toBe(true);
@@ -27,7 +27,7 @@ describe('createFavoritesService', () => {
     expect(await fav.list()).toHaveLength(0);
   });
 
-  it('só grava a lista quando o serviço de estado opcional existe', async () => {
+  it('writes the list only when the optional state service exists', async () => {
     const saved = new Map<string, unknown>();
     const services = {
       use: <T,>(contract: { id: string }) => contract.id === 'state-store' ? {
@@ -37,13 +37,13 @@ describe('createFavoritesService', () => {
       } as T : undefined,
     };
     const fav = createOptionalStateFavoritesService({ services } as never);
-    await fav.add('Persistido');
+    await fav.add('Persisted');
     expect(saved.get('favorites:list')).toHaveLength(1);
   });
 });
 
 describe('manifest', () => {
-  it('declara o serviço favorites', () => {
+  it('declares the favorites service', () => {
     expect(manifest.id).toBe('favorites');
     expect(manifest.contract.services.map((s) => s.id)).toContain('addons.favorites');
   });

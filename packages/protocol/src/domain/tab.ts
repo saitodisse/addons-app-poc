@@ -1,4 +1,4 @@
-/** Metadados declarados no manifesto para a aba que o add-on oferece ao host. */
+/** Manifest metadata for the tab that the add-on offers to the host. */
 export interface AddonTabMetadata {
   title: string;
   body: string;
@@ -23,11 +23,11 @@ export type JsonValue = string | number | boolean | null | JsonValue[] | { [key:
 export interface AddonTabResultItem {
   label: string;
   value: string;
-  /** Valor serializável que o host pode revelar sob demanda, sem interpretar a regra do add-on. */
+  /** Serializable value the host can reveal on demand without interpreting add-on rules. */
   details?: JsonValue;
 }
 
-/** Resposta produzida por uma ação da aba e exibida pelo host. */
+/** Response produced by a tab action and displayed by the host. */
 export interface AddonTabResult {
   status: 'info' | 'success' | 'error';
   title?: string;
@@ -35,23 +35,23 @@ export interface AddonTabResult {
   items?: AddonTabResultItem[];
 }
 
-/** Estado de interface que o host pode restaurar para uma aba que o solicitar. */
+/** Interface state that the host can restore for a tab that requests it. */
 export interface AddonTabViewState {
   values: Record<string, string>;
   response?: AddonTabResult;
 }
 
-/** Ponte declarada pelo add-on para persistir sua interface sem acoplar o host ao armazenamento. */
+/** Add-on bridge for persisting its interface without coupling the host to storage. */
 export interface AddonTabPersistence {
   load(): Promise<AddonTabViewState | undefined>;
   save(state: AddonTabViewState): Promise<void>;
 }
 
 /**
- * Interface executável entregue por um add-on em processo.
+ * Executable interface provided by an in-process add-on.
  *
- * O host renderiza campos e botões de forma genérica; a extensão preserva sua
- * própria regra ao receber a ação e os valores preenchidos.
+ * The host renders fields and buttons generically; the add-on keeps its own
+ * rules when it receives the action and filled values.
  */
 export interface AddonTab extends AddonTabMetadata {
   fields?: AddonTabField[];

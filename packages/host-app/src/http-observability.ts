@@ -16,17 +16,17 @@ export function headersToObject(headers: Headers | undefined): Record<string, st
 }
 
 /**
- * Mantém a troca HTTP expandível no DevTools, com request e response
- * separados para que o corpo completo não fique escondido em uma string.
+ * Keeps the HTTP exchange expandable in DevTools, with separate request and
+ * response objects so the complete body is not hidden in a string.
  */
 export function logBrowserHttpExchange(exchange: BrowserHttpExchange): void {
   const label = `[addons-poc][HTTP] ${exchange.method} ${exchange.url}`;
   const browserConsole = globalThis.console;
   browserConsole.groupCollapsed?.(label);
-  browserConsole.log('Request enviado pela página', exchange.request);
-  if (exchange.response !== undefined) browserConsole.log('Response recebido pela página', exchange.response);
-  if (exchange.error !== undefined) browserConsole.error('Erro na troca HTTP', exchange.error);
-  browserConsole.log('Troca completa', exchange);
+  browserConsole.log('Request sent by the page', exchange.request);
+  if (exchange.response !== undefined) browserConsole.log('Response received by the page', exchange.response);
+  if (exchange.error !== undefined) browserConsole.error('HTTP exchange error', exchange.error);
+  browserConsole.log('Complete exchange', exchange);
   browserConsole.groupEnd?.();
 }
 
@@ -49,8 +49,8 @@ export function logBrowserDebugPayload({
 }): void {
   const browserConsole = globalThis.console;
   browserConsole.groupCollapsed?.(`[addons-poc][DEBUG] GET ${url}`);
-  browserConsole.log('Debug recebido pelo host', body);
-  browserConsole.log('Corpo bruto do debug', bodyText);
-  browserConsole.log('Resposta HTTP do debug', { status, ok, headers, durationMs });
+  browserConsole.log('Debug received by the host', body);
+  browserConsole.log('Raw debug body', bodyText);
+  browserConsole.log('Debug HTTP response', { status, ok, headers, durationMs });
   browserConsole.groupEnd?.();
 }

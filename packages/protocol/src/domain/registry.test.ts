@@ -4,7 +4,7 @@ import { ServiceRegistry } from './registry';
 describe('ServiceRegistry', () => {
   it('register and get a service', () => {
     const registry = new ServiceRegistry();
-    const greeter = { greet: (name: string) => `Olá, ${name}!` };
+    const greeter = { greet: (name: string) => `Hello, ${name}!` };
 
     registry.register('greeter', greeter, 'addon-hello');
 
@@ -13,8 +13,8 @@ describe('ServiceRegistry', () => {
 
   it('getAll returns services ordered by priority descending', () => {
     const registry = new ServiceRegistry();
-    const low = { greet: () => 'baixa' };
-    const high = { greet: () => 'alta' };
+    const low = { greet: () => 'low' };
+    const high = { greet: () => 'high' };
 
     registry.register('greeter', low, 'addon-a', 0);
     registry.register('greeter', high, 'addon-b', 10);
@@ -27,8 +27,8 @@ describe('ServiceRegistry', () => {
 
   it('get returns the highest priority service', () => {
     const registry = new ServiceRegistry();
-    const low = { greet: () => 'baixa' };
-    const high = { greet: () => 'alta' };
+    const low = { greet: () => 'low' };
+    const high = { greet: () => 'high' };
 
     registry.register('greeter', low, 'addon-a', 0);
     registry.register('greeter', high, 'addon-b', 10);
@@ -38,7 +38,7 @@ describe('ServiceRegistry', () => {
 
   it("get returns undefined when service doesn't exist", () => {
     const registry = new ServiceRegistry();
-    expect(registry.get('inexistente')).toBeUndefined();
+    expect(registry.get('missing')).toBeUndefined();
   });
 
   it('has returns true when service exists', () => {
