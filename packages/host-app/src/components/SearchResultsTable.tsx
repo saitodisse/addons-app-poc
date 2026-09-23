@@ -4,6 +4,8 @@ import { href, resultRoute } from '../router';
 
 interface SearchResultsTableProps {
   query: string;
+  /** True while the table lists the catalogues instead of a search term. */
+  browsing?: boolean;
   results: SearchResultRow[];
   errors: SearchProviderError[];
   loading: boolean;
@@ -14,15 +16,18 @@ interface SearchResultsTableProps {
   onPreviousPage: () => void;
   onNextPage: () => void;
 }
-export function SearchResultsTable({ query, results, errors, loading, providerCount, page, canGoPrevious, canGoNext, onPreviousPage, onNextPage }: SearchResultsTableProps) {
+export function SearchResultsTable({ query, browsing = false, results, errors, loading, providerCount, page, canGoPrevious, canGoNext, onPreviousPage, onNextPage }: SearchResultsTableProps) {
   const hasVisualColumn = results.some((result) => result.emoji || result.image);
+  const listsSomething = Boolean(query) || browsing;
   const emptyMessage = query
     ? providerCount === 0
       ? 'Enable an add-on that declares the search resource to populate this list.'
       : 'No results were found in active add-ons.'
-    : 'Your search results will appear here.';
+    : providerCount === 0
+      ? 'No active add-on publishes a catalogue yet.'
+      : 'These add-ons publish no item.';
   const renderPagination = (ariaLabel: string, placement: 'top' | 'bottom') => {
-    if (!query || results.length === 0) return null;
+    if (!listsSomething || results.length === 0) return null;
     return (
       <nav aria-label={ariaLabel} style={{ display: 'flex', justifyContent: placement === 'bottom' ? 'flex-end' : undefined }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -62,14 +67,20 @@ export function SearchResultsTable({ query, results, errors, loading, providerCo
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
         <div>
-          <h2 style={{ margin: 0, color: '#f1f5f9', fontSize: 20 }}>Results</h2>
+          <h2 style={{ margin: 0, color: '#f1f5f9', fontSize: 20 }}>{query ? 'Results' : 'Catalogue'}</h2>
           <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: 13 }}>
-            {query ? `Search for “${query}”` : 'The main list of active add-ons.'}
+            {query
+              ? `Search for “${query}”`
+              : browsing
+                ? `Everything published by ${providerCount} active add-on${providerCount === 1 ? '' : 's'}, page by page. Type a query to search instead.`
+                : 'Type a query to search every active add-on, or leave the field empty to list what they publish.'}
           </p>
         </div>
-        {query && (
+        {listsSomething && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span role="status" style={{ color: loading ? '#fbbf24' : '#94a3b8', fontSize: 12 }}>{loading ? 'Searching…' : `${results.length} result(s)`}</span>
+            <span role="status" style={{ color: loading ? '#fbbf24' : '#94a3b8', fontSize: 12 }}>
+              {loading ? (query ? 'Searching…' : 'Loading…') : `${results.length} item(s) on page ${page}`}
+            </span>
             {renderPagination('Results pagination', 'top')}
           </div>
         )}

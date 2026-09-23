@@ -15,83 +15,6 @@ main.host-home-main {
   box-sizing: border-box;
 }
 
-.host-live-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  overflow-y: auto;
-  padding: 96px 20px 24px;
-  box-sizing: border-box;
-  background: rgba(2, 6, 23, 0.78);
-}
-
-.host-live-modal {
-  width: min(1080px, 100%);
-  overflow: hidden;
-  border: 1px solid rgba(129, 140, 248, 0.38);
-  border-radius: 14px;
-  background: #1e293b;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
-}
-
-.host-live-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 18px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(15, 23, 42, 0.76);
-}
-
-.host-live-modal-header h2 {
-  margin: 0 0 4px;
-  color: #f1f5f9;
-  font-size: 19px;
-}
-
-.host-live-modal-header p {
-  margin: 0;
-  color: #94a3b8;
-  font-size: 12px;
-}
-
-.host-live-modal-gear {
-  width: 38px;
-  height: 38px;
-  flex: 0 0 auto;
-  padding: 0;
-  border: 1px solid rgba(165, 180, 252, 0.5);
-  border-radius: 8px;
-  background: rgba(99, 102, 241, 0.22);
-  color: #e0e7ff;
-  cursor: pointer;
-  font-size: 18px;
-  line-height: 1;
-}
-
-.host-live-modal-grid {
-  display: grid;
-  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
-  gap: 14px;
-  max-height: calc(100vh - 170px);
-  overflow: auto;
-  padding: 16px;
-}
-
-.host-live-modal-detail {
-  min-width: 0;
-  min-height: 220px;
-  padding: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.025);
-  overflow: hidden;
-}
-
 .host-addon-contract code,
 .host-addon-contract li {
   max-width: 100%;
@@ -279,6 +202,40 @@ main.host-search-result-page-main {
   margin: 0 auto;
 }
 
+/* A rendered result is a panel, not prose, so it uses the whole window. */
+.host-article-page.is-rendered-view,
+.host-article-page.is-rendered-view .host-article-card {
+  width: 100%;
+}
+
+/* A rendered result keeps the controls of its add-on beside the chart. */
+.host-rendered-result {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+}
+
+/*
+ * On this page the document is the only scroller: the chart grows to its full
+ * height and the panel has no scroll of its own, so the wheel always moves the
+ * page and every control stays reachable.
+ */
+.host-rendered-result .host-tab-panel {
+  position: static;
+  max-height: none;
+  overflow: visible;
+}
+
+.host-rendered-result.has-panel {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
+@media (max-width: 1000px) {
+  .host-rendered-result.has-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .host-article-back {
   display: inline-block;
   margin-bottom: 16px;
@@ -413,12 +370,32 @@ main.host-search-result-page-main {
   margin-bottom: 0;
 }
 
+/*
+ * The rendered view grows with its content: the page is the only scroller, so
+ * the wheel always moves the document and nothing is cut off.
+ */
+.host-tab-view {
+  overflow: visible;
+  padding: 18px 20px;
+  border-radius: 8px;
+}
+
+/* The rendered view is a panel: it keeps its own background and breathing room. */
+.host-tab-view > pre {
+  padding-right: 16px;
+  padding-bottom: 12px;
+  padding-left: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+}
+
 .host-article-fallback-content {
   margin: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   color: #dbeafe;
-  font: 15px/1.75 system-ui, -apple-system, sans-serif;
+  /* Preformatted content keeps its own columns, so it needs a fixed pitch. */
+  font: 15px/1.75 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .host-article-info-grid {
@@ -539,14 +516,6 @@ main.host-search-result-page-main {
     padding-left: 10px !important;
   }
 
-  .host-live-modal-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .host-live-modal-backdrop {
-    padding: 82px 10px 10px;
-  }
-
   .host-search-result-backdrop {
     padding: 82px 10px 10px;
   }
@@ -571,4 +540,285 @@ main.host-search-result-page-main {
     margin-right: 18px;
     margin-left: 18px;
   }
+}
+
+/* Add-on interface: a fixed control panel beside the response. */
+.host-tab-layout {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.host-tab-content {
+  min-width: 0;
+}
+
+.host-tab-title {
+  margin: 0 0 6px;
+  color: #f1f5f9;
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.host-tab-body {
+  margin: 0 0 20px;
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.host-tab-panel {
+  position: sticky;
+  top: 88px;
+  align-self: start;
+  display: grid;
+  gap: 18px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.55);
+}
+
+.host-tab-panel-group {
+  display: grid;
+  gap: 8px;
+}
+
+.host-tab-panel-heading {
+  margin: 0;
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.host-tab-panel-field {
+  display: grid;
+  gap: 6px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.host-tab-control {
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  color: #e2e8f0;
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.host-tab-panel-actions {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+}
+
+.host-tab-panel-button {
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.host-tab-panel-button.is-secondary {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+}
+
+.host-tab-panel-button.is-danger {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fecaca;
+}
+
+.host-tab-panel-button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.host-tab-response {
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.host-tab-response-title {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.host-tab-text {
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 14px;
+}
+
+.host-tab-items {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  font-size: 13px;
+}
+
+.host-tab-item {
+  display: grid;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid currentColor;
+}
+
+.host-tab-item:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.host-tab-item dt {
+  font-weight: 650;
+}
+
+.host-tab-item dd {
+  margin: 0;
+  opacity: 0.9;
+  overflow-wrap: anywhere;
+}
+
+.host-tab-item-link {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-weight: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 4px;
+}
+
+.host-tab-json {
+  min-height: 220px;
+  margin-top: 20px;
+  overflow: hidden;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  background: #020617;
+}
+
+.host-tab-json header {
+  padding: 11px 14px;
+  border-bottom: 1px solid #1e293b;
+  background: #0f172a;
+}
+
+.host-tab-json header span {
+  display: block;
+  color: #22c55e;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+
+.host-tab-json header h4 {
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.host-tab-json pre {
+  max-height: 520px;
+  margin: 0;
+  overflow: auto;
+  padding: 18px;
+  color: #cbd5e1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.host-tab-json p {
+  margin: 0;
+  padding: 18px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+@media (max-width: 900px) {
+  .host-tab-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .host-tab-panel {
+    position: static;
+    max-height: none;
+    order: -1;
+  }
+}
+
+/* Control panel: sliders, toggles, and colours. */
+.host-tab-field-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.host-tab-field-value {
+  color: #93c5fd;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+
+.host-tab-range {
+  width: 100%;
+  height: 18px;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+
+.host-tab-panel-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.host-tab-panel-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+
+.host-tab-color {
+  width: 100%;
+  height: 26px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { AddonInstance } from '@addons-poc/protocol';
 import { AddonContractView } from './AddonContractView';
+import { addonRoute, href } from '../router';
 import { getSearchLanguages, parseSearchLimitInput } from '../search';
 import type { SearchLimitValue } from '../search';
 
@@ -59,6 +60,23 @@ export function AddonCard({ addon, enabled, onToggle, onRemove, stateDestination
       </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '0 0 auto' }}>
+        {!reviewRequired && enabled && addon.status === 'ready' && (
+          <a
+            href={href(addonRoute(addon.manifestUrl))}
+            aria-label={`Open the page of ${addon.manifest.name}`}
+            style={{
+              padding: '6px 10px',
+              border: '1px solid rgba(148,163,184,0.35)',
+              borderRadius: 6,
+              background: 'rgba(148,163,184,0.12)',
+              color: '#cbd5e1',
+              fontSize: 12,
+              textDecoration: 'none',
+            }}
+          >
+            Open page
+          </a>
+        )}
         {reviewRequired && onAcceptContract && <button onClick={() => onAcceptContract(addon.manifestUrl)} style={{ padding: '6px 10px', border: '1px solid rgba(251,191,36,0.45)', borderRadius: 6, background: 'rgba(251,191,36,0.12)', color: '#fde68a', cursor: 'pointer', fontSize: 12 }}>Review and enable</button>}
         <button
           disabled
@@ -109,7 +127,7 @@ export function AddonCard({ addon, enabled, onToggle, onRemove, stateDestination
       {searchTypes.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
           <label htmlFor={searchLimitInputId} style={{ color: '#94a3b8', fontSize: 12 }}>
-            Search results per page ({searchTypes.join(', ')})
+            Results per page ({searchTypes.join(', ')})
           </label>
           <input
             id={searchLimitInputId}

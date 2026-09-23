@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { defineAddonManifest } from '@addons-poc/protocol';
 import type { AddonInstance, TextAddonClientPort } from '@addons-poc/protocol';
-import { clampSearchLimit, contentJsonUrlFromContentUrl, fetchSearchResultContent, fetchSearchResultDetails, parseSearchLimitInput, searchActiveAddons, searchPage, truncateDescription } from './search';
+import { browseActiveAddons, browseCatalogFor, browsePage, clampSearchLimit, contentJsonUrlFromContentUrl, fetchSearchResultContent, fetchSearchResultDetails, isBrowsableAddon, parseSearchLimitInput, searchActiveAddons, searchPage, truncateDescription } from './search';
 
 function createAddon(manifestUrl: string, id: string, type = 'quote', languages: string[] = []): AddonInstance {
   const manifest = defineAddonManifest({
@@ -28,6 +28,128 @@ function createAddon(manifestUrl: string, id: string, type = 'quote', languages:
   });
   return { manifest, manifestUrl, status: 'ready', services: [], ui: { title: id, body: 'Search' } };
 }
+
+function createCatalogAddon(manifestUrl: string, id: string, catalogs = [{ type: 'chart', id: 'recent', name: 'Recently updated' }]): AddonInstance {
+  const manifest = defineAddonManifest({
+    id,
+    version: '1.0.0',
+    name: id,
+    description: 'Test catalogue',
+    author: 'Team',
+    license: 'MIT',
+    ui: { title: id, body: 'Catalogue' },
+    resources: [
+      { name: 'catalog', types: ['chart'], idPrefixes: [] },
+      { name: 'text', types: ['chart'], idPrefixes: [] },
+    ],
+    types: ['chart'],
+    idPrefixes: [],
+    catalogs,
+    contract: {
+      version: '1.0.0',
+      protocol: { version: '1.0.0', range: '^1.0.0' },
+      capabilities: { required: [], optional: [] },
+      services: [],
+      ui: { fields: [], actions: [] },
+      state: [],
+      http: [{ id: 'catalog', direction: 'incoming', method: 'GET', path: '/catalog/{type}/{id}.json', purpose: 'Catalogue', resource: 'catalog', returns: { description: 'Items', schema: { type: 'object', description: 'Metadata entries', classification: 'public' } } }],
+      logs: [],
+    },
+  });
+  return { manifest, manifestUrl, status: 'ready', services: [], ui: { title: id, body: 'Catalogue' } };
+}
+
+describe('browseActiveAddons', () => {
+  it('lists the catalogue of an add-on that declares one', async () => {
+    const addon = createCatalogAddon('https://example.test/charts/manifest.json', 'charts');
+    const client = {
+      search: vi.fn(),
+      catalog: vi.fn().mockResolvedValue({
+        metas: [{ id: 'static-and-rain', type: 'chart', name: 'Static and Rain', description: 'Vela Nova' }],
+        pagination: { limit: 10, total: 8, next: 'cursor-2' },
+      }),
+    };
+
+    const collection = await browseActiveAddons([addon], [], {}, client);
+
+    expect(client.catalog).toHaveBeenCalledWith('https://example.test/charts/', 'chart', 'recent', { limit: 10 });
+    expect(collection.results).toHaveLength(1);
+    expect(collection.results[0]).toMatchObject({
+      id: 'static-and-rain',
+      name: 'Static and Rain',
+      url: 'https://example.test/charts/text/chart/static-and-rain/content.txt',
+      description: 'Vela Nova',
+    });
+    expect(collection.pagination['https://example.test/charts/manifest.json::recent']).toEqual({ loaded: 1, total: 8, next: 'cursor-2' });
+  });
+
+  it('asks for the next cursor and stops when the source ends', async () => {
+    const addon = createCatalogAddon('https://example.test/charts/manifest.json', 'charts');
+    const client = {
+      search: vi.fn(),
+      catalog: vi.fn().mockResolvedValue({ metas: [{ id: '2', type: 'chart', name: 'Second' }] }),
+    };
+    const key = 'https://example.test/charts/manifest.json::recent';
+
+    await browseActiveAddons([addon], [], {}, client, { [key]: { loaded: 10, next: 'cursor-2' } });
+    expect(client.catalog).toHaveBeenCalledWith('https://example.test/charts/', 'chart', 'recent', { limit: 10, cursor: 'cursor-2' });
+
+    // A finished source is not requested again, so paging back and forth is cheap.
+    (client.catalog as ReturnType<typeof vi.fn>).mockClear();
+    const ended = await browseActiveAddons([addon], [], {}, client, { [key]: { loaded: 10 } });
+    expect(client.catalog).not.toHaveBeenCalled();
+    expect(ended.results).toEqual([]);
+  });
+
+  it('reports a source that fails without hiding the others', async () => {
+    const broken = createCatalogAddon('https://example.test/broken/manifest.json', 'broken');
+    const working = createCatalogAddon('https://example.test/charts/manifest.json', 'charts');
+    const client = {
+      search: vi.fn(),
+      catalog: vi.fn(async (baseUrl: string) => {
+        if (baseUrl.includes('broken')) throw new Error('HTTP 500');
+        return { metas: [{ id: '1', type: 'chart', name: 'First' }] };
+      }),
+    };
+
+    const collection = await browseActiveAddons([broken, working], [], {}, client);
+
+    expect(collection.errors).toEqual([{ addonName: 'broken', message: 'HTTP 500' }]);
+    expect(collection.results.map((row) => row.name)).toEqual(['First']);
+    expect(collection.providerCount).toBe(2);
+  });
+
+  it('declares what makes an add-on browsable and which catalogue is used', () => {
+    const addon = createCatalogAddon('https://example.test/charts/manifest.json', 'charts', [
+      { type: 'chart', id: 'recent', name: 'Recently updated' },
+      { type: 'chart', id: 'popular', name: 'Most visited' },
+    ]);
+
+    expect(isBrowsableAddon(addon)).toBe(true);
+    expect(isBrowsableAddon(addon, [addon.manifestUrl])).toBe(false);
+    // One catalogue per add-on: several views of the same items would repeat rows.
+    expect(browseCatalogFor(addon)?.id).toBe('recent');
+
+    const searchOnly = createAddon('https://example.test/quotes/manifest.json', 'quotes');
+    expect(isBrowsableAddon(searchOnly)).toBe(false);
+    expect(browseCatalogFor(searchOnly)).toBeUndefined();
+  });
+
+  it('reads the numbered page the person asked for', async () => {
+    const addon = createCatalogAddon('https://example.test/charts/manifest.json', 'charts');
+    const pages = [
+      { metas: [{ id: '1', type: 'chart', name: 'First' }], pagination: { limit: 1, total: 2, next: 'cursor-2' } },
+      { metas: [{ id: '2', type: 'chart', name: 'Second' }] },
+    ];
+    let call = 0;
+    const client = { search: vi.fn(), catalog: vi.fn(async () => pages[Math.min(call++, pages.length - 1)]) };
+
+    const second = await browsePage([addon], [], 2, { [addon.manifestUrl]: 1 }, client);
+    expect(second.page).toBe(2);
+    expect(second.collection.results.map((row) => row.name)).toEqual(['Second']);
+    expect(client.catalog).toHaveBeenCalledTimes(2);
+  });
+});
 
 describe('searchActiveAddons', () => {
   it('normalizes metas, builds a content URL, and applies the per-add-on page size', async () => {

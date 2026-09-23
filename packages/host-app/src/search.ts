@@ -1,4 +1,4 @@
-import type { AddonInstance, AddonResource, TextMeta, TextPageRequest, TextPagination, TextSearchPayload } from '@addons-poc/protocol';
+import type { AddonCatalog, AddonInstance, AddonResource, TextMeta, TextPageRequest, TextPagination, TextSearchPayload } from '@addons-poc/protocol';
 import { headersToObject, logBrowserHttpExchange } from './http-observability';
 
 export const DEFAULT_SEARCH_LIMIT = 10;
@@ -56,6 +56,8 @@ export interface SearchLanguages {
 
 export interface SearchClient {
   search(baseUrl: string, type: string, query: string, page?: TextPageRequest): Promise<TextSearchPayload>;
+  /** Reads one page of a catalogue the add-on declares. */
+  catalog?(baseUrl: string, type: string, catalogId: string, page?: TextPageRequest): Promise<TextSearchPayload>;
 }
 
 const TYPE_EMOJIS: Record<string, string> = {
@@ -298,6 +300,15 @@ export function createFetchSearchClient(): SearchClient {
       const queryString = params.toString();
       return (await fetchJson(queryString ? `${url}?${queryString}` : url)) as TextSearchPayload;
     },
+    async catalog(baseUrl, type, catalogId, page) {
+      const url = `${baseUrl.replace(/\/+$/, '')}/catalog/${encodeURIComponent(type)}/${encodeURIComponent(catalogId)}.json`;
+      const params = new URLSearchParams();
+      if (page?.limit !== undefined) params.set('limit', String(page.limit));
+      if (page?.cursor) params.set('cursor', page.cursor);
+      if (page?.lang) params.set('lang', page.lang);
+      const queryString = params.toString();
+      return (await fetchJson(queryString ? `${url}?${queryString}` : url)) as TextSearchPayload;
+    },
   };
 }
 
@@ -320,6 +331,39 @@ export function getSearchResources(addon: AddonInstance): AddonResource[] {
 /** Languages announced by the add-on's search resources, in manifest order. */
 export function getSearchLanguages(addon: AddonInstance): string[] {
   return [...new Set(getSearchResources(addon).flatMap((resource) => resource.languages ?? []).filter((language): language is string => typeof language === 'string' && language.trim().length > 0))];
+}
+
+function isCatalogResource(resource: AddonResource): boolean {
+  return resource.name === 'catalog' && resource.types.length > 0;
+}
+
+/** Resources that list content without a search term. */
+export function getCatalogResources(addon: AddonInstance): AddonResource[] {
+  return (addon.manifest.contract.resources ?? []).filter(isCatalogResource);
+}
+
+/** Languages announced by the add-on's catalogue resources, in manifest order. */
+export function getCatalogLanguages(addon: AddonInstance): string[] {
+  return [...new Set(getCatalogResources(addon).flatMap((resource) => resource.languages ?? []).filter((language): language is string => typeof language === 'string' && language.trim().length > 0))];
+}
+
+export function isBrowsableAddon(addon: AddonInstance, disabledManifestUrls: readonly string[] = []): boolean {
+  return addon.status === 'ready'
+    && !disabledManifestUrls.includes(addon.manifestUrl)
+    && getCatalogResources(addon).length > 0
+    && (addon.manifest.contract.catalogs ?? []).length > 0;
+}
+
+/**
+ * Catalogue the host lists for one add-on when there is no search term.
+ *
+ * One per add-on: the first catalogue it declares, in manifest order. A domain
+ * that publishes several views of the same items — the chord catalogue declares
+ * four — would otherwise repeat every row on the page.
+ */
+export function browseCatalogFor(addon: AddonInstance): AddonCatalog | undefined {
+  const allowedTypes = new Set(getCatalogResources(addon).flatMap((resource) => resource.types));
+  return (addon.manifest.contract.catalogs ?? []).find((catalog) => allowedTypes.has(catalog.type));
 }
 
 export function isSearchableAddon(addon: AddonInstance, disabledManifestUrls: readonly string[] = []): boolean {
@@ -512,6 +556,108 @@ export async function searchActiveAddons(
     providerCount: providers.length,
     pagination,
   };
+}
+
+/**
+ * Lists what the active add-ons publish, without a search term.
+ *
+ * It reads the first catalogue of every add-on that declares one, with the same
+ * paging rules as a search: the per-add-on limit, the cursor the add-on returns,
+ * and a failure that is shown without hiding the other sources.
+ */
+export async function browseActiveAddons(
+  addons: AddonInstance[],
+  disabledManifestUrls: readonly string[],
+  limits: SearchLimits = {},
+  client: SearchClient = createFetchSearchClient(),
+  previousPagination: SearchPagination = {},
+  languages: SearchLanguages = {},
+): Promise<SearchCollection> {
+  const providers = addons.filter((addon) => isBrowsableAddon(addon, disabledManifestUrls));
+  const outcomes = await Promise.all(providers.map(async (addon) => {
+    const baseUrl = addonBaseUrl(addon.manifestUrl);
+    const pageLimit = clampSearchLimit(limits[addon.manifestUrl]);
+    const catalog = browseCatalogFor(addon);
+    if (!catalog) return { rows: [] as SearchResultRow[], failures: [] as SearchProviderError[], pagination: {} as SearchPagination };
+
+    const key = paginationKey(addon.manifestUrl, catalog.id);
+    const previous = previousPagination[key];
+    const loaded = previous?.loaded ?? 0;
+    if (previous && !previous.next) {
+      return { rows: [] as SearchResultRow[], failures: [] as SearchProviderError[], pagination: { [key]: previous } as SearchPagination };
+    }
+
+    const supportedLanguages = getCatalogLanguages(addon);
+    const language = supportedLanguages.includes(languages[addon.manifestUrl] ?? '')
+      ? languages[addon.manifestUrl]
+      : supportedLanguages[0];
+
+    try {
+      if (!client.catalog) throw new Error('The search client cannot read a catalogue.');
+      const payload = assertSearchPayload(await client.catalog(baseUrl, catalog.type, catalog.id, {
+        limit: pageLimit,
+        ...(previous?.next ? { cursor: previous.next } : {}),
+        ...(language ? { lang: language } : {}),
+      }));
+      const rows = payload.metas
+        .map((meta) => normalizeMeta(meta, addon, catalog.type, baseUrl, language))
+        .filter((row): row is SearchResultRow => row !== undefined)
+        .slice(0, pageLimit);
+      const next = payload.pagination?.next;
+      return {
+        rows,
+        failures: [] as SearchProviderError[],
+        pagination: {
+          [key]: {
+            loaded: loaded + rows.length,
+            ...(payload.pagination?.total === undefined ? {} : { total: payload.pagination.total }),
+            ...(next ? { next } : {}),
+          },
+        } as SearchPagination,
+      };
+    } catch (error) {
+      return {
+        rows: [] as SearchResultRow[],
+        failures: [{ addonName: addon.manifest.name, message: (error as Error)?.message ?? 'The catalogue could not be read.' }],
+        pagination: (previous ? { [key]: previous } : {}) as SearchPagination,
+      };
+    }
+  }));
+
+  const pagination = Object.assign({}, ...outcomes.map((outcome) => outcome.pagination));
+  return {
+    results: outcomes.flatMap((outcome) => outcome.rows),
+    errors: outcomes.flatMap((outcome) => outcome.failures),
+    providerCount: providers.length,
+    pagination,
+  };
+}
+
+/** Loads a numbered page of the catalogue listing, advancing through cursors. */
+export async function browsePage(
+  addons: AddonInstance[],
+  disabledManifestUrls: readonly string[],
+  page: number,
+  limits: SearchLimits = {},
+  client: SearchClient = createFetchSearchClient(),
+  cachedPages: Map<number, SearchCollection> = new Map(),
+  languages: SearchLanguages = {},
+): Promise<SearchPageLoadResult> {
+  const targetPage = Number.isSafeInteger(page) && page > 0 ? page : 1;
+  let previousPagination: SearchPagination = {};
+  let collection: SearchCollection = { results: [], errors: [], providerCount: 0, pagination: {} };
+  let reachedPage = 1;
+
+  for (let currentPage = 1; currentPage <= targetPage; currentPage += 1) {
+    const cached = cachedPages.get(currentPage);
+    collection = cached ?? await browseActiveAddons(addons, disabledManifestUrls, limits, client, previousPagination, languages);
+    if (!cached) cachedPages.set(currentPage, collection);
+    previousPagination = collection.pagination;
+    reachedPage = currentPage;
+    if (currentPage < targetPage && !hasNextSearchPage(collection.pagination)) break;
+  }
+
+  return { page: reachedPage, collection };
 }
 
 export interface SearchPageLoadResult {

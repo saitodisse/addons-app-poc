@@ -8,10 +8,10 @@ import { FetchAddonLoader } from './runtime/loader';
 import { Header } from './components/Header';
 import { AddonManager } from './components/AddonManager';
 import { AddonDetailPanel } from './components/AddonDetailPanel';
-import { LiveDemoModal } from './components/LiveDemoModal';
 import { SearchResultPage } from './components/SearchResultPage';
+import { CONTENT_VIEW_SERVICE, type ContentViewProvider } from './content-view';
 import { SearchResultsTable } from './components/SearchResultsTable';
-import { clampSearchLimit, createFetchSearchClient, hasNextSearchPage, searchPage } from './search';
+import { browsePage, clampSearchLimit, createFetchSearchClient, hasNextSearchPage, searchPage } from './search';
 import type { SearchCollection, SearchLanguages, SearchLimitValue, SearchPageState, SearchPagination, SearchProviderError, SearchResultRow } from './search';
 import { isResultRoute, manifestUrlFromRoute, navigate, ROUTES, addonRoute, resultUrlFromRoute, useRoute } from './router';
 import { INSTALLATIONS_STORAGE_KEY, resetFactoryStorage } from './factory-reset';
@@ -125,6 +125,15 @@ export function App() {
   const [{ q: searchUrlQuery, page: searchUrlPage }, setSearchUrl] = useQueryStates(SEARCH_URL_PARAMS, { history: 'push' });
   const currentSearchPage = Number.isSafeInteger(searchUrlPage) && searchUrlPage > 0 ? searchUrlPage : 1;
   const [searchInput, setSearchInput] = useState(searchUrlQuery);
+  /**
+   * The query the address bar carried when the page opened.
+   *
+   * It is read once, when the add-ons and the storage provider are ready: a ref
+   * keeps a change of the address bar from running the hydration again, which
+   * used to restore the previous term right after the person cleared the field.
+   */
+  const openingQueryRef = useRef(searchUrlQuery);
+  openingQueryRef.current = searchUrlQuery;
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResultRow[]>([]);
   const [searchErrors, setSearchErrors] = useState<SearchProviderError[]>([]);
@@ -134,11 +143,13 @@ export function App() {
   const [searchStateReady, setSearchStateReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [installationsReady, setInstallationsReady] = useState(false);
-  const [liveDemoOpen, setLiveDemoOpen] = useState(false);
   const loadedRef = useRef(false);
   const searchRequestRef = useRef(0);
   const [searchRefreshKey, setSearchRefreshKey] = useState(0);
   const searchPagesRef = useRef(new Map<string, Map<number, SearchCollection>>());
+  /** Pages of the catalogue listing, used while the search field is empty. */
+  const browsePagesRef = useRef(new Map<number, SearchCollection>());
+  const [browsing, setBrowsing] = useState(false);
   const addonLifecycleRef = useRef(0);
   const httpTextClient = useMemo(() => createFetchSearchClient(), []);
   const route = useRoute();
@@ -298,9 +309,9 @@ export function App() {
       setSearchStateReady(true);
       return;
     }
-    if (searchUrlQuery.trim()) {
+    if (openingQueryRef.current.trim()) {
       hydratedStateStoreRef.current = activeStateStoreKey;
-      setSearchInput(searchUrlQuery);
+      setSearchInput(openingQueryRef.current);
       setSearchStateReady(true);
       return;
     }
@@ -327,7 +338,7 @@ export function App() {
     return () => {
       active = false;
     };
-  }, [activeStateStoreKey, installationsReady, registry, searchUrlQuery, setSearchUrl]);
+  }, [activeStateStoreKey, installationsReady, registry, setSearchUrl]);
 
   useEffect(() => {
     if (!installationsReady || !searchStateReady || !activeStateStoreKey || hydratedStateStoreRef.current !== activeStateStoreKey) return;
@@ -362,6 +373,7 @@ export function App() {
 
   useEffect(() => {
     searchPagesRef.current.clear();
+    browsePagesRef.current.clear();
   }, [addons, disabledAddonUrls, searchLanguages, searchLimits]);
 
   const loadSearchPage = useCallback((query: string, page: number) => {
@@ -373,14 +385,53 @@ export function App() {
     return searchPage(addons, disabledAddonUrls, query, page, searchLimits, httpTextClient, cachedPages, searchLanguages);
   }, [addons, disabledAddonUrls, httpTextClient, searchLanguages, searchLimits]);
 
+  const loadBrowsePage = useCallback((page: number) => browsePage(
+    addons,
+    disabledAddonUrls,
+    page,
+    searchLimits,
+    httpTextClient,
+    browsePagesRef.current,
+    searchLanguages,
+  ), [addons, disabledAddonUrls, httpTextClient, searchLanguages, searchLimits]);
+
   useEffect(() => {
     if (!installationsReady || !searchStateReady) return;
     const query = searchUrlQuery.trim();
     if (!query) {
-      clearSearchView();
+      // Nothing to search: list what the active add-ons publish.
+      setSearchInput('');
+      setSearchQuery('');
+      setBrowsing(true);
+      setSearchResults([]);
+      setSearchErrors([]);
+      setSearchProviderCount(0);
+      setSearchPagination({});
+      setSearching(true);
+      const requestId = ++searchRequestRef.current;
+      void loadBrowsePage(currentSearchPage)
+        .then(({ page, collection }) => {
+          if (requestId !== searchRequestRef.current) return;
+          setSearchResults(collection.results);
+          setSearchErrors(collection.errors);
+          setSearchProviderCount(collection.providerCount);
+          setSearchPagination(collection.pagination);
+          if (page !== currentSearchPage) void setSearchUrl({ page });
+        })
+        .catch((error) => {
+          if (requestId !== searchRequestRef.current) return;
+          setSearchResults([]);
+          setSearchErrors([{ addonName: 'Host', message: (error as Error).message || 'The listing could not be completed.' }]);
+          setSearchProviderCount(0);
+          setSearchPagination({});
+        })
+        .finally(() => {
+          if (requestId === searchRequestRef.current) setSearching(false);
+        });
       return;
     }
 
+    setBrowsing(false);
     setSearchInput(searchUrlQuery);
     setSearchQuery(query);
     setSearchResults([]);
@@ -408,18 +459,18 @@ export function App() {
       .finally(() => {
         if (requestId === searchRequestRef.current) setSearching(false);
       });
-  }, [clearSearchView, currentSearchPage, installationsReady, loadSearchPage, searchRefreshKey, searchStateReady, searchUrlQuery, setSearchUrl]);
+  }, [currentSearchPage, installationsReady, loadBrowsePage, loadSearchPage, searchRefreshKey, searchStateReady, searchUrlQuery, setSearchUrl]);
 
   const hasMoreSearchResults = hasNextSearchPage(searchPagination);
 
   const changeSearchPage = useCallback((page: number) => {
-    if (!searchQuery || searching || page < 1) return;
+    if (searching || page < 1) return;
     if (page > currentSearchPage && !hasMoreSearchResults) return;
     setSearchResults([]);
     setSearchErrors([]);
     setSearchPagination({});
     void setSearchUrl({ page });
-  }, [currentSearchPage, hasMoreSearchResults, searchQuery, searching, setSearchUrl]);
+  }, [currentSearchPage, hasMoreSearchResults, searching, setSearchUrl]);
 
   const runSearch = useCallback((value: string) => {
     const query = value.trim();
@@ -574,6 +625,16 @@ export function App() {
 
   const selectedManifestUrl = manifestUrlFromRoute(route);
   const selectedAddon = activeAddons.find((addon) => addon.manifestUrl === selectedManifestUrl) ?? null;
+  // Re-read when the active add-ons change, so the result page follows them.
+  const contentViewProvider = useMemo(
+    () => registry.get<ContentViewProvider>(CONTENT_VIEW_SERVICE),
+    [addons, registry],
+  );
+  // The add-on behind that service: the result page shows its controls too.
+  const contentViewAddon = useMemo(() => {
+    const manifestUrl = registry.providerOf(CONTENT_VIEW_SERVICE);
+    return manifestUrl ? addons.find((addon) => addon.manifestUrl === manifestUrl) ?? null : null;
+  }, [addons, registry]);
   const isAddonRoute = route.startsWith('/addons/');
   const isSearchResultRoute = isResultRoute(route);
   const searchResultContentUrl = resultUrlFromRoute(route);
@@ -587,22 +648,9 @@ export function App() {
     }
   }, [loading, selectedAddon, selectedManifestUrl]);
 
-  const selectAddon = useCallback((manifestUrl: string) => {
-    setLiveDemoOpen(false);
-    navigate(addonRoute(manifestUrl));
-  }, []);
-
-  const closeLiveDemo = useCallback(() => setLiveDemoOpen(false), []);
-  const toggleLiveDemo = useCallback(() => setLiveDemoOpen((open) => !open), []);
-
   const reviewAddonContract = useCallback((_manifestUrl: string) => {
-    setLiveDemoOpen(false);
     navigate(ROUTES.settings);
   }, []);
-
-  useEffect(() => {
-    if (route !== ROUTES.home) setLiveDemoOpen(false);
-  }, [route]);
 
   return (
     <div style={{
@@ -619,15 +667,17 @@ export function App() {
         onSearchValueChange={setSearchInput}
         onSearch={(value) => void runSearch(value)}
         onClearSearch={clearSearch}
-        showLiveDemo={route === ROUTES.home}
-        liveDemoOpen={liveDemoOpen}
-        onToggleLiveDemo={toggleLiveDemo}
       />
 
-      <main className={route === ROUTES.home ? 'host-home-main' : isSearchResultRoute ? 'host-search-result-page-main' : isAddonRoute ? 'host-addon-route-main' : undefined} style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 24px 48px' }}>
+      <main
+        className={route === ROUTES.home ? 'host-home-main' : isSearchResultRoute ? 'host-search-result-page-main' : isAddonRoute ? 'host-addon-route-main' : undefined}
+        // A rendered result uses the whole window; prose keeps a readable width.
+        style={{ maxWidth: isSearchResultRoute ? '100%' : 1200, margin: '0 auto', padding: '24px 24px 48px' }}
+      >
         {!isAddonRoute && !isSearchResultRoute && (
           <SearchResultsTable
             query={searchQuery}
+            browsing={browsing}
             results={searchResults}
             errors={searchErrors}
             loading={searching}
@@ -658,28 +708,16 @@ export function App() {
               loading={loading}
             />
           </section>
-        ) : route === ROUTES.home ? (
-          <LiveDemoModal
-            open={liveDemoOpen}
-            addons={addons}
-            disabledAddonUrls={disabledAddonUrls}
-            pendingContractUrls={pendingContractUrls}
-            selectedManifestUrl={selectedManifestUrl}
-            loading={loading}
-            onClose={closeLiveDemo}
-            onSelect={selectAddon}
-            onToggle={toggleAddon}
-            onReviewContract={reviewAddonContract}
-            searchLimits={searchLimits}
-            searchLanguages={searchLanguages}
-            onSearchLimitChange={onSearchLimitChange}
-            onSearchLanguageChange={onSearchLanguageChange}
-          />
         ) : isSearchResultRoute ? (
-          <SearchResultPage contentUrl={searchResultContentUrl} result={selectedSearchResult} />
-        ) : (
+          <SearchResultPage
+            contentUrl={searchResultContentUrl}
+            result={selectedSearchResult}
+            viewProvider={contentViewProvider}
+            viewAddon={contentViewAddon}
+          />
+        ) : route === ROUTES.home ? null : (
           <section className="addon-route-page" aria-label={selectedAddon ? `Add-on details for ${selectedAddon.manifest.name}` : 'Add-on details'}>
-            <a href="#/" className="addon-route-back">← Back to demo</a>
+            <a href="#/" className="addon-route-back">← Back to start</a>
             {selectedAddon && (
               <header className="addon-route-header">
                 <span className="addon-route-kicker">Installed add-on</span>

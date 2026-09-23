@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { requestContentView, type ContentViewProvider, type ContentViewResult } from '../content-view';
+import type { AddonInstance } from '@addons-poc/protocol';
+import { AddonControlPanel } from './AddonControlPanel';
+import { RenderedHtmlView } from './RenderedHtmlView';
+import { renderedHtml } from '../tab-view';
+import { useAddonTab } from './useAddonTab';
 import {
   fetchSearchResultContent,
   fetchSearchResultDetails,
@@ -11,6 +17,10 @@ import {
 interface SearchResultPageProps {
   contentUrl: string | null;
   result: SearchResultRow | null;
+  /** Add-on that can render this result as HTML, when one is active. */
+  viewProvider?: ContentViewProvider;
+  /** Add-on behind that view; its controls are shown beside the result. */
+  viewAddon?: AddonInstance | null;
 }
 
 const ALLOWED_EXTRACT_TAGS = new Set(['P', 'BR', 'STRONG', 'B', 'EM', 'I', 'U', 'UL', 'OL', 'LI', 'SUB', 'SUP', 'SPAN']);
@@ -85,16 +95,47 @@ function LoadingState({ title }: { title: string }) {
   );
 }
 
-export function SearchResultPage({ contentUrl, result }: SearchResultPageProps) {
+export function SearchResultPage({ contentUrl, result, viewProvider, viewAddon }: SearchResultPageProps) {
   const [details, setDetails] = useState<SearchResultDetails | null>(null);
   const [fallbackContent, setFallbackContent] = useState<string | null>(null);
+  const [renderedView, setRenderedView] = useState<ContentViewResult | null>(null);
   const [loading, setLoading] = useState(Boolean(contentUrl));
   const [error, setError] = useState<string | null>(null);
 
+  const loadView = useCallback(async (url: string): Promise<ContentViewResult | undefined> => requestContentView(viewProvider, {
+    url,
+    ...(result?.type ? { type: result.type } : {}),
+    ...(result?.name ? { name: result.name } : {}),
+  }), [result?.name, result?.type, viewProvider]);
+
+  /** True while the view on the page was published by this add-on for this URL. */
+  const addonOwnsView = useRef(false);
+
+  // The controls of the add-on behind the view; every change renders it again.
+  //
+  // The action already renders the content with the controls in use, so the page
+  // paints the view that came with the response. Asking the provider again would
+  // read the content URL over the network and render the same content a second
+  // time on every step of a dragged slider.
+  //
+  // The add-on only owns this page after its provider accepted the URL. A
+  // response that arrives meanwhile — the add-on restoring its own controls, for
+  // instance — must not replace an article with content the person never opened.
+  const controller = useAddonTab(viewAddon ?? null, {
+    onResponse: (response) => {
+      if (!addonOwnsView.current) return;
+      const html = renderedHtml(response);
+      if (!html) return;
+      setRenderedView((current) => ({ html, ...(current?.title ? { title: current.title } : {}) }));
+    },
+  });
+
   useEffect(() => {
     let active = true;
+    addonOwnsView.current = false;
     setDetails(null);
     setFallbackContent(null);
+    setRenderedView(null);
     setError(null);
     setLoading(Boolean(contentUrl));
 
@@ -106,26 +147,37 @@ export function SearchResultPage({ contentUrl, result }: SearchResultPageProps) 
       };
     }
 
-    void fetchSearchResultDetails(contentUrl)
-      .then((nextDetails) => {
+    // An add-on that understands this result renders it; otherwise the page
+    // keeps its own layout for the structured article payload.
+    void (async () => {
+      const view = await loadView(contentUrl);
+      if (!active) return;
+      if (view) {
+        addonOwnsView.current = true;
+        setRenderedView(view);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const nextDetails = await fetchSearchResultDetails(contentUrl);
         if (active) setDetails(nextDetails);
-      })
-      .catch(async (reason) => {
+      } catch (reason) {
         try {
           const text = await fetchSearchResultContent(contentUrl);
           if (active) setFallbackContent(text);
         } catch {
           if (active) setError(reason instanceof Error ? reason.message : String(reason));
         }
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoading(false);
-      });
+      }
+    })();
 
     return () => {
       active = false;
     };
-  }, [contentUrl]);
+  }, [contentUrl, loadView, viewProvider]);
 
   const data = details?.body;
   const title = plainTextValue(data?.displaytitle) ?? plainTextValue(data?.title) ?? plainTextValue(data?.id) ?? result?.name ?? 'Article';
@@ -154,7 +206,13 @@ export function SearchResultPage({ contentUrl, result }: SearchResultPageProps) 
   }, [details, title]);
 
   return (
-    <section className="host-article-page" aria-label={`Article ${title}`} aria-busy={loading} lang={language} dir={direction}>
+    <section
+      className={`host-article-page${renderedView ? ' is-rendered-view' : ''}`}
+      aria-label={`${renderedView ? 'Result' : 'Article'} ${title}`}
+      aria-busy={loading}
+      lang={language}
+      dir={direction}
+    >
       <a href="#/" className="host-article-back">← Back to results</a>
 
       {loading && <LoadingState title={result?.name ?? title} />}
@@ -168,7 +226,29 @@ export function SearchResultPage({ contentUrl, result }: SearchResultPageProps) 
         </div>
       )}
 
-      {!loading && !error && data && (
+      {!loading && !error && renderedView && (
+        <div className={`host-rendered-result${viewAddon?.ui ? ' has-panel' : ''}`}>
+          <article className="host-article-card">
+            <header className="host-article-header">
+              <span className="host-article-kicker">Rendered view</span>
+              <h1>{renderedView.title ?? result?.name ?? title}</h1>
+              {result?.description && <p className="host-article-description">{result.description}</p>}
+              {contentUrl && (
+                <a className="host-article-original-link" href={contentUrl} target="_blank" rel="noreferrer">
+                  Open the content URL ↗
+                </a>
+              )}
+            </header>
+            <section className="host-article-section">
+              <RenderedHtmlView html={renderedView.html} />
+            </section>
+          </article>
+
+          {viewAddon?.ui && <AddonControlPanel addon={viewAddon} controller={controller} reading />}
+        </div>
+      )}
+
+      {!loading && !error && !renderedView && data && (
         <article className="host-article-card">
           {heroImage && (
             <figure className="host-article-hero-image">
@@ -199,7 +279,7 @@ export function SearchResultPage({ contentUrl, result }: SearchResultPageProps) 
         </article>
       )}
 
-      {hasFallbackContent && (
+      {!renderedView && hasFallbackContent && (
         <article className="host-article-card">
           <header className="host-article-header">
             <span className="host-article-kicker">Compatible content</span>

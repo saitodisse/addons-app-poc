@@ -9,9 +9,6 @@ interface HeaderProps {
   onSearchValueChange: (value: string) => void;
   onSearch: (value: string) => void;
   onClearSearch: () => void;
-  showLiveDemo: boolean;
-  liveDemoOpen: boolean;
-  onToggleLiveDemo: () => void;
 }
 
 export function Header({
@@ -22,9 +19,6 @@ export function Header({
   onSearchValueChange,
   onSearch,
   onClearSearch,
-  showLiveDemo,
-  liveDemoOpen,
-  onToggleLiveDemo,
 }: HeaderProps) {
   const readyCount = addons.filter((a) => a.status === "ready").length;
   const errorCount = addons.filter((a) => a.status === "error").length;
@@ -39,7 +33,7 @@ export function Header({
         padding: "16px 24px",
         position: "sticky",
         top: 0,
-        zIndex: liveDemoOpen ? 30 : 10,
+        zIndex: 10,
       }}
     >
       <div
@@ -158,40 +152,6 @@ export function Header({
             )}
           </div>
 
-          {showLiveDemo && (
-            <button
-              type="button"
-              onClick={onToggleLiveDemo}
-              aria-expanded={liveDemoOpen}
-              aria-label={
-                liveDemoOpen
-                  ? "Close live demo"
-                  : "Open live demo"
-              }
-              title={
-                liveDemoOpen
-                  ? "Close live demo"
-                  : "Open live demo"
-              }
-              style={{
-                width: 38,
-                height: 38,
-                padding: 0,
-                border: `1px solid ${liveDemoOpen ? "rgba(165,180,252,0.55)" : "rgba(255,255,255,0.15)"}`,
-                borderRadius: 8,
-                background: liveDemoOpen
-                  ? "rgba(99,102,241,0.24)"
-                  : "rgba(255,255,255,0.05)",
-                color: "#e0e7ff",
-                cursor: "pointer",
-                fontSize: 18,
-                lineHeight: 1,
-              }}
-            >
-              ⚙️
-            </button>
-          )}
-
           <nav
             aria-label="Main navigation"
             style={{ display: "flex", gap: 8 }}
@@ -208,7 +168,7 @@ export function Header({
                 textDecoration: "none",
               }}
             >
-              Demo
+              Start
             </Link>
             <Link
               to={ROUTES.settings}
