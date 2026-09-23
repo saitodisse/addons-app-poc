@@ -9,7 +9,9 @@ import { HttpTextAddonClient } from './http-client';
  */
 export const HEALTH_BASE_URLS = [
   'http://localhost:5294', // wikipedia
+  'http://localhost:5295', // chord chart catalogue
   'http://localhost:5304', // markdown
+  'http://localhost:5305', // chord chart viewer
   'http://localhost:5306', // favorites
   'http://localhost:5307', // health
   'http://localhost:5308', // local storage
@@ -17,7 +19,9 @@ export const HEALTH_BASE_URLS = [
 
 const HEALTH_FALLBACK_NAMES: Record<string, string> = {
   'http://localhost:5294': 'Wikipedia (summaries)',
+  'http://localhost:5295': 'Chord Chart Catalogue',
   'http://localhost:5304': 'Markdown Add-on',
+  'http://localhost:5305': 'Chord Chart Viewer',
   'http://localhost:5306': 'Favorites Add-on',
   'http://localhost:5307': 'Add-on Health',
   'http://localhost:5308': 'Local Storage Add-on',

@@ -12,6 +12,38 @@ importers:
         specifier: 0.25.12
         version: 0.25.12
 
+  packages/addon-chord-catalog:
+    dependencies:
+      '@addons-poc/protocol':
+        specifier: 1.0.0
+        version: 1.0.0
+      '@addons/addon-server':
+        specifier: workspace:*
+        version: link:../addon-server
+    devDependencies:
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7
+
+  packages/addon-chord-viewer:
+    dependencies:
+      '@addons-poc/protocol':
+        specifier: 1.0.0
+        version: 1.0.0
+      react:
+        specifier: ^19.2.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.2.0
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7
+
   packages/addon-favorites:
     dependencies:
       '@addons-poc/protocol':

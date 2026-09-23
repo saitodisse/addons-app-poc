@@ -1,13 +1,13 @@
 {
   "name": "addons-poc",
-  "version": "1.5.1",
+  "version": "1.7.0",
   "private": true,
   "scripts": {
     "test": "pnpm check:host-boundary && pnpm run build:protocol && pnpm -r --filter './packages/**' test",
     "check:host-boundary": "node scripts/check-host-boundary.mjs",
     "dev": "pnpm run build:protocol && node scripts/dev-all.mjs --open",
     "dev:host": "pnpm --filter @addons/host-app dev",
-    "dev:addons": "pnpm run build:protocol && pnpm -r --parallel --filter './packages/addon-text-*' serve",
+    "dev:addons": "pnpm run build:protocol && pnpm -r --parallel --filter './packages/addon-text-*' --filter './packages/addon-chord-*' serve",
     "kill-all": "node scripts/kill-all.mjs",
     "build:protocol": "pnpm --filter @addons-poc/protocol run clean && pnpm --filter @addons-poc/protocol run build",
     "build:host": "pnpm run build:protocol && pnpm --filter @addons/host-app build"

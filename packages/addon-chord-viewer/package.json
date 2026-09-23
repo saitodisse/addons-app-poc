@@ -1,0 +1,22 @@
+{
+  "name": "@addons/addon-chord-viewer",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@addons-poc/protocol": "1.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "serve": "node ../../scripts/serve-inprocess-addon.mjs addon-chord-viewer 5305"
+  }
+}

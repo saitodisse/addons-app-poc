@@ -1,6 +1,8 @@
 export const LOCAL_MANIFEST_PORTS = [
   5294,
+  5295,
   5304,
+  5305,
   5306,
   5307,
   5308,

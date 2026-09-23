@@ -28,6 +28,8 @@ await build({
   platform: 'browser',
   target: 'es2022',
   sourcemap: true,
+  // Add-ons may ship TSX and expect the automatic JSX runtime.
+  jsx: 'automatic',
 });
 
 const addonModule = await import(`${pathToFileURL(bundlePath).href}?built=${Date.now()}`);
@@ -35,6 +37,9 @@ const manifest = addonModule.manifest;
 
 const server = createServer(async (request, response) => {
   response.setHeader('Access-Control-Allow-Origin', '*');
+  // The bundle is rebuilt on every start and this server is for development, so
+  // a cached copy would keep a browser on the previous contract.
+  response.setHeader('Cache-Control', 'no-store');
   if (request.method === 'OPTIONS') {
     response.writeHead(204, { 'Access-Control-Allow-Methods': 'GET, OPTIONS' });
     response.end();

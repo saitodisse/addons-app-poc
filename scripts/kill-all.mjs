@@ -1,7 +1,7 @@
 /**
  * Stops all development environment processes:
- * host-app (:5280), HTTP add-on (:5294), and in-process add-ons
- * (:5304, :5306-5308), including leftover dev-all orphans (Vite / add-on servers).
+ * host-app (:5280), HTTP add-ons (:5294-5295), and in-process add-ons
+ * (:5304-5305, :5306-5308), including leftover dev-all orphans (Vite / add-on servers).
  * Usage: pnpm kill-all
  * Sends SIGTERM and, if a process persists, SIGKILL.
  *
@@ -16,8 +16,8 @@ import { execFileSync } from 'node:child_process';
 
 const PORTS = [
   5280,
-  5294,
-  5304, 5306, 5307, 5308,
+  5294, 5295,
+  5304, 5305, 5306, 5307, 5308,
 ];
 
 /** PIDs listening on the port. fuser returns PIDs; ss is the fallback. */
@@ -97,7 +97,7 @@ for (const port of PORTS) {
 }
 
 // dev-all orphans: the coordinator process, Vite, in-process servers, and the
-// wrappers for the five HTTP servers. Keep these patterns synchronized with
+// wrappers for the HTTP servers. Keep these patterns synchronized with
 // ADDON_SERVERS in dev-all.mjs.
 for (const pattern of [
   'dev-all\\.mjs',
