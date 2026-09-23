@@ -36,6 +36,11 @@ export class ServiceRegistry {
     return (this.entries.get(serviceId)?.length ?? 0) > 0;
   }
 
+  /** Manifest URL of the add-on that currently provides a service. */
+  providerOf(serviceId: string): string | undefined {
+    return this.entries.get(serviceId)?.[0]?.addonId;
+  }
+
   /** Snapshot used to negotiate consumers before importing bundles. */
   describe(): ReadonlyMap<string, RegisteredServiceDescriptor> {
     const result = new Map<string, RegisteredServiceDescriptor>();

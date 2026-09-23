@@ -72,6 +72,21 @@ describe('runtime validation and service negotiation', () => {
     expect(validateTabResult({ status: 'success' }).valid).toBe(false);
   });
 
+  it('accepts control values returned by an action', () => {
+    expect(validateTabResult({ status: 'success', body: 'ok', values: { fontSize: '22' } }).valid).toBe(true);
+    expect(validateTabResult({ status: 'success', body: 'ok', values: {} }).valid).toBe(true);
+    expect(validateTabResult({ status: 'success', body: 'ok', values: { fontSize: 22 } }).valid).toBe(false);
+    expect(validateTabResult({ status: 'success', body: 'ok', values: ['22'] }).valid).toBe(false);
+  });
+
+  it('accepts a rendered view and rejects a malformed one', () => {
+    expect(validateTabResult({ status: 'success', body: 'ok', view: { kind: 'text' } }).valid).toBe(true);
+    expect(validateTabResult({ status: 'success', body: 'ok', view: { kind: 'html', html: '<p>chart</p>' } }).valid).toBe(true);
+    expect(validateTabResult({ status: 'success', body: 'ok', view: { kind: 'html' } }).valid).toBe(false);
+    expect(validateTabResult({ status: 'success', body: 'ok', view: { kind: 'html', html: '   ' } }).valid).toBe(false);
+    expect(validateTabResult({ status: 'success', body: 'ok', view: { kind: 'image' } }).valid).toBe(false);
+  });
+
   it('normalizes undefined fields when comparing manifest JSON and bundle', () => {
     expect(getInteractionContractFingerprint({ ...contract, resources: undefined })).toBe(getInteractionContractFingerprint(contract));
   });

@@ -123,6 +123,19 @@ export function validateTabResult(result: unknown): RuntimeValidationResult {
       });
     }
   }
+  if (isObject(result) && result.values != null) {
+    if (!isObject(result.values) || Object.values(result.values).some((value) => typeof value !== 'string')) {
+      errors.push('Tab response values must be an object of strings');
+    }
+  }
+  if (isObject(result) && result.view != null) {
+    const view = result.view;
+    if (!isObject(view) || !['text', 'html'].includes(String(view.kind))) {
+      errors.push('Tab response view must declare kind text or html');
+    } else if (view.kind === 'html' && (typeof view.html !== 'string' || !view.html.trim())) {
+      errors.push('Tab response view of kind html must declare a non-empty html string');
+    }
+  }
   return { valid: errors.length === 0, errors };
 }
 

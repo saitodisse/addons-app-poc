@@ -47,6 +47,8 @@ export interface TabFieldInteraction {
   label: string;
   description: string;
   required?: boolean;
+  /** Marks a control that chooses which content to read; see `AddonTabField.source`. */
+  source?: boolean;
   schema: InteractionSchema;
 }
 
@@ -55,6 +57,8 @@ export interface TabActionInteraction {
   label: string;
   description: string;
   receives?: string[];
+  /** Marks an action that chooses which content to read. */
+  source?: boolean;
   returns: InteractionPayload;
 }
 

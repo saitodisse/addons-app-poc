@@ -5,7 +5,7 @@ export { PROTOCOL_VERSION, INTERACTION_CONTRACT_VERSION, assertProvidedService, 
 export type { AddonContract, AddonInteractionContract, AddonServiceAccess, DataClassification, HostCompatibility, CompatibilityResult, HttpInteraction, InteractionPayload, InteractionSchema, LogInteraction, ServiceCompatibilityDescriptor, ServiceContractRef, ServiceInteraction, StateInteraction, TabActionInteraction, TabFieldInteraction } from './domain/contract';
 export type { AddonInstance, AddonStatus } from './domain/instance';
 export type { HostAPI, AddonModule } from './domain/host-api';
-export type { AddonTab, AddonTabField, AddonTabAction, AddonTabResult, AddonTabResultItem, AddonTabViewState, AddonTabPersistence, JsonValue } from './domain/tab';
+export type { AddonTab, AddonTabField, AddonTabFieldType, AddonTabAction, AddonTabResult, AddonTabResultItem, AddonTabView, AddonTabViewState, AddonTabPersistence, JsonValue } from './domain/tab';
 export type { AddonStateStore } from './domain/state';
 export { createTabStatePersistence } from './domain/state';
 export type { AddonLogLevel, DebugEntry, DebugLog } from './domain/debug';
