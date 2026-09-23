@@ -401,6 +401,48 @@ Fallback handles service failures but does not limit what in-process code can ac
 
 A test extension must be able to fail, hang, or attempt unauthorized access without compromising the rest of the host. The selected mechanism needs tests and documented threats; an isolated `try/catch` is not enough.
 
+
+## Chord-chart demonstration on 2026-09-19
+
+**State: Delivered**
+
+### Why
+
+The catalogue and the renderer answer two questions the POC had not answered
+with a real domain: can an HTTP add-on serve a catalogue of its own data, and can
+an in-process add-on render structured data with many controls through a
+declarative interface? They also demonstrate, end to end, that two add-ons can
+collaborate through the protocol and a manifest URL without importing each
+other.
+
+### What
+
+`addon-chord-catalog` (port `5295`) publishes `catalog`, `search`, and `text`
+resources over eight original demo charts, with cursor pagination, `content.txt`,
+and `content.json`. `addon-chord-viewer` (port `5305`) loads a chart from that
+catalogue or from pasted text and renders it with a **ported copy of
+`@achorde/tab-renderer@0.8.5`**, returning an HTML view with controls for output,
+layout, transposition, font size, line height, chord height, block margin,
+section spacing, colours, and four presets. Both are described in
+[`CHORD-CHART.md`](CHORD-CHART.md).
+
+### How it was verified
+
+| Verification performed | Result |
+|---|---|
+| `pnpm test` | 35 tests in the catalogue and 59 in the viewer pass with the rest of the suite |
+| Contract validation | Both manifests pass `validateManifest`; the viewer tab passes `validateTabContract`; service calls and log events pass the contract proxy and validators |
+| Ported engine | A parity test file covers the documented behaviour of the ported tab renderer: transposition, line classification, chord collection, and the prepared bar list |
+| Live check in the browser | With the catalogue, the viewer, and `storage-local` installed, the tab rendered `harbor-light` with 6 sections and 45 chord spans, transposed it by one semitone, applied the light and dark presets, and kept the chart and the controls after a full page reload |
+| HTTP routes | `GET /manifest.json`, `/catalog/chart/popular.json`, `/search/chart/lantern.json`, `/text/chart/harbor-light.json`, `content.txt`, and `content.json` all answered as declared |
+
+### Limits
+
+Chord diagrams are not drawn (that would need a canvas or SVG library), only the
+`chord-over-lyrics` family is parsed, the ported engine always spells transposed
+chords with flats, and the demo catalogue is original content rather than a real
+repertoire.
+
 ## Recommended order for the next work
 
 1. Complete and test unload when disabling or removing add-ons, including recovery when a cleanup callback fails.

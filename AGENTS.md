@@ -70,7 +70,7 @@ Any change to `protocol` requires reviewing `docs/ARCHITECTURE.md`, `docs/DECISI
 |---|---|
 | `pnpm install` | Install dependencies |
 | `pnpm test` | Run all tests |
-| `pnpm dev` | Start the host, one HTTP add-on, and four in-process add-ons |
+| `pnpm dev` | Start the host, two HTTP add-ons, and five in-process add-ons |
 | `pnpm kill-all` | Stop development-mode processes |
 | `pnpm dev:addons` | Start only the HTTP servers |
 | `pnpm --filter @addons/host-app dev` | Start only the host |
@@ -112,4 +112,5 @@ Use only these states in planning documents:
 | `docs/PHASES.md` | To distinguish delivered work from future plans |
 | `docs/GLOSSARY.md` | When encountering an unfamiliar term |
 | `docs/PACKAGES.md` | When working on a package or looking for its README |
+| `docs/CHORD-CHART.md` | When changing the chord-chart add-ons, their data format, or their controls |
 | `CHANGELOG.md` | To understand changes between versions |

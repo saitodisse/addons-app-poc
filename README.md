@@ -53,15 +53,16 @@ pnpm install
 pnpm dev
 ```
 
-The command starts the host at `http://localhost:5280`, one text server, and four in-process add-ons. Each one publishes its own manifest and bundle; the host does not serve them.
+The command starts the host at `http://localhost:5280`, two HTTP servers, and five in-process add-ons. Each one publishes its own manifest and bundle; the host does not serve them.
 
 | Port | Add-on | Content source |
 |---:|---|---|
 | `5294` | Wikipedia | Wikipedia APIs |
+| `5295` | Chord chart catalogue | The demo chart data set |
 
-The remaining in-process add-ons use ports `5304`, `5306`, `5307`, and `5308`. For example, `http://localhost:5304/manifest.json` publishes the Markdown add-on. Each in-process add-on can be run separately with `pnpm --filter @addons/<name> serve`.
+The remaining in-process add-ons use ports `5304`, `5305`, `5306`, `5307`, and `5308`. For example, `http://localhost:5304/manifest.json` publishes the Markdown add-on, and `http://localhost:5305/manifest.json` publishes the chord viewer. Each in-process add-on can be run separately with `pnpm --filter @addons/<name> serve`.
 
-The **Add-on Health** tab queries the five remaining manifests in the demonstration, measures each server's latency, and shows its name, address, and state.
+The **Add-on Health** tab queries the seven remaining manifests in the demonstration, measures each server's latency, and shows its name, address, and state.
 
 In WSL2, open `http://localhost:5280` manually in the Windows browser. The server already listens on `0.0.0.0`, and the script avoids trying to open a browser inside Linux.
 
@@ -113,12 +114,15 @@ contract review.
 
 The host has a fixed search field at the top. Press **Enter** to query all
 active HTTP add-ons that declare `search`; press **Esc** to clear the field and
-table. The home page keeps only the main listing; the live demo opens from the
-gear icon in a modal. Each active extension in the modal opens a dedicated route
-with its detail/configuration, in the form `#/addons/<encoded-manifest>`. Each
-normalized row shows type, ID, name, and description; clicking a name opens a
-modal and loads the content URL, with an emoji or image when the manifest or
-response provides one. In Settings, each search add-on can set its result limit
+table. With the field empty the same table lists what the active add-ons publish
+instead: the first catalogue each add-on declares, page by page, through the same
+**Previous page** and **Next page** buttons and the same `page` URL parameter.
+Only add-ons that declare a `catalog` resource contribute to that listing. The home page keeps only the search listing; every extension is
+configured in **Settings**, which also opens the page of each installed add-on
+in the form `#/addons/<encoded-manifest>`. Each normalized row shows type, ID,
+name, and description; clicking a name loads the content URL on a dedicated
+page, with an emoji or image when the manifest or response provides one. In
+Settings, each search add-on can set its result limit
 between 1 and 500. The host offers **Previous page** and **Next page** when the
 add-on returns a continuation cursor; changing pages replaces the table with
 that page's items. The `q` term and `page` number stay in the URL through
@@ -141,6 +145,8 @@ The HTTP server started by `pnpm dev` remains available as an independent exampl
 | [`@addons/addon-health`](packages/addon-health/README.md) | Remote server health checks |
 | [`@addons/addon-storage-local`](packages/addon-storage-local/README.md) | Optional official `state-store` service using `localStorage` |
 | [`@addons/addon-text-wikipedia`](packages/addon-text-wikipedia/README.md) | HTTP Wikipedia summaries and searches |
+| [`@addons/addon-chord-catalog`](packages/addon-chord-catalog/README.md) | HTTP chord-chart catalogue with listing, search, and chart delivery |
+| [`@addons/addon-chord-viewer`](packages/addon-chord-viewer/README.md) | In-process chord-chart renderer with controls |
 
 ## Where to continue reading
 
@@ -154,6 +160,8 @@ All documentation follows the same progression: it starts with the simplest expl
 6. [`docs/PHASES.md`](docs/PHASES.md) shows what has been delivered and what is still planned.
 7. [`docs/GLOSSARY.md`](docs/GLOSSARY.md) defines the terms used in the project.
 8. [`docs/PACKAGES.md`](docs/PACKAGES.md) gathers each package's README and command.
+9. [`docs/CHORD-CHART.md`](docs/CHORD-CHART.md) explains the chord-chart data
+   format, its controls, and what was reused from the AC projects.
 
 ## Public contract v1
 

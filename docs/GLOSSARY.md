@@ -14,6 +14,12 @@ This glossary explains the technical names used in the project. Read the short d
 | **Bundle** | JavaScript file ready for execution. The loader imports the ESM bundle indicated by `entrypoint`. |
 | **Global search** | Fixed host field that queries `search` HTTP resources from all active add-ons. The response is combined in the central table without add-on-specific code. |
 | **Catalog** | Browsable collection announced by an HTTP add-on. The catalog route returns items in the `metas` field. |
+| **Chord chart** | Text that a musician reads while playing: chord lines above the lyric line, section titles, and annotations. Also called *cifra*. |
+| **Chord-over-lyrics** | The chart notation used by the AC archive and by the chord-chart add-ons: a chord line stands above the lyric line it belongs to. |
+| **Chord token** | One piece of a chart line, with the columns it occupies. A chord token carries the parsed symbol; a decoration token carries a parenthesis that is not part of a chord. |
+| **Transposition** | Moving every chord of a chart by a number of semitones, keeping the quality of each chord unchanged. |
+| **Capo** | A clamp on the guitar neck. Its fret number raises the sounding key while the played shapes stay the same. |
+| **Voicing** | One way to play a chord on the instrument, stored here as `frets`, `fingers`, and `position`. |
 | **Service composition** | Building a service from other services in the registry. Favorites, for example, query `state-store` without importing the host. |
 | **Data classification** | A `public`, `personal`, or `secret` label for declared data. It explains the expected handling without placing the real value in the manifest. |
 | **Protocol contract** | The required `contract` v1 block in a manifest. It explains the version, capabilities, services, UI, state, HTTP, and logs an add-on declares. |
@@ -35,6 +41,12 @@ This glossary explains the technical names used in the project. Read the short d
 | **Lazy loading** | Loading performed only when needed. The host downloads full text only after a user opens a result. |
 | **Manifest** | Document that presents an add-on before use. It declares metadata and capabilities in a JSON-compatible format. |
 | **Tab response** | Declarative result of an add-on action, with state, text, and optional items displayed by the host. An item may include `details`, the full JSON that the host reveals only after a click. |
+| **Control panel** | Fixed column beside an add-on response that holds the declared fields and actions. A control may declare a `group`, used as the heading of its section in the panel, and a kind (`range`, `toggle`, `color`) that decides how the host renders it. |
+| **Live action** | Action marked `live` in the tab. The host runs it again shortly after a field it receives changes, so a slider updates the response while the person drags it. |
+| **Control values** | Optional `values` map of a tab response. The host applies it to the controls, which is how a preset or a reset moves the sliders it rewrote. |
+| **Rendered view** | Optional `view` field of a tab response. With `kind: "html"` the host inserts the markup produced by the add-on; the text `body` remains the fallback. |
+| **Content view** | Service declared by convention as `host.content-view`. An add-on that provides it renders the result of a search row inside the host's dedicated page; a provider that does not understand the URL returns nothing. |
+| **Port** (of code) | A copy of source code from another project, kept inside this repository with its license and a provenance file. The chord viewer carries a ported tab renderer. |
 | **Contract review** | State in which an installation remains disabled until the person accepts a new interaction declaration found at the same URL. |
 | **Tab persistence** | Bridge declared by the tab itself with `load` and `save`. It lets the host restore fields and responses without knowing what the data means. |
 | **Metas** | List of metadata returned by a catalog or search. Each item contains at least `id`, `type`, and `name`. |

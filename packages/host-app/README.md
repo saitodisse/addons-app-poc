@@ -40,10 +40,10 @@ page. The search term and page are controlled in the URL through `nuqs` (`q` and
 `page`). When an active `state-store` exists, the host stores the query, rows, and
 cursors under `host:search:results:v1`.
 
-On the home page, the table uses all available width. The live demo opens from a
-gear icon in a modal with the extension list. When an active extension is
-selected, the host navigates to a dynamic detail route and does not repeat the
-initial listing. The visual URL column is hidden: clicking a result name
+On the home page, the table uses all available width. Extensions are managed in
+**Settings**, which opens the detail route of an installed add-on in the form
+`#/addons/<encoded-manifest>`; the detail route does not repeat the search
+listing. The visual URL column is hidden: clicking a result name
 navigates to a dedicated page, fetches its `content.json`, and renders the image,
 description, summary, and original link. Metadata, headers, metrics,
 observability, and complete JSON remain available in traffic and debug output

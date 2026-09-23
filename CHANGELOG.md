@@ -4,6 +4,156 @@ This file describes, in reverse order, how the project evolved. The quick read s
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.7.0] - 2026-09-22
+
+### Added
+
+- A control may declare `source: true` when it chooses *which* content to read.
+  A result page that already holds the content hides those controls and keeps
+  only the ones that change how it is read: the host filters by the declaration
+  (`readingSections` in `packages/host-app/src/tab-view.ts`), so it stays free of
+  domain rules. The chord viewer marks the **Chart** group and **Data format**.
+- With an empty search field the host lists what the active add-ons publish
+  instead of showing nothing: the first catalogue each add-on declares, with the
+  per-add-on page size, cursor paging, **Previous page** and **Next page**, and
+  the `page` parameter in the URL. The table names the mode **Catalogue** and
+  every row opens the same dedicated content page as a search result.
+- The chord viewer keeps the controls of the group **Current chart** — font size
+  and transposition — per chart, under `chords-viewer:song:<id>`, while every
+  other control stays global in `chords-viewer:settings`. A chart nobody has
+  adjusted opens with the transposition at **zero** and the global font size, so
+  transposing one song never follows into the next one, and returning to a song
+  brings back what it had.
+- The viewer notifies the host when the chart or the controls change
+  (`subscribe`), which is how the panel of a page that opened a chart by URL
+  shows the controls of that chart. The generic tab record is no longer used by
+  this add-on: its values would have been shared by every chart.
+
+### Fixed
+
+- The global search field can be cleared again. The effect that hydrates the
+  saved search reacted to the address bar, so clearing the field read the stored
+  term back — into the field and into the URL — and the previous search returned.
+  It now reads the query the page opened with, once, when the add-ons are ready.
+- A single control change reaches the add-on with no wait. The live action now
+  runs straight away when the controls have been still for one pause (60 ms,
+  `LIVE_PAUSE_MS`), and only a change inside the pause is queued for the rest of
+  it: an arrow key or a click applies in 15–21 ms against the 145 ms of the fixed
+  pause it replaced. A drag still coalesces, now at 60 ms instead of 120 ms.
+- Changing a control of a rendered result no longer waits for the drag to end.
+  The live action used to restart its pause on every change, so a dragged slider
+  froze the chart until the person stopped, and each change read the content URL
+  again from the catalogue and rendered the chart twice. Now the action runs at
+  most once per 120 ms with the newest values, the page paints the view that came
+  with the response, and the content view provider reads a content URL once and
+  hands the chart it read to its own add-on. Measured on the demo chart: a drag
+  across 60 values renders 12 views with no HTTP request, against one view after
+  the drag and one request per change before.
+- The rendered view is inserted through a memoized leaf (`RenderedHtmlView`), so
+  a page that re-renders while a control moves no longer drops the chart subtree
+  and parses it again on every step.
+- The tab state reaches storage after a 400 ms pause instead of on every step of
+  a drag, and a write still waiting is flushed when the page goes away.
+- The controls of a page open with the values saved in storage. A record read
+  after the add-on had already answered used to replace the values on screen, and
+  an unmount flushed an empty state over the saved one — which is what left the
+  panel of a result page showing the minimum of every slider until a control was
+  touched. Storage now only fills the controls the add-on has not reported yet.
+- A result page paints a response view only after the provider of the add-on
+  accepted the content URL. Without that guard, the add-on restoring its own
+  controls on an article page could paint the chart it had open, replacing an
+  article the person opened.
+
+### Removed
+
+- The live demo modal and the gear button that opened it in the header. Add-on
+  configuration lives only in **Settings**, which is also where an installed
+  add-on opens on the detail route `#/addons/<encoded-manifest>`. The modal and
+  the sidebar it hosted (`LiveDemoModal`, `AddonSidebar`) are gone, and the home
+  page keeps only the search listing.
+
+### Changed
+
+- The header navigation calls the home route **Start**, and the back link of an
+  add-on page reads **← Back to start**.
+- The chord viewer no longer offers a **Scroll speed** control. It was kept for
+  parity with the AC viewer, which stores it without driving any scrolling, so it
+  only took a row of the panel.
+- The chord viewer no longer offers a capo control, in the panel or in the
+  response items. A capo declared by the chart is still reported as a property of
+  the chart; the sounding key is not computed from a control the person cannot
+  set.
+- **Render chart** moved from the **Chart** group to **Options**, next to the
+  presets and the restore button, so the source group holds only controls that
+  choose the content.
+
+## [1.6.0] - 2026-09-19
+
+### Added
+
+- `@addons/addon-chord-catalog`, an HTTP add-on that lists and searches chord
+  charts and delivers them on demand, on port `5295`.
+- `@addons/addon-chord-viewer`, an in-process add-on that renders a chord chart
+  with controls, on port `5305`.
+- A ported copy of `@achorde/tab-renderer@0.8.5` (MIT) inside the viewer add-on,
+  with its license and a provenance file, so chord rendering uses the same engine
+  as the AC viewer without depending on that project.
+- A rendered view in the tab response: `view: { kind: "html", html }` is declared
+  in `packages/protocol/src/domain/tab.ts`, validated at runtime, and inserted by
+  the host. The text body remains the fallback.
+- The four literal presets of the AC viewer, plus controls for font size, line
+  height, chord height, block margin, section gap, and section title size.
+- Key detection for charts without metadata, and symbol simplification applied
+  to the chart text before parsing.
+- The rendered chart on a result page is no longer clipped to `70vh` with a
+  scroll of its own: it grows to its full height and the document is the only
+  scroller, so the wheel moves the page wherever the pointer is and the control
+  panel has no scroll to trap it.
+- A rendered result now shows the control panel of the add-on behind it, beside
+  the chart, and a change made there renders the result again — the shape of the
+  AC viewer's version page. The add-on tab and the result page share one
+  controller, and the viewer shares one state between its tab and its content
+  view, so both always render what the panel says.
+- A rendered result uses the whole window, while a prose article keeps its
+  readable width. The rendered chart also gained padding around the panel and
+  inside it.
+- The declarative tab gained three additions: a field may declare its kind
+  (`range`, `toggle`, `color`), an action may be `live` and run again while its
+  controls change, and a response may return `values` to move the controls it
+  rewrote.
+- The chord viewer now exposes the whole dial panel of the AC viewer as sliders,
+  toggles, and colour pickers, in the same groups as that panel (its current
+  chart, reading, chord, lyric, section, and page folders), and the chart
+  re-renders while a control moves. The preset and reset buttons move the controls to match.
+- The controls of an add-on now live in a panel that stays visible while the
+  response scrolls. `contract.ui` fields and actions accept an optional `group`,
+  used as the heading of the section that holds them; the viewer declares six.
+- A rendered result page: the host asks the service declared by convention as
+  `host.content-view` for a view of a search result, so clicking a chord chart
+  opens the rendered chart instead of the article layout. Providers that decline
+  the URL keep the previous behaviour, which is why Wikipedia results are
+  unchanged.
+- A structured chart payload with the vocabulary of the AC archive: musical
+  work, playable version, chart record with a checksum, sections, and shapes.
+- [`docs/CHORD-CHART.md`](docs/CHORD-CHART.md), with the data format, the control
+  table, and what was reused from the AC projects.
+- Decision 22, recording that the chord-chart add-ons depend on nothing from
+  `ac15`, `achorde`, or the AC12 archive, and that the viewer carries a ported
+  engine instead of a dependency.
+
+### Changed
+
+- The viewer add-on renders with the ported tab renderer instead of a local
+  engine; its bundle now includes React and is around 900 KB unminified.
+- In-process add-ons may ship TSX: the bundler used by the `serve` scripts now
+  builds with the automatic JSX runtime.
+- The tab response body and the plain-text content fallback of the host are
+  rendered in a monospace font, because both are preformatted text whose columns
+  must line up.
+- `pnpm dev`, `pnpm kill-all`, `pnpm dev:addons`, the local manifest shortcuts,
+  and the health add-on all include the two new ports.
+- The demonstration now has two HTTP add-ons and five in-process add-ons.
+
 ## [1.5.1] - 2026-09-14
 
 ### Changed

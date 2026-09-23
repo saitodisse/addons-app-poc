@@ -293,6 +293,10 @@ Every manifest declares `contract.ui.title` and `contract.ui.body`. An in-proces
 - each add-on owns its functionality, including service state and remote calls;
 - HTTP add-ons may declare an informational tab in the manifest; interactive actions also require an in-process module;
 - response items may carry JSON `details`; the host shows them on demand and does not interpret their structure;
+- a response may also carry a rendered `view`; the host inserts the add-on's HTML
+  inside the tab without interpreting it. The content comes from trusted code
+  that already runs in the host page, so this adds no new privilege, and the
+  text `body` remains the fallback every host must support;
 - the contract is React-neutral, so `protocol` does not become dependent on the interface library.
 
 ## 18. Persistence and observability are optional capabilities
@@ -398,6 +402,148 @@ lets Enter start the search and Esc clear the results.
 - current validation guarantees the basic `{ metas: [...] }` shape and validates
   optional `pagination`; complete schemas, catalog, and reading remain outside
   this decision.
+
+## 22. The chord-chart add-ons are independent of the AC projects
+
+### Why
+
+The POC needed a domain with real structure to prove that a catalogue and a
+renderer can be two independent add-ons. The AC projects already solved chord
+charts: `ac15` stores a `ChordChart` and a viewer, `achorde` publishes the
+`tab-renderer` engine, and the AC12 archive holds the text format. Reusing their
+code would have created exactly the dependency this repository forbids.
+
+### Decision
+
+The chord-chart add-ons reuse **concepts**, never code, data, or packages:
+
+- the chart text format of the AC archive: chord lines above lyric lines,
+  `[section]` titles, and `(...)` annotations;
+- the chord grammar of the AC parser, including `7M`, `º`, `m7(b5)`, and slash
+  extensions, with the guard that keeps lyric words out of the grammar;
+- a semitone table that moves root and bass and leaves the quality untouched;
+- the chart record with a checksum and parser versions, published inside
+  `content.json` as `chordChart`;
+- the viewer settings of `ac15`, with the same names where the meaning survives.
+
+The add-ons own their own implementation, in their own packages, with their own
+tests. `addon-chord-catalog` publishes data and metadata; `addon-chord-viewer`
+owns the parsing and the rendering. Neither declares the other in
+`package.json`, and neither imports the other: the viewer reads the catalogue
+through its manifest URL and the protocol routes.
+
+Two behaviours are deliberately different from the reference:
+
+- the viewer uses a **ported copy** of `@achorde/tab-renderer@0.8.5` (MIT) under
+  `packages/addon-chord-viewer/src/tab-renderer`, with its license and a
+  provenance file, instead of adding a dependency on the other project;
+- only the pipeline the rendered view needs was ported; the legacy path that
+  depends on `@tonaljs/tonal` was left out;
+- charts render as HTML produced by that component; the host inserts the view
+  and keeps the text body as the fallback.
+
+The demo catalogue contains original content written for this POC. The AC12
+archive is licensed material of another project and is not copied here.
+
+### Technical consequences
+
+- no dependency, alias, or import links this repository to `ac15`, `achorde`, or
+  `ac12`; the protocol is the only shared boundary;
+- the mapping between reused concepts and their origin is recorded in
+  [`CHORD-CHART.md`](CHORD-CHART.md), so a future reader can compare the two
+  implementations;
+- a change in the AC projects does not change this repository, and a change here
+  does not change them;
+- the protocol itself was not extended: the chart payload travels as ordinary
+  `text` content, and the controls travel as ordinary tab fields and actions.
+
+## 23. The host renders a result through a declared service
+
+### Why
+
+Clicking a search row opened the dedicated page of the result, and that page knew only one shape: the structured article payload of an HTTP text add-on. A row
+from another domain — a chord chart, for instance — arrived there and was shown
+as an empty article header, because the host had no way to ask anyone to render
+it.
+
+Teaching the host about chords would break its boundary. Leaving the page as it
+was would make every non-article add-on a second-class result.
+
+### Decision
+
+The host asks a service declared **by convention**, exactly as it already asks
+`state-store` for persistence:
+
+```text
+id:     host.content-view
+method: render({ url, type, name }) -> { html, title? }
+```
+
+Any active add-on may provide it. The internal registry decides which provider
+wins, by the usual priority rule. The provider receives the content URL of the
+result and either returns HTML or returns nothing.
+
+The service name lives under the `host.` namespace so it satisfies the namespaced
+identifier rule of contract v1 without changing the published protocol package.
+It is a convention between the host and any add-on, not a new protocol version.
+
+### Technical consequences
+
+- `packages/host-app/src/content-view.ts` reads the provider from the registry
+  and tolerates every failure: a provider that throws, hangs, or answers with an
+  empty string becomes "no view", and the page keeps its own layout;
+- the result page tries the view **before** fetching the structured payload, so a
+  rendered result costs one request instead of two;
+- the page also shows the **control panel of the add-on behind the view**, resolved
+  through `registry.providerOf`. It reuses the same tab controller as the add-on
+  page, so a change made there renders the result again, which is how the chart
+  page of the AC viewer keeps its dial panel beside the chart;
+- that panel hides the controls the add-on marks with `source`, because the result
+  page already holds the content. Choosing the content belongs to the add-on page;
+  changing how it is read belongs to the result page. The host filters by the
+  declaration alone (`readingSections` in `packages/host-app/src/tab-view.ts`) and
+  never by a control id, so it still knows nothing about chords;
+- the live action runs immediately when the controls have been still for one
+  pause, and is queued for the rest of the pause only while a drag keeps arriving.
+  A fixed pause after the last change made every single adjustment as slow as the
+  heaviest drag;
+- a control change **paints the view that came with the response**. The action
+  already rendered the content with the controls in use, so asking the provider
+  again would read the content URL over the network and render the same chart a
+  second time on every step of a dragged control. The content view provider is
+  asked once, when the page opens;
+- the provider that reads a content URL hands the record it read back to its own
+  add-on through an optional `adopt` callback. It is what lets the tab render
+  from memory, and it keeps the panel beside a result editing the content the
+  result opened;
+- a control may belong to one piece of content rather than to the person. The
+  chord viewer keeps the font size and the transposition of each chart, which is
+  the group it declares as the current chart, and everything else global. The
+  add-on decides the split from its own field list, so the host still stores
+  opaque records;
+- the controls open with the values the add-on reports, and the record restored
+  from storage only fills the ones it has not reported yet (`restoredValues`).
+  Persistence is a cache of the add-on's own state, never an authority over it;
+- only a write that is still waiting is flushed when the page goes away. React
+  also unmounts a component on purpose to test its effects, and flushing whatever
+  the hook held at that moment stored an empty state over the real one;
+- the page re-renders on every step of a dragged control, which is unavoidable —
+  the values live in React state. What must not repeat is the work: the rendered
+  view is a memoized leaf (`RenderedHtmlView`), so the document receives the HTML
+  only when the add-on publishes a different view, and the add-on's state reaches
+  storage after a pause instead of on every step;
+- a provider is expected to decline what it does not understand. The chord viewer
+  renders only payloads that declare the `chord-over-lyrics` notation, which is
+  why a Wikipedia result still opens as an article;
+- the page paints a response view only after a provider accepted the URL, because
+  that acceptance is what proves the page belongs to the add-on. A response that
+  arrives before it — the add-on restoring the controls of its own tab — cannot
+  replace an article with content the person never opened;
+- the host stays free of domain rules: it moves an opaque HTML string and a
+  title between the add-on and the page;
+- a rendered result carries the same trust as a rendered tab: the add-on already
+  runs in the host page, so inserting its view adds no privilege;
+- the convention is optional. Without a provider, nothing changes.
 
 ## When to revisit a decision
 

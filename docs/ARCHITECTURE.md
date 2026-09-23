@@ -151,11 +151,17 @@ listing. A source failure is shown in the table and does not prevent other
 responses. The search term and page remain in the URL through `nuqs` (`q` and
 `page`). On the home page, the table uses the full available width.
 
-The live demo opens from the gear icon in a responsive modal; selecting an
-active extension navigates to a dynamic detail route in the form
-`#/addons/<encoded-manifest>` without repeating the home listing. To reduce the
-listing width, the presentation does not create a `URL` column: the row name
-receives the hyperlink to the URL preserved in the result model.
+An empty search term does not empty the page: the host reads the first catalogue
+each active add-on declares (`catalog` resource plus `catalogs` entries) and
+lists those items with the same page size, cursor, pagination buttons, and `page`
+parameter. One catalogue per add-on, because a domain that publishes several
+views of the same items would repeat every row.
+
+The **Settings** page is the only place that configures add-ons, and it opens the
+detail route of an installed add-on in the form `#/addons/<encoded-manifest>`
+without repeating the search listing. To reduce the listing width, the
+presentation does not create a `URL` column: the row name receives the hyperlink
+to the URL preserved in the result model.
 
 The adapter lives in `packages/host-app/src/search.ts` and calls `fetch`
 directly, without adding the host runtime to the public protocol. The header
@@ -164,6 +170,50 @@ field and results. The table exists even when no add-ons are installed. The
 basic `{ metas: [...] }` form and optional `pagination` shape are checked in the
 host; complete validation of all HTTP resources, catalog, and reading remains
 pending.
+
+## Two add-ons collaborating without importing each other
+
+The chord-chart pair is the working example of decision 16. The catalogue
+(`addon-chord-catalog`) is an HTTP add-on that publishes a data set with
+`catalog`, `search`, and `text` resources. The viewer (`addon-chord-viewer`) is
+an in-process add-on that renders a chart with controls.
+
+The viewer knows the catalogue only by its manifest URL. It reads
+`/text/chart/{id}.json` and then the content URL that the catalogue returns, so
+the flow is the same two-stage delivery used by the host, and either add-on can
+be replaced by another that publishes the same routes. The host contains no
+knowledge of chords: it shows search rows from the `search` resource, prints the
+response body when there is no view, and inserts the HTML view when the add-on
+publishes one. The format and the controls are described in
+[`CHORD-CHART.md`](CHORD-CHART.md).
+
+## The add-on interface
+
+An add-on page puts the controls in a panel that stays visible while the response
+scrolls, the way the AC viewer keeps its dial panel beside the chart. The layout
+is generic: the host renders the declared fields and actions in `AddonTabView`,
+uses the optional `group` of each control as a heading, and renders the declared
+control kind — slider, toggle, colour, or text. An action marked `live` runs
+again after the person stops moving a control, and an action may return `values`
+to move the controls it rewrote. The panel is sticky on wide screens and moves
+above the response on narrow ones.
+
+## Rendering a result page
+
+A rendered result uses the whole window: it is a panel, not prose, and a wider
+chart wraps fewer lines. The article layout keeps its readable width, so only the
+page that an add-on rendered loses the cap.
+
+The dedicated page of a search result used to know only the article payload. It
+now asks the active add-ons for a rendered view first, through the service
+declared by convention as `host.content-view`: the provider receives the content
+URL and returns HTML or nothing. The chord viewer provides it, which is why
+clicking a chart row opens the rendered chart instead of an empty article
+header, while a Wikipedia result keeps its own layout. The page also renders the **control panel of the add-on behind the view** — the
+same component the add-on page uses — so a change made beside the chart renders
+it again. That is the shape of the AC viewer's version page: chart and dial panel
+side by side. The convention is recorded in
+[decision 23](DECISIONS.md#23-the-host-renders-a-result-through-a-declared-service).
 
 ## Optional official capability
 

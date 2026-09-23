@@ -114,7 +114,20 @@ Without a provider, an optional consumer remains in memory.
 
 ## UI, state, HTTP, and logs
 
-`contract.ui` declares the title, body, fields, actions, and response schemas.
+`contract.ui` declares the title, body, fields, actions, and response schemas. A
+field or an action may also declare an optional `group`, a heading a host can use
+to organise a control panel; a host that ignores it keeps a single list.
+
+A field may declare the kind of control it wants: `text`, `textarea`, `url`,
+`range`, `toggle`, or `color`, with optional `min`, `max`, and `step` for a
+range. The value travels as text, because that is what an action receives, and a
+host that cannot render a kind falls back to the text input.
+
+An action may declare `live`, which makes the host run it again shortly after a
+field it receives changes; that is how a slider updates a response while the
+person drags it. An action may also return `values`, a map of field values the
+host applies to the controls, which is how a preset or a reset moves the sliders
+it rewrote.
 `contract.state` declares the key or pattern, operations, retention, and
 deletion. `contract.http` records incoming and outgoing interactions, with a
 method, route template, origin, and purpose. `contract.logs` describes

@@ -109,6 +109,7 @@ The states mean: **Delivered** when the behavior is implemented in the stated sc
 | F3.4 | Define TypeScript descriptors for services | Delivered | `ServiceInteraction`, input/output schemas, and `services.use` |
 | F3.5 | Allow infrastructure provided by the host | Delivered | Optional `state-store`, with priority between providers |
 | F3.6 | Allow composition without direct imports | Delivered | Favorites, aggregator, and health check |
+| F3.7 | Render structured data with controls through the declarative tab | Delivered | `addon-chord-viewer` renders chord charts with transposition, layout, shapes, colours, and window controls |
 
 ### HTTP text add-ons
 
@@ -125,6 +126,7 @@ The states mean: **Delivered** when the behavior is implemented in the stated sc
 | F4.9 | Cache the manifest | Planned | The client fetches it again |
 | F4.10 | Explore HTTP resources installed through the generic interface | Delivered | `SearchResultsTable` and `search.ts` query `search` resources from active add-ons; per-add-on limits, optional cursor pagination, Enter/Esc, and `state-store` persistence |
 | F4.11 | Validate HTTP resource responses beyond the manifest | Partial | The host rejects search payloads without `metas`; complete catalog, text, and content schemas are still pending |
+| F4.12 | Demonstrate a catalogue with listing and search for one domain | Delivered | `addon-chord-catalog` publishes `catalog`, `search`, `text`, `content.txt`, and `content.json` with cursor pagination and a checksummed chart record |
 
 ### Management, compatibility, and isolation
 
@@ -203,6 +205,8 @@ The main hypothesis is considered demonstrated when all of this evidence remains
 - aggregated search remains useful when one source fails;
 - global search queries Web Quotes, Poems, and Wikipedia and preserves rows when one source fails;
 - results can be preserved by an active `state-store`;
+- a catalogue add-on lists and searches its own data set, and an in-process
+  add-on renders that data with controls, each one installed by its own URL;
 - a compatible URL can be reviewed, installed, and restored after reloading;
 - a contract change at the same URL keeps the extension disabled until new acceptance;
 - undeclared services, action fields, and state are rejected before host use;
