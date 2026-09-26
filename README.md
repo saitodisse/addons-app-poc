@@ -53,16 +53,16 @@ pnpm install
 pnpm dev
 ```
 
-The command starts the host at `http://localhost:5280`, two HTTP servers, and five in-process add-ons. Each one publishes its own manifest and bundle; the host does not serve them.
+The command starts the host at `http://localhost:5280`, two HTTP servers, and six in-process add-ons. Each one publishes its own manifest and bundle; the host does not serve them.
 
 | Port | Add-on | Content source |
 |---:|---|---|
 | `5294` | Wikipedia | Wikipedia APIs |
 | `5295` | Chord chart catalogue | The demo chart data set |
 
-The remaining in-process add-ons use ports `5304`, `5305`, `5306`, `5307`, and `5308`. For example, `http://localhost:5304/manifest.json` publishes the Markdown add-on, and `http://localhost:5305/manifest.json` publishes the chord viewer. Each in-process add-on can be run separately with `pnpm --filter @addons/<name> serve`.
+The in-process add-ons use ports `5304` through `5309`. For example, `http://localhost:5305/manifest.json` publishes the chord viewer, and `http://localhost:5309/manifest.json` publishes the chord editor. Each in-process add-on can be run separately with `pnpm --filter @addons/<name> serve`.
 
-The **Add-on Health** tab queries the seven remaining manifests in the demonstration, measures each server's latency, and shows its name, address, and state.
+The **Add-on Health** tab queries the eight remaining manifests in the demonstration, measures each server's latency, and shows its name, address, and state.
 
 In WSL2, open `http://localhost:5280` manually in the Windows browser. The server already listens on `0.0.0.0`, and the script avoids trying to open a browser inside Linux.
 
@@ -133,6 +133,10 @@ extract appears directly in the **Description** column. With an active
 
 The HTTP server started by `pnpm dev` remains available as an independent example at `http://localhost:5294/manifest.json`; the host neither knows it in advance nor includes it in its build.
 
+### Edit a chart locally
+
+Install the local storage, chord catalogue, chord viewer, and chord editor manifests in **Settings** (`5308`, `5295`, `5305`, and `5309`). Open a chart from the catalogue and choose **Edit**. The editor loads Monaco and shows a live preview rendered by the viewer. **Save local draft** keeps your text in this browser; **Back to reading** shows the saved version. **Discard draft** returns to the published chart. Nothing is sent back to the catalogue. The add-ons collaborate through declared services, not through imports of one another.
+
 ## Project packages
 
 | Package | Responsibility |
@@ -147,6 +151,7 @@ The HTTP server started by `pnpm dev` remains available as an independent exampl
 | [`@addons/addon-text-wikipedia`](packages/addon-text-wikipedia/README.md) | HTTP Wikipedia summaries and searches |
 | [`@addons/addon-chord-catalog`](packages/addon-chord-catalog/README.md) | HTTP chord-chart catalogue with listing, search, and chart delivery |
 | [`@addons/addon-chord-viewer`](packages/addon-chord-viewer/README.md) | In-process chord-chart renderer with controls |
+| [`@addons/addon-chord-editor`](packages/addon-chord-editor/README.md) | Monaco chart editor and local drafts |
 
 ## Where to continue reading
 

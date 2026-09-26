@@ -4,7 +4,7 @@ export { createTrafficRecorder } from './traffic.js';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
@@ -72,6 +72,7 @@ function pageRequest(searchParams) {
  * @param {object} options
  * @param {Record<string, unknown>} options.manifest Stremio-style manifest.
  * @param {number} options.port HTTP port.
+ * @param {Record<string, { body: Uint8Array, contentType: string }>} [options.assets] Public static files keyed by exact URL path.
  * @param {{
  *   catalog(type: string, catalogId: string, page?: { limit?: number, cursor?: string, lang?: string }): Promise<{ metas: unknown[], pagination?: { limit: number, total?: number, next?: string } }>,
  *   search(type: string, query: string, page?: { limit?: number, cursor?: string, lang?: string }): Promise<{ metas: unknown[], pagination?: { limit: number, total?: number, next?: string } }>,
@@ -85,7 +86,14 @@ function pageRequest(searchParams) {
  * @returns {Promise<{ url: string, manifestUrl: string, close(): Promise<void> }>}
  */
 export async function createAddonServer(options) {
-  const { manifest, port, handlers, name, onTraffic } = options;
+  const { manifest, port, handlers, name, onTraffic, assets = {} } = options;
+
+  for (const [path, asset] of Object.entries(assets)) {
+    if (!path.startsWith('/') || path.startsWith('//') || path.includes('..')
+      || !(asset?.body instanceof Uint8Array) || typeof asset.contentType !== 'string' || !asset.contentType.trim()) {
+      throw new Error(`Invalid static asset configuration for ${path}`);
+    }
+  }
 
   const validation = validateProtocolManifest(manifest);
   if (!validation.valid) {
@@ -155,6 +163,25 @@ export async function createAddonServer(options) {
 
     const respondJson = (body, status = 200, extraHeaders = {}) => respond(status, body, CONTENT_TYPES.json, extraHeaders);
     const respondText = (body, status = 200, extraHeaders = {}) => respond(status, body, CONTENT_TYPES.txt, extraHeaders);
+    const respondAsset = (asset) => {
+      const headers = {
+        ...CORS_HEADERS,
+        'Cache-Control': 'public, max-age=86400',
+        'Content-Length': String(asset.body.byteLength),
+        'Content-Type': asset.contentType,
+      };
+      res.writeHead(200, headers);
+      res.end(req.method === 'HEAD' ? undefined : asset.body);
+      record({
+        direction: 'outgoing',
+        phase: 'response',
+        status: 200,
+        ok: true,
+        headers,
+        response: { status: 200, ok: true, headers, body: { byteLength: asset.body.byteLength } },
+        durationMs: Date.now() - startedAt,
+      });
+    };
 
     if (req.method === 'OPTIONS') {
       respond(204, '', 'text/plain; charset=utf-8');
@@ -175,6 +202,11 @@ export async function createAddonServer(options) {
           return;
         }
         respondJson(await handlers.debugTraffic());
+        return;
+      }
+
+      if ((req.method === 'GET' || req.method === 'HEAD') && Object.hasOwn(assets, url)) {
+        respondAsset(assets[url]);
         return;
       }
 

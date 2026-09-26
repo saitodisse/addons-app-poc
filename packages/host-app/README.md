@@ -14,7 +14,10 @@ HTTP servers. The interface is generic: the package has no embedded catalog,
 alias, or dependency on `@addons/addon-*`. In Settings, the local list queries
 only `name` and `description` from manifests to make filling the form easier.
 Global search queries `search` HTTP resources declared by active add-ons and
-normalizes responses into one table.
+normalizes responses into one table. A provider may supply a consistent set of
+labelled display fields for a listing; the host renders those columns and any
+image attached to a field without interpreting their domain meaning. Otherwise
+it keeps the standard type, ID, name, and description columns.
 
 Canonical host capabilities:
 
@@ -52,6 +55,11 @@ text content and a fallback for older add-ons.
 
 The internal registry orders providers by priority and add-on name. Missing required services leave an installation blocked; when a provider appears, the host can reevaluate it. Required dependency cycles are also blocked.
 
+A result page may also ask the optional `host.content-editor` service whether
+its URL is editable. When a provider accepts, the page shows **Edit** and
+mounts the returned editing view. The host handles only URL, title, and HTML;
+chart parsing, Monaco, and draft storage remain in add-ons.
+
 ## How it works
 
 The runtime is in [`src/runtime`](src/runtime):
@@ -74,7 +82,7 @@ pnpm build:host
 pnpm check:host-boundary
 ```
 
-The local host server uses port `5280`. `pnpm dev` starts the host and the four HTTP demonstration servers; in-process add-ons are served by `scripts/serve-inprocess-addon.mjs` and discovered through their manifest URLs.
+The local host server uses port `5280`. `pnpm dev` starts the host, two HTTP demonstration servers, and six in-process add-ons served by `scripts/serve-inprocess-addon.mjs`. The host discovers them through their manifest URLs.
 
 ## Limits
 

@@ -29,6 +29,15 @@ const array = (description, classification, items) => ({ type: 'array', descript
 
 const payload = (description, schema) => ({ description, schema });
 
+const chartDisplayFieldSchema = object('One provider-defined display field.', 'public', {
+  id: string('Stable field identifier.'),
+  label: string('Column heading shown by the host.'),
+  value: string('Plain-text field value.'),
+  detail: string('Optional secondary plain-text value.'),
+  image: string('Optional image URL associated with this field.', 'public', 'uri'),
+  url: string('Optional URL opened from this field.', 'public', 'uri'),
+}, ['id', 'label', 'value']);
+
 const pageFields = {
   limit: integer('Maximum number of rows requested for this page.'),
   cursor: string('Opaque cursor received from the previous page.', 'personal'),
@@ -53,6 +62,8 @@ const chartMetaSchema = object('One chart normalized for the host table.', 'publ
   description: string('Artist, key, and tempo in one line.'),
   url: string('Plain-text content URL served by this add-on.', 'public', 'uri'),
   emoji: string('Emoji used by the host row.'),
+  image: string('Artist portrait used by the host row.', 'public', 'uri'),
+  displayFields: array('Generic table columns and values supplied by the catalogue.', 'public', chartDisplayFieldSchema),
 }, ['id', 'type', 'name', 'url']);
 
 const metasResponse = (description) => payload(description, object(description, 'public', {
@@ -115,6 +126,9 @@ const chartJsonSchema = object('Structured chart payload consumed by a renderer.
     title: string('Work title.'),
     artistSlug: string('Artist slug.'),
     artistName: string('Artist display name.'),
+    artistImage: string('Generated demo portrait URL for the artist.', 'public', 'uri'),
+    albumTitle: string('Album that first released this song.'),
+    firstReleasedYear: integer('Year the album was first released.'),
     composers: array('Composers credited for the work.', 'public', string('Composer name.')),
   }, ['title']),
   playableVersion: object('Version of the work this chart describes.', 'public', {
@@ -243,6 +257,17 @@ export const manifest = defineAddonManifest({
         returns: payload('Available versions and their links.', object('Object with texts.', 'public', {
           texts: array('Available versions.', 'public', textOptionSchema),
         }, ['texts'])),
+      },
+      {
+        id: 'artist-image',
+        direction: 'incoming',
+        method: 'GET',
+        path: '/artists/{artistSlug}.png',
+        purpose: 'Delivers one generated demo artist portrait for catalogue rows.',
+        receives: incoming('Requested artist portrait.', {
+          artistSlug: string('Artist slug used to select a local image file.'),
+        }, ['artistSlug']),
+        returns: payload('PNG portrait bytes served as image/png.', string('Binary image response body.')),
       },
       {
         id: 'content',

@@ -1,9 +1,9 @@
-# Chord charts: listing and rendering
+# Chord charts: listing, rendering, and editing
 
-**Status: Delivered · Two independent add-ons**
+**Status: Delivered · Three independent add-ons**
 
-This document explains the two add-ons that publish and render chord charts, the
-data format they exchange, and the controls the viewer offers. It also records
+This document explains the add-ons that publish, render, and edit chord charts,
+the data format they exchange, and the controls the viewer offers. It also records
 what was reused, in concept, from the AC projects (`ac15`, `achorde`, and the
 AC12 archive), and what was deliberately left out.
 
@@ -21,25 +21,37 @@ The POC needed a domain that is rich enough to prove three things at once:
    two-stage content delivery;
 2. an in-process add-on can render structured data with many controls through a
    declarative interface;
-3. two add-ons can collaborate through the public protocol and the manifest URL
+3. independent add-ons can collaborate through the public protocol and manifest URLs
    without importing each other.
 
 ## What
 
-There are two add-ons, with one responsibility each:
+There are three add-ons, with one responsibility each:
 
 | Add-on | Format | Responsibility |
 | --- | --- | --- |
 | `@addons/addon-chord-catalog` | HTTP server, port `5295` | Lists, searches, and delivers chord charts and their shapes |
 | `@addons/addon-chord-viewer` | in-process, port `5305` | Reads a chart and renders it with controls |
+| `@addons/addon-chord-editor` | in-process, port `5309` | Edits text with Monaco and saves local drafts |
 
-The catalogue owns the data. The viewer owns the rendering. The viewer reads the
-catalogue through its manifest URL and the protocol routes, exactly like the
-host does, so neither add-on imports the other and either can be replaced.
+The catalogue owns the published data. The viewer owns rendering. The editor
+owns local drafts. The editor requires the viewer service, so the host always
+initializes the renderer before the editor even when their saved manifest order
+is reversed. Provider priority only selects between multiple implementations
+of the same service. The catalogue also supplies artist portraits and song,
+album, and first-release metadata for its listing. The add-ons communicate
+through HTTP content URLs and declared services, so none imports another
+implementation and each can be replaced.
 
-The host stays generic: it queries the `search` resource in its fixed search
-field, and renders the viewer's tab response as text. No host code knows what a
-chord is.
+The host stays generic: it queries `search`, renders the viewer's response, and
+asks an optional `host.content-editor` service whether the opened result has an
+editor. No host code knows what a chord is.
+
+The catalogue rows supply three display fields: **Artist**, **Song**, and
+**Album · First released**. The artist field carries its own portrait image;
+the song title remains the link to the chart. The host uses these provider
+labels and values generically, and retains its standard columns for rows whose
+provider does not supply a matching field set.
 
 ## How
 
@@ -249,11 +261,34 @@ musical work, a playable version, the chart record, the sections, and the shapes
 The shape of `content`, `source`, and `observability` follows the Wikipedia
 add-on, so both add-ons are read the same way by the host and by the viewer.
 
+### Local editing and cross-add-on conversation
+
+The editor reads a chart's `content.json`, presents its original text in
+Monaco, and asks the viewer's `addons.chords.viewer.render` service to produce
+the live preview. Monaco assets come from the editor's own server, not the
+host. If Monaco is unavailable, the text area still allows an edit.
+
+The **Save local draft** action writes through `state-store`. The saved record
+contains the full source URL, edited text, and checksum of the published text.
+The viewer can read it through `addons.chords.drafts.get`. It overlays the draft
+only while that checksum matches; when the source changes, the editor warns
+about the old base and the viewer keeps the published chart. **Discard draft**
+removes the local record. None of these actions changes the HTTP catalogue or
+publishes the revision to another person.
+
+The host only knows the optional `host.content-editor` convention: it asks
+`supports({ url, type, name })`, displays **Edit** if accepted, and mounts
+the markup returned by `render`. The service boundary, rather than direct
+package imports, lets the three add-ons work together without knowing one
+another's implementation. See [ADR 0002](adr/0002-independent-chord-editor.md)
+for the trade-offs.
+
 ### What was reused, and what was left out
 
-The two add-ons were designed after reading the AC projects. Nothing was copied
-from their code and no dependency was created; the table records the conceptual
-debt.
+The chord demonstration was designed after reading the AC projects. The viewer
+contains a documented, MIT-licensed port of the renderer, but no package imports
+an AC project. The editor follows the concept of a Monaco editing surface
+without copying an AC editor implementation.
 
 | Reused concept | Where it comes from | How it appears here |
 | --- | --- | --- |

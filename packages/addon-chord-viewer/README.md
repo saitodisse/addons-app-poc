@@ -55,6 +55,11 @@ controls the person already chose. A URL whose payload does not declare the
 `chord-over-lyrics` notation is declined, so results from other add-ons keep
 their own layout.
 
+When `addons.chords.drafts` is available, the result page may show a local
+draft saved by the independent chord editor. The viewer accepts it only when
+its recorded source checksum matches the published chart; otherwise the
+published chart remains visible and the editor warns about the conflict.
+
 ## How to run and test
 
 ```bash

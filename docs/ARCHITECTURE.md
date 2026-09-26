@@ -25,6 +25,15 @@ Settings screen offers a convenience list of local `manifest.json` URLs and
 reads only `name` and `description` to present each row; it does not import
 bundles or know specific services. Add-ons do not import other add-ons.
 
+Chord editing is a concrete example of that boundary. The catalogue publishes
+chart content over HTTP; the viewer exposes `addons.chords.viewer` and may
+consume `addons.chords.drafts`; the editor provides that draft service and
+consumes the viewer and `state-store`. The host's optional
+`host.content-editor` convention accepts a result URL and returns an editing
+view. It does not parse chart text, import Monaco, or know which add-on provides
+the editor. The first release stores drafts only in the browser and does not
+write to the published catalogue.
+
 The package was published to npm and tested in a clean consumer. Consumer
 packages use `@addons-poc/protocol@1.0.0` from the registry, while the source in
 `packages/protocol` remains in the workspace for tests and new versions.
@@ -98,6 +107,13 @@ dependency cycles are blocked; fallback is explicit in the runtime.
 Settings stores URLs, disabled state, and the accepted fingerprint in
 `addons:host-installations:v1`. The same URL with a changed contract returns to
 review. The host does not mix this configuration with add-on state storage.
+
+On startup and whenever a provider changes, the host reloads the affected
+add-ons in required-dependency order. It first clears the selected instances,
+then activates their required providers before their consumers. Clearing and
+reloading those add-ons in parallel could make a consumer see a provider only
+while it is temporarily absent and incorrectly leave the consumer blocked.
+Optional dependencies do not create an ordering edge.
 
 The result limit for each add-on that offers search is also stored in this
 configuration and associated with the manifest URL. Resources that declare

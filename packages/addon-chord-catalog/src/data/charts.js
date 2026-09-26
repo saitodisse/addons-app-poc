@@ -10,7 +10,8 @@ export const CHARTS = [
   {
     id: 'harbor-light',
     title: 'Harbor Light',
-    artist: { slug: 'mare-alta', name: 'Mare Alta' },
+    artist: { slug: 'mare-alta', name: 'Mare Alta', image: '/artists/mare-alta.png' },
+    album: { title: 'Maré de Luz', firstReleasedYear: 2018 },
     composers: ['Ana Reis', 'Tom Vidal'],
     key: 'G',
     capo: 0,
@@ -73,7 +74,8 @@ export const CHARTS = [
   {
     id: 'paper-lanterns',
     title: 'Paper Lanterns',
-    artist: { slug: 'mare-alta', name: 'Mare Alta' },
+    artist: { slug: 'mare-alta', name: 'Mare Alta', image: '/artists/mare-alta.png' },
+    album: { title: 'Maré de Luz', firstReleasedYear: 2018 },
     composers: ['Ana Reis'],
     key: 'C',
     capo: 0,
@@ -132,7 +134,8 @@ export const CHARTS = [
   {
     id: 'northbound-train',
     title: 'Northbound Train',
-    artist: { slug: 'the-ridge-line', name: 'The Ridge Line' },
+    artist: { slug: 'the-ridge-line', name: 'The Ridge Line', image: '/artists/the-ridge-line.png' },
+    album: { title: 'Northbound & Home', firstReleasedYear: 2021 },
     composers: ['Ivo Marques'],
     key: 'D',
     capo: 2,
@@ -195,7 +198,8 @@ export const CHARTS = [
   {
     id: 'sunday-kitchen',
     title: 'Sunday Kitchen',
-    artist: { slug: 'the-ridge-line', name: 'The Ridge Line' },
+    artist: { slug: 'the-ridge-line', name: 'The Ridge Line', image: '/artists/the-ridge-line.png' },
+    album: { title: 'Northbound & Home', firstReleasedYear: 2021 },
     composers: ['Ivo Marques', 'Bia Prado'],
     key: 'A',
     capo: 0,
@@ -254,7 +258,8 @@ export const CHARTS = [
   {
     id: 'blue-hour-waltz',
     title: 'Blue Hour Waltz',
-    artist: { slug: 'clara-fonseca', name: 'Clara Fonseca' },
+    artist: { slug: 'clara-fonseca', name: 'Clara Fonseca', image: '/artists/clara-fonseca.png' },
+    album: { title: 'Hours in Blue', firstReleasedYear: 2023 },
     composers: ['Clara Fonseca'],
     key: 'Em',
     capo: 0,
@@ -323,7 +328,8 @@ export const CHARTS = [
   {
     id: 'static-and-rain',
     title: 'Static and Rain',
-    artist: { slug: 'vela-nova', name: 'Vela Nova' },
+    artist: { slug: 'vela-nova', name: 'Vela Nova', image: '/artists/vela-nova.png' },
+    album: { title: 'Signal at Sea', firstReleasedYear: 2020 },
     composers: ['Rui Lemos'],
     key: 'Am',
     capo: 3,
@@ -385,7 +391,8 @@ export const CHARTS = [
   {
     id: 'long-way-home',
     title: 'Long Way Home',
-    artist: { slug: 'vela-nova', name: 'Vela Nova' },
+    artist: { slug: 'vela-nova', name: 'Vela Nova', image: '/artists/vela-nova.png' },
+    album: { title: 'Signal at Sea', firstReleasedYear: 2020 },
     composers: ['Rui Lemos', 'Clara Fonseca'],
     key: 'E',
     capo: 0,
@@ -448,7 +455,8 @@ export const CHARTS = [
   {
     id: 'copper-kettle-road',
     title: 'Copper Kettle Road',
-    artist: { slug: 'the-ridge-line', name: 'The Ridge Line' },
+    artist: { slug: 'the-ridge-line', name: 'The Ridge Line', image: '/artists/the-ridge-line.png' },
+    album: { title: 'Northbound & Home', firstReleasedYear: 2021 },
     composers: ['Bia Prado'],
     key: 'Bb',
     capo: 0,

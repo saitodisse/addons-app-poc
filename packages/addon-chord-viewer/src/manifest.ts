@@ -15,11 +15,12 @@ export const DEFAULT_CATALOG_ORIGIN = 'http://localhost:5295';
 
 const text = (description: string, classification = 'public') => ({ type: 'string', description, classification });
 const whole = (description: string, classification = 'public') => ({ type: 'integer', description, classification });
-const object = (description: string, classification = 'public', properties?: Record<string, unknown>) => ({
+const object = (description: string, classification = 'public', properties?: Record<string, unknown>, required?: string[]) => ({
   type: 'object',
   description,
   classification,
   ...(properties ? { properties } : {}),
+  ...(required?.length ? { required } : {}),
 });
 const list = (description: string, items?: Record<string, unknown>) => ({
   type: 'array',
@@ -115,6 +116,25 @@ export const manifest = defineAddonManifest({
           { id: 'get', description: 'Reads the stored controls and chart.' },
           { id: 'set', description: 'Writes the stored controls and chart.' },
         ],
+      },
+      {
+        id: 'addons.chords.drafts',
+        role: 'consumes',
+        version: '^1.0.0',
+        description: 'Reads a locally saved chart revision when an editor is active.',
+        required: false,
+        methods: [{
+          id: 'get',
+          description: 'Reads a local draft by the published content URL.',
+          receives: payload('Published chart URL.', object('Draft lookup.', 'personal', {
+            sourceUrl: text('Published content URL.', 'personal', 'uri'),
+          }, ['sourceUrl'])),
+          returns: payload('Draft lookup result.', object('Local draft result.', 'personal', {
+            found: { type: 'boolean', description: 'Whether a draft exists.', classification: 'personal' },
+            text: text('Locally edited chart text.', 'personal'),
+            baseChecksum: text('Checksum of the source used when editing.', 'personal'),
+          }, ['found'])),
+        }],
       },
     ],
     ui: {

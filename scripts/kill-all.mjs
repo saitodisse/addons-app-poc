@@ -1,7 +1,7 @@
 /**
  * Stops all development environment processes:
  * host-app (:5280), HTTP add-ons (:5294-5295), and in-process add-ons
- * (:5304-5305, :5306-5308), including leftover dev-all orphans (Vite / add-on servers).
+ * (:5304-5309), including leftover dev-all orphans (Vite / add-on servers).
  * Usage: pnpm kill-all
  * Sends SIGTERM and, if a process persists, SIGKILL.
  *
@@ -17,7 +17,7 @@ import { execFileSync } from 'node:child_process';
 const PORTS = [
   5280,
   5294, 5295,
-  5304, 5305, 5306, 5307, 5308,
+  5304, 5305, 5306, 5307, 5308, 5309,
 ];
 
 /** PIDs listening on the port. fuser returns PIDs; ss is the fallback. */

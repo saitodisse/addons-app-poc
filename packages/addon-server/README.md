@@ -19,6 +19,11 @@ A remote add-on must be hostable without loading the host's TypeScript runtime. 
 | `contentJson` (optional) | `GET /text/{type}/{id}/content.json?lang=...` | structured object; may return `{ body, headers }` |
 | `debugTraffic` (optional) | `GET /debug/traffic.json` | local request and response history |
 
+For binary files such as images, an add-on can also pass an `assets` map keyed
+by exact URL path. Each entry supplies a `Uint8Array` and a MIME type. The
+server serves matching `GET` and `HEAD` requests with CORS, a one-day cache
+header, and a traffic record that does not copy the binary body into logs.
+
 It also publishes `GET /manifest.json`, enables CORS for the local demonstration,
 turns relative content URLs into absolute server URLs, and forwards `limit`,
 `cursor`, and the optional `lang` parameter to handlers. The cursor and
@@ -33,8 +38,9 @@ body.
 
 When `handlers.debugTraffic` is provided, the server also publishes local
 history. `onTraffic` receives every incoming request and outgoing response,
-including URL, headers, status, duration, and complete body. The debug route does
-not record its own read, avoiding an observability cycle. Authentication,
+including URL, headers, status, duration, and text/JSON bodies. Binary asset
+responses record their byte length instead of copying image bytes into the log.
+The debug route does not record its own read, avoiding an observability cycle. Authentication,
 session, API-key, and IP headers are redacted before recording; other fields
 remain available.
 

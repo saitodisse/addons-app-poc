@@ -118,4 +118,37 @@ describe('FetchAddonLoader', () => {
     expect(instances[0]?.status).toBe('ready');
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
+
+  it('loads a required renderer before its editor even when the editor manifest comes first', async () => {
+    const rendererUrl = 'https://example.test/chord-viewer/manifest.json';
+    const editorUrl = 'https://example.test/chord-editor/manifest.json';
+    const rendererManifest = manifest('chord-viewer', [service('addons.chords.viewer', 'provides', '1.0.0')]);
+    const editorManifest = manifest('chord-editor', [service('addons.chords.viewer', 'consumes', '^1.0.0')]);
+    const manifests = new Map([[rendererUrl, rendererManifest], [editorUrl, editorManifest]]);
+    globalThis.fetch = vi.fn(async (input) => {
+      const addonManifest = manifests.get(String(input));
+      if (!addonManifest) return new Response(null, { status: 404 });
+      return new Response(JSON.stringify(addonManifest), { status: 200 });
+    });
+
+    const executionOrder: string[] = [];
+    const rendererModule = moduleFor(rendererManifest, (host) => {
+      executionOrder.push('renderer setup');
+      host.registerService('addons.chords.viewer', { run: () => 'rendered' });
+    });
+    const editorModule = moduleFor(editorManifest, (host) => {
+      executionOrder.push('editor setup');
+      const renderer = host.services.use({ id: 'addons.chords.viewer' });
+      if (!renderer) throw new Error('renderer service was unavailable during editor setup');
+    });
+    const loader = new FetchAddonLoader(new ServiceRegistry(), { log() {} }, async (url) => {
+      executionOrder.push(url.includes('/chord-viewer/') ? 'renderer import' : 'editor import');
+      return url.includes('/chord-viewer/') ? rendererModule : editorModule;
+    });
+
+    const instances = await loader.loadAll([editorUrl, rendererUrl]);
+
+    expect(executionOrder).toEqual(['renderer import', 'renderer setup', 'editor import', 'editor setup']);
+    expect(instances.map((instance) => instance.status)).toEqual(['ready', 'ready']);
+  });
 });

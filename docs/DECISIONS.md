@@ -91,6 +91,10 @@ Each provider descriptor may declare a numeric priority. Higher values come firs
 
 `ServiceRegistry.register` orders entries. Ties use the manifest URL identity as a tiebreaker so that the choice is deterministic.
 
+This numeric priority chooses among implementations of the same service. It
+does not choose setup order: required service dependencies determine execution
+order, with each provider ready before its consumer starts.
+
 ## 6. A setup failure deactivates the instance
 
 ### Why
@@ -327,7 +331,7 @@ Without storing installed URLs, an F5 erases every in-memory instance. It also p
 
 ### Decision
 
-The host stores a small `localStorage` configuration with installed manifest URLs and disabled URLs. During initial loading, it tries the recorded order and retries blocked add-ons when a compatible provider appears. If the key does not exist, it starts without extensions.
+The host stores a small `localStorage` configuration with installed manifest URLs and disabled URLs. During initial loading, it tries the recorded order and retries add-ons that use services. If the key does not exist, it starts without extensions. The initial retry and later dependency rechecks activate selected providers before their required consumers, one at a time.
 
 ### Technical consequences
 
@@ -335,6 +339,15 @@ The host stores a small `localStorage` configuration with installed manifest URL
 - disabling an extension remains disabled after reloading;
 - a URL that cannot be restored is ignored for that session and removed from the persisted list after loading finishes;
 - the host configuration does not replace `state-store`: it only rebuilds the extensions that may choose to persist their own data.
+- `FetchAddonLoader.loadAll` resolves required dependencies before setup, even
+  when the saved manifest list places a consumer first; the list order is not an
+  execution priority.
+- `App.tsx` uses that same dependency order when it rechecks add-ons after
+  restoring installations or changing a provider. It does not clear and reload
+  a provider and its consumer concurrently, because the consumer could observe
+  the temporary absence and become blocked.
+- Optional service use does not create an ordering edge; it never delays a
+  provider or blocks activation.
 
 ## 20. Every add-on declares its interaction contract
 
@@ -544,6 +557,49 @@ It is a convention between the host and any add-on, not a new protocol version.
 - a rendered result carries the same trust as a rendered tab: the add-on already
   runs in the host page, so inserting its view adds no privilege;
 - the convention is optional. Without a provider, nothing changes.
+
+## 24. Chord editing uses a separate add-on and local drafts
+
+### Why
+
+The catalogue publishes charts, and the viewer renders them. Editing requires a
+different responsibility: accepting changes without silently rewriting the
+published source. Putting Monaco or chart rules in the host would also make the
+host depend on this example's domain.
+
+### Decision
+
+An independent editor add-on opens a chart by its content URL. It asks the
+viewer's declared `addons.chords.viewer` service for a live preview and saves a
+local draft through the declared `state-store` service. The editor publishes
+`addons.chords.drafts`; the viewer may read that service to display a saved
+draft. The host asks the optional `host.content-editor` service whether a
+result can be edited and presents its view without interpreting chart data.
+
+The editor declares the viewer as a required service consumer. The loader and
+the host's dependency rechecks therefore start the renderer first and the
+editor second, regardless of the order in which their manifest URLs were
+saved.
+
+A draft is identified by the source URL and records the source checksum. A
+draft based on a different checksum is shown as a conflict to the editor and
+is not silently displayed as the published chart. The HTTP catalogue remains
+read-only. The editor uses Monaco as a separately served browser dependency and
+falls back to a plain text area if Monaco cannot load. No package imports an
+AC project or another add-on.
+
+### Consequences
+
+- the editor needs the viewer and a storage provider to activate; a missing
+  required provider leaves it blocked by the existing compatibility rules;
+- the host gains one domain-neutral editing convention, while the chart
+  vocabulary stays in the add-ons;
+- writing to a remote catalogue, publishing a revision, and resolving an
+  upstream conflict require separate decisions;
+- changes to the public protocol are unnecessary for this delivery.
+
+The cross-add-on interface and the alternatives are recorded in
+[`adr/0002-independent-chord-editor.md`](adr/0002-independent-chord-editor.md).
 
 ## When to revisit a decision
 

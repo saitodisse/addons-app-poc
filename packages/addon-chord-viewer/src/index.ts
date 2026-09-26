@@ -17,6 +17,28 @@ import { createViewerState, type ViewerState } from './state';
 import { CONTENT_VIEW_SERVICE, ChartContentViewProvider } from './content-view';
 import { CATALOG_FIELD, CHART_FIELD, TAB_ACTIONS, TAB_FIELDS, TEXT_FIELD } from './tab-definition';
 
+interface DraftLookup {
+  get(request: { sourceUrl: string }): Promise<{ found: boolean; text?: string; baseChecksum?: string }>;
+}
+
+async function chartWithDraft(host: HostAPI, chart: ChartRecord): Promise<ChartRecord> {
+  if (!chart.contentJsonUrl || !chart.sourceChecksum) return chart;
+  const drafts = host.services.use<DraftLookup>({
+    id: 'addons.chords.drafts',
+    version: '^1.0.0',
+    methods: [{ id: 'get' }],
+  });
+  if (!drafts) return chart;
+  try {
+    const draft = await drafts.get({ sourceUrl: chart.contentJsonUrl });
+    return draft.found && draft.baseChecksum === chart.sourceChecksum && typeof draft.text === 'string'
+      ? { ...chart, text: draft.text }
+      : chart;
+  } catch {
+    return chart;
+  }
+}
+
 export { manifest } from './manifest';
 export { ChordViewerService } from './service';
 export { CONTENT_VIEW_SERVICE, ChartContentViewProvider } from './content-view';
@@ -77,6 +99,7 @@ export function setup(host: HostAPI): void {
       await readable.ready();
       await readable.setChart(chart);
     },
+    withDraft: (chart) => chartWithDraft(host, chart),
   }));
   host.log('info', 'Chord viewer configured successfully');
 }
@@ -216,7 +239,7 @@ export function createTab(host: HostAPI): AddonTab {
         chart = await client.chart(base, target);
       }
 
-      await state.setChart(chart);
+      await state.setChart(await chartWithDraft(host, chart));
       host.log('info', `Chart loaded: ${chart.id}`, { action: 'load', chart: chart.id });
       return renderCurrent(`Loaded ${chart.title}`);
     } catch (error) {

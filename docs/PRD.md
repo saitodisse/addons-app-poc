@@ -1,6 +1,6 @@
 # Product requirements
 
-**Status: Partial** · **POC version: 1.2.0** · **Published protocol: 1.0.0**
+**Status: Partial** · **POC version: 1.7.0** · **Published protocol: 1.0.0**
 
 This document defines what the proof of concept must demonstrate. It does not describe a finished commercial product; it describes the technical questions the experiment must answer and the evidence expected for each answer.
 
@@ -110,6 +110,8 @@ The states mean: **Delivered** when the behavior is implemented in the stated sc
 | F3.5 | Allow infrastructure provided by the host | Delivered | Optional `state-store`, with priority between providers |
 | F3.6 | Allow composition without direct imports | Delivered | Favorites, aggregator, and health check |
 | F3.7 | Render structured data with controls through the declarative tab | Delivered | `addon-chord-viewer` renders chord charts with transposition, layout, shapes, colours, and window controls |
+| F3.8 | Edit a chord chart without coupling add-on implementations | Delivered | `addon-chord-editor` uses Monaco, viewer preview, and local drafts through declared services; the host offers only a generic editor convention |
+| F3.9 | Let a catalogue describe useful result columns without domain code in the host | Delivered | Chord rows supply artist portrait, artist, song, album, and first-release year; the host renders matching provider-defined fields generically |
 
 ### HTTP text add-ons
 

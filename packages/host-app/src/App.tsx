@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { getInteractionContractFingerprint, validateManifest } from '@addons-poc/protocol';
-import type { AddonInstance, AddonManifest, AddonStateStore } from '@addons-poc/protocol';
+import type { AddonInstance, AddonManifest, AddonModule, AddonStateStore } from '@addons-poc/protocol';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { ServiceRegistry } from './runtime/registry';
+import { orderAddonKeysByDependencies } from './runtime/dependency-graph';
 import { ConsoleLogger } from './runtime/logger';
 import { FetchAddonLoader } from './runtime/loader';
 import { Header } from './components/Header';
-import { AddonManager } from './components/AddonManager';
+import { ADDON_INSTALL_SECTION_ID, AddonManager } from './components/AddonManager';
 import { AddonDetailPanel } from './components/AddonDetailPanel';
 import { SearchResultPage } from './components/SearchResultPage';
 import { CONTENT_VIEW_SERVICE, type ContentViewProvider } from './content-view';
+import { CONTENT_EDITOR_SERVICE, type ContentEditorProvider } from './content-editor';
 import { SearchResultsTable } from './components/SearchResultsTable';
 import { browsePage, clampSearchLimit, createFetchSearchClient, hasNextSearchPage, searchPage } from './search';
 import type { SearchCollection, SearchLanguages, SearchLimitValue, SearchPageState, SearchPagination, SearchProviderError, SearchResultRow } from './search';
@@ -113,7 +115,12 @@ function parsePersistedSearchState(value: unknown): PersistedSearchState | undef
   return { query: candidate.query, results, pagination, page };
 }
 
-export function App() {
+interface AppProps {
+  /** Injectable at the ESM boundary so bootstrap behavior can be exercised without a network server. */
+  importAddonModule?: (url: string) => Promise<AddonModule>;
+}
+
+export function App({ importAddonModule }: AppProps = {}) {
   const [registry] = useState(() => new ServiceRegistry());
   const [logger] = useState(() => new ConsoleLogger());
   const [addons, setAddons] = useState<AddonInstance[]>([]);
@@ -154,24 +161,52 @@ export function App() {
   const httpTextClient = useMemo(() => createFetchSearchClient(), []);
   const route = useRoute();
 
+  const createLoader = useCallback(
+    () => new FetchAddonLoader(registry, logger, importAddonModule),
+    [importAddonModule, logger, registry],
+  );
+
+  const scrollToAddonInstallSection = useCallback(() => {
+    const target = document.getElementById(ADDON_INSTALL_SECTION_ID);
+    if (!target) return;
+    const headerHeight = document.querySelector('.host-site-header')?.getBoundingClientRect().height ?? 0;
+    target.style.scrollMarginTop = `${Math.ceil(headerHeight + 16)}px`;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const behavior = reduceMotion ? 'auto' : 'smooth';
+    target.scrollIntoView({ behavior, block: 'start' });
+  }, []);
+
+  useEffect(() => {
+    if (route !== ROUTES.settings) return;
+    const frame = window.requestAnimationFrame(scrollToAddonInstallSection);
+    return () => window.cancelAnimationFrame(frame);
+  }, [route, scrollToAddonInstallSection]);
+
+  const handleSettingsNavigate = useCallback(() => {
+    if (route === ROUTES.settings) window.requestAnimationFrame(scrollToAddonInstallSection);
+  }, [route, scrollToAddonInstallSection]);
+
   const loadRemoteAddon = useCallback(async (manifestUrl: string): Promise<AddonInstance> => {
-    return new FetchAddonLoader(registry, logger).load(manifestUrl);
-  }, [logger, registry]);
+    return createLoader().load(manifestUrl);
+  }, [createLoader]);
 
   const recheckDependencies = useCallback(async (manifestUrls: string[]) => {
     const urls = [...new Set(manifestUrls)];
     if (urls.length === 0) return;
     const lifecycle = addonLifecycleRef.current;
-    const refreshed = await Promise.all(urls.map(async (manifestUrl) => {
-      registry.clearAddon(manifestUrl);
-      return new FetchAddonLoader(registry, logger).load(manifestUrl);
-    }));
+    const dependencyInputs = addons
+      .filter((addon) => addon.status !== 'error')
+      .map((addon) => ({ key: addon.manifestUrl, manifest: addon.manifest }));
+    const orderedUrls = orderAddonKeysByDependencies(urls, dependencyInputs);
+    for (const manifestUrl of urls) registry.clearAddon(manifestUrl);
+    const refreshed: AddonInstance[] = [];
+    for (const manifestUrl of orderedUrls) refreshed.push(await createLoader().load(manifestUrl));
     if (lifecycle !== addonLifecycleRef.current) {
       for (const instance of refreshed) registry.clearAddon(instance.manifestUrl);
       return;
     }
     setAddons((current) => current.map((addon) => refreshed.find((item) => item.manifestUrl === addon.manifestUrl) ?? addon));
-  }, [logger, registry]);
+  }, [addons, createLoader, registry]);
 
   const inspectManifest = useCallback(async (value: string): Promise<AddonManifest> => {
     const manifestUrl = normalizeManifestUrl(value);
@@ -221,7 +256,7 @@ export function App() {
         const persisted = readPersistedInstallations();
         const initialUrls = persisted.manifestUrls;
         try {
-          for (const instance of await new FetchAddonLoader(registry, logger).loadAll(initialUrls)) {
+          for (const instance of await createLoader().loadAll(initialUrls)) {
             if (instance.manifest) instances.set(instance.manifestUrl, instance);
           }
         } catch (error) {
@@ -248,10 +283,13 @@ export function App() {
           .filter((instance) => instance.manifest.contract.services.some((service) => service.role === 'consumes'))
           .map((instance) => instance.manifestUrl);
         if (dependents.length > 0) {
-          const refreshed = await Promise.all(dependents.map(async (manifestUrl) => {
-            registry.clearAddon(manifestUrl);
-            return new FetchAddonLoader(registry, logger).load(manifestUrl);
-          }));
+          const dependencyInputs = restored
+            .filter((instance) => instance.status !== 'error' && !disabled.has(instance.manifestUrl) && !pending.includes(instance.manifestUrl))
+            .map((instance) => ({ key: instance.manifestUrl, manifest: instance.manifest }));
+          const orderedDependents = orderAddonKeysByDependencies(dependents, dependencyInputs);
+          for (const manifestUrl of dependents) registry.clearAddon(manifestUrl);
+          const refreshed: AddonInstance[] = [];
+          for (const manifestUrl of orderedDependents) refreshed.push(await createLoader().load(manifestUrl));
           restored = restored.map((instance) => refreshed.find((item) => item.manifestUrl === instance.manifestUrl) ?? instance);
         }
         setAddons(restored);
@@ -268,7 +306,7 @@ export function App() {
       };
       void loadInitialAddons();
     }
-  }, [loadRemoteAddon]);
+  }, [createLoader, loadRemoteAddon]);
 
   useEffect(() => {
     if (!installationsReady) return;
@@ -630,6 +668,10 @@ export function App() {
     () => registry.get<ContentViewProvider>(CONTENT_VIEW_SERVICE),
     [addons, registry],
   );
+  const contentEditorProvider = useMemo(
+    () => registry.get<ContentEditorProvider>(CONTENT_EDITOR_SERVICE),
+    [addons, registry],
+  );
   // The add-on behind that service: the result page shows its controls too.
   const contentViewAddon = useMemo(() => {
     const manifestUrl = registry.providerOf(CONTENT_VIEW_SERVICE);
@@ -667,6 +709,7 @@ export function App() {
         onSearchValueChange={setSearchInput}
         onSearch={(value) => void runSearch(value)}
         onClearSearch={clearSearch}
+        onSettingsNavigate={handleSettingsNavigate}
       />
 
       <main
@@ -710,10 +753,13 @@ export function App() {
           </section>
         ) : isSearchResultRoute ? (
           <SearchResultPage
+            key={searchResultContentUrl ?? 'invalid-result'}
             contentUrl={searchResultContentUrl}
             result={selectedSearchResult}
+            ready={installationsReady && searchStateReady}
             viewProvider={contentViewProvider}
             viewAddon={contentViewAddon}
+            editorProvider={contentEditorProvider}
           />
         ) : route === ROUTES.home ? null : (
           <section className="addon-route-page" aria-label={selectedAddon ? `Add-on details for ${selectedAddon.manifest.name}` : 'Add-on details'}>

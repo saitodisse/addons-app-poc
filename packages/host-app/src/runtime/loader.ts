@@ -122,7 +122,7 @@ export class FetchAddonLoader {
     }
   }
 
-  /** Pre-validates a set of URLs and imports providers before consumers. */
+  /** Pre-validates a set of URLs and runs each required provider before its consumers. */
   async loadAll(manifestUrls: string[]): Promise<AddonInstance[]> {
     const inputs: { key: string; manifest: AddonManifest }[] = [];
     const invalid = new Map<string, AddonInstance>();

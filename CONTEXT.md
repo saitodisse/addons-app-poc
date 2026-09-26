@@ -9,6 +9,14 @@ The [package index](docs/PACKAGES.md) points to each package README.
 
 ## Language
 
+**Published chord chart**:
+The chart text and metadata delivered by a catalogue at a content URL. It remains the source version even when a person edits a local copy.
+_Avoid_: editable catalogue record
+
+**Local chord draft**:
+A person's saved revision of a published chord chart, identified by its source content URL and the checksum of the source text it was based on.
+_Avoid_: published chart, catalogue update
+
 **Interaction declaration**:
 The part of the manifest that describes an add-on's inputs, outputs, storage, and other interactions. For interactions mediated by the host, it is also the rule the host uses to allow or block access.
 _Avoid_: implicit permissions, hidden capabilities

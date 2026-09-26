@@ -17,6 +17,7 @@ chord is.
 | `catalog` | `GET /catalog/chart/{catalogId}.json` | One named view: `recent`, `popular`, `beginner`, `alphabetical` |
 | `search` | `GET /search/chart/{query}.json` | Rows ranked by title, artist, composer, key, tag, chord, or lyric word |
 | `text` | `GET /text/chart/{id}.json` | The deliverable version of a chart and its content links |
+| — | `GET /artists/{artistSlug}.png` | Generated artist portrait used in the catalogue table |
 | — | `GET /text/chart/{id}/content.txt` | The chart text exactly as authored |
 | — | `GET /text/chart/{id}/content.json` | The structured payload: work, version, chart record, sections, shapes |
 | — | `GET /debug/traffic.json` | The recent exchange history for the host observability panel |
@@ -27,8 +28,10 @@ optional `pagination` with `total` and `next`. The cursor is the offset itself,
 so the server stays stateless.
 
 The data set is **original demo content** written for this POC: eight charts,
-invented songs and artists, with realistic notation and shapes. No published
-catalogue was copied. See [`docs/CHORD-CHART.md`](../../docs/CHORD-CHART.md).
+invented songs, artists, albums, and first-release years, with realistic
+notation and shapes. Artist portraits are generated for this demo. No published
+catalogue or artist photo was copied. See
+[`docs/CHORD-CHART.md`](../../docs/CHORD-CHART.md).
 
 ## How to run and test
 
@@ -52,6 +55,7 @@ curl -s 'http://localhost:5295/text/chart/harbor-light/content.json' | head -c 4
 | [`src/data/voicings.js`](src/data/voicings.js) | Chord shapes as `frets`, `fingers`, and `position` |
 | [`src/catalog.js`](src/catalog.js) | Pure rules: text folding, ranking, listing, paging |
 | [`src/payloads.js`](src/payloads.js) | Row, text-option, and structured payload builders |
+| [`assets/artists/`](assets/artists) | Generated portraits served from the catalogue's own URL |
 | [`src/handlers.js`](src/handlers.js) | Route handlers, with injectable dependencies for tests |
 | [`src/manifest.js`](src/manifest.js) | Contract v1 with one described route per resource |
 | [`src/server.mjs`](src/server.mjs) | Node.js server built on `@addons/addon-server` |

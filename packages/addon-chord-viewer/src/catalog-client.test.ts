@@ -11,6 +11,7 @@ const PAYLOAD = {
   musicalWork: { title: 'Harbor Light', artistSlug: 'mare-alta', artistName: 'Mare Alta', composers: ['Ana Reis'] },
   playableVersion: { id: 'harbor-light-original', key: 'G', capo: 2, tempo: 96, time: '4/4', difficulty: 1 },
   content: { text: '[Verse]\nG   D\nHello world', charCount: 24, lineCount: 3, contentType: 'text/plain', encoding: 'utf-8' },
+  chordChart: { rawTextChecksum: 'source-checksum' },
   chords: [
     { symbol: 'G', frets: '320003', fingers: '210003', position: 1 },
     { symbol: 'D' },
@@ -36,6 +37,7 @@ describe('chartFromPayload', () => {
     expect(chart?.capo).toBe(2);
     expect(chart?.chords).toHaveLength(2);
     expect(chart?.contentJsonUrl).toBe(`${BASE}/text/chart/harbor-light/content.json`);
+    expect(chart?.sourceChecksum).toBe('source-checksum');
   });
 
   it('refuses a payload without chart text', () => {

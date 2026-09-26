@@ -11,6 +11,7 @@ describe('suggested local manifests', () => {
       'http://localhost:5306/manifest.json',
       'http://localhost:5307/manifest.json',
       'http://localhost:5308/manifest.json',
+      'http://localhost:5309/manifest.json',
     ]);
   });
 

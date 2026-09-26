@@ -37,6 +37,8 @@ export interface ChartContentViewOptions {
    * every control change would have to read the content URL again.
    */
   adopt?: (chart: ChartRecord) => Promise<void>;
+  /** Reads a locally saved revision without changing the published chart. */
+  withDraft?: (chart: ChartRecord) => Promise<ChartRecord>;
   client?: CatalogClient;
 }
 
@@ -88,17 +90,18 @@ export class ChartContentViewProvider {
     // The page may be opening another chart, and the controls kept for a chart
     // are the ones of the chart on screen. The record itself is read once, so
     // this costs nothing while the same chart stays open.
-    await this.options.adopt?.(entry.chart);
+    const chart = await this.options.withDraft?.(entry.chart) ?? entry.chart;
+    await this.options.adopt?.(chart);
 
     const settings = await this.options.settings();
     // The same chart with the same controls renders the same view, so a second
     // call — a re-mount or a response that changed nothing — reuses the first.
-    const signature = `${entry.chart.text.length}|${entry.chart.key ?? ''}|${JSON.stringify(settings)}`;
+    const signature = `${url}|${chart.text}|${chart.key ?? ''}|${JSON.stringify(settings)}`;
     if (this.lastRender?.signature !== signature) {
       const rendered = renderChart({
-        text: settings.simplifyChords ? simplifyChartText(entry.chart.text) : entry.chart.text,
+        text: settings.simplifyChords ? simplifyChartText(chart.text) : chart.text,
         settings,
-        ...(entry.chart.key ? { key: entry.chart.key } : {}),
+        ...(chart.key ? { key: chart.key } : {}),
       });
       this.lastRender = { signature, html: rendered.html };
     }

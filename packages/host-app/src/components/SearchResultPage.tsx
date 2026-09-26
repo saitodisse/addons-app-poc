@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { requestContentView, type ContentViewProvider, type ContentViewResult } from '../content-view';
+import { requestContentEditor, supportsContentEditor, type ContentEditorProvider } from '../content-editor';
 import type { AddonInstance } from '@addons-poc/protocol';
 import { AddonControlPanel } from './AddonControlPanel';
 import { RenderedHtmlView } from './RenderedHtmlView';
@@ -17,10 +18,14 @@ import {
 interface SearchResultPageProps {
   contentUrl: string | null;
   result: SearchResultRow | null;
+  /** Whether installed add-ons and saved search results have finished restoring. */
+  ready: boolean;
   /** Add-on that can render this result as HTML, when one is active. */
   viewProvider?: ContentViewProvider;
   /** Add-on behind that view; its controls are shown beside the result. */
   viewAddon?: AddonInstance | null;
+  /** Optional provider of an editing view for this result. */
+  editorProvider?: ContentEditorProvider;
 }
 
 const ALLOWED_EXTRACT_TAGS = new Set(['P', 'BR', 'STRONG', 'B', 'EM', 'I', 'U', 'UL', 'OL', 'LI', 'SUB', 'SUP', 'SPAN']);
@@ -95,18 +100,37 @@ function LoadingState({ title }: { title: string }) {
   );
 }
 
-export function SearchResultPage({ contentUrl, result, viewProvider, viewAddon }: SearchResultPageProps) {
+export function SearchResultPage({ contentUrl, result, ready, viewProvider, viewAddon, editorProvider }: SearchResultPageProps) {
   const [details, setDetails] = useState<SearchResultDetails | null>(null);
   const [fallbackContent, setFallbackContent] = useState<string | null>(null);
   const [renderedView, setRenderedView] = useState<ContentViewResult | null>(null);
   const [loading, setLoading] = useState(Boolean(contentUrl));
   const [error, setError] = useState<string | null>(null);
+  const [editorAvailable, setEditorAvailable] = useState(false);
+  const [editorView, setEditorView] = useState<ContentViewResult | null>(null);
+  const [editorLoading, setEditorLoading] = useState(false);
+  const [editorError, setEditorError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const editorRequestNumber = useRef(0);
+  const renderedHeaderRef = useRef<HTMLElement>(null);
+  const scrolledContentUrlRef = useRef<string | null>(null);
+  const resultRef = useRef(result);
+  resultRef.current = result;
+
+  const editorRequest = useCallback((url: string) => {
+    const currentResult = resultRef.current;
+    return {
+      url,
+      ...(currentResult?.type ? { type: currentResult.type } : {}),
+      ...(currentResult?.name ? { name: currentResult.name } : {}),
+    };
+  }, []);
 
   const loadView = useCallback(async (url: string): Promise<ContentViewResult | undefined> => requestContentView(viewProvider, {
     url,
-    ...(result?.type ? { type: result.type } : {}),
-    ...(result?.name ? { name: result.name } : {}),
-  }), [result?.name, result?.type, viewProvider]);
+    ...(resultRef.current?.type ? { type: resultRef.current.type } : {}),
+    ...(resultRef.current?.name ? { name: resultRef.current.name } : {}),
+  }), [viewProvider]);
 
   /** True while the view on the page was published by this add-on for this URL. */
   const addonOwnsView = useRef(false);
@@ -132,12 +156,20 @@ export function SearchResultPage({ contentUrl, result, viewProvider, viewAddon }
 
   useEffect(() => {
     let active = true;
+    editorRequestNumber.current += 1;
     addonOwnsView.current = false;
+    scrolledContentUrlRef.current = null;
     setDetails(null);
     setFallbackContent(null);
     setRenderedView(null);
     setError(null);
     setLoading(Boolean(contentUrl));
+    setEditorAvailable(false);
+    setEditorView(null);
+    setEditorError(null);
+    setEditing(false);
+
+    if (!ready) return () => { active = false; };
 
     if (!contentUrl) {
       setLoading(false);
@@ -150,11 +182,15 @@ export function SearchResultPage({ contentUrl, result, viewProvider, viewAddon }
     // An add-on that understands this result renders it; otherwise the page
     // keeps its own layout for the structured article payload.
     void (async () => {
-      const view = await loadView(contentUrl);
+      const [view, canEdit] = await Promise.all([
+        loadView(contentUrl),
+        supportsContentEditor(editorProvider, editorRequest(contentUrl)),
+      ]);
       if (!active) return;
       if (view) {
         addonOwnsView.current = true;
         setRenderedView(view);
+        setEditorAvailable(canEdit);
         setLoading(false);
         return;
       }
@@ -177,7 +213,35 @@ export function SearchResultPage({ contentUrl, result, viewProvider, viewAddon }
     return () => {
       active = false;
     };
-  }, [contentUrl, loadView, viewProvider]);
+  }, [contentUrl, editorProvider, editorRequest, loadView, ready]);
+
+  async function openEditor(): Promise<void> {
+    if (!contentUrl || !editorProvider) return;
+    const requestNumber = ++editorRequestNumber.current;
+    setEditorError(null);
+    setEditorLoading(true);
+    setEditing(true);
+    try {
+      const view = await requestContentEditor(editorProvider, editorRequest(contentUrl));
+      if (requestNumber !== editorRequestNumber.current) return;
+      if (!view) throw new Error('This add-on could not open an editor for this result.');
+      setEditorView(view);
+    } catch (reason) {
+      if (requestNumber === editorRequestNumber.current) setEditorError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      if (requestNumber === editorRequestNumber.current) setEditorLoading(false);
+    }
+  }
+
+  async function closeEditor(): Promise<void> {
+    const requestNumber = ++editorRequestNumber.current;
+    setEditing(false);
+    setEditorView(null);
+    if (contentUrl) {
+      const updated = await loadView(contentUrl);
+      if (requestNumber === editorRequestNumber.current && updated) setRenderedView(updated);
+    }
+  }
 
   const data = details?.body;
   const title = plainTextValue(data?.displaytitle) ?? plainTextValue(data?.title) ?? plainTextValue(data?.id) ?? result?.name ?? 'Article';
@@ -195,6 +259,17 @@ export function SearchResultPage({ contentUrl, result, viewProvider, viewAddon }
   const language = textValue(data?.lang);
   const direction = data?.dir === 'rtl' ? 'rtl' : 'ltr';
   const hasFallbackContent = !loading && !error && !data && fallbackContent !== null;
+
+  useLayoutEffect(() => {
+    if (!ready || loading || !contentUrl || !renderedView || scrolledContentUrlRef.current === contentUrl) return;
+    const header = renderedHeaderRef.current;
+    if (!header) return;
+    const stickyHeaderHeight = document.querySelector('.host-site-header')?.getBoundingClientRect().height ?? 0;
+    header.style.scrollMarginTop = `${Math.ceil(stickyHeaderHeight + 16)}px`;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    header.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    scrolledContentUrlRef.current = contentUrl;
+  }, [contentUrl, editorAvailable, loading, ready, renderedView]);
 
   useEffect(() => {
     if (!details) return;
@@ -227,12 +302,17 @@ export function SearchResultPage({ contentUrl, result, viewProvider, viewAddon }
       )}
 
       {!loading && !error && renderedView && (
-        <div className={`host-rendered-result${viewAddon?.ui ? ' has-panel' : ''}`}>
+        <div className={`host-rendered-result${!editing && viewAddon?.ui ? ' has-panel' : ''}`}>
           <article className="host-article-card">
-            <header className="host-article-header">
-              <span className="host-article-kicker">Rendered view</span>
-              <h1>{renderedView.title ?? result?.name ?? title}</h1>
+            <header ref={renderedHeaderRef} className="host-article-header">
+              <span className="host-article-kicker">{editing ? 'Editing' : 'Rendered view'}</span>
+              <h1>{(editing ? editorView?.title : renderedView.title) ?? result?.name ?? title}</h1>
               {result?.description && <p className="host-article-description">{result.description}</p>}
+              {editorAvailable && (
+                <button type="button" className="host-article-edit-button" onClick={() => void (editing ? closeEditor() : openEditor())}>
+                  {editing ? '← Back to reading' : 'Edit'}
+                </button>
+              )}
               {contentUrl && (
                 <a className="host-article-original-link" href={contentUrl} target="_blank" rel="noreferrer">
                   Open the content URL ↗
@@ -240,11 +320,14 @@ export function SearchResultPage({ contentUrl, result, viewProvider, viewAddon }
               )}
             </header>
             <section className="host-article-section">
-              <RenderedHtmlView html={renderedView.html} />
+              {editing
+                ? editorView ? <RenderedHtmlView html={editorView.html} /> : <p role="status">{editorLoading ? 'Opening editor…' : 'Editor unavailable.'}</p>
+                : <RenderedHtmlView html={renderedView.html} />}
+              {editorError && <p role="alert">{editorError}</p>}
             </section>
           </article>
 
-          {viewAddon?.ui && <AddonControlPanel addon={viewAddon} controller={controller} reading />}
+          {!editing && viewAddon?.ui && <AddonControlPanel addon={viewAddon} controller={controller} reading />}
         </div>
       )}
 

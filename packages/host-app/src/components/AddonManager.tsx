@@ -8,6 +8,8 @@ import { LOCAL_MANIFEST_SUGGESTIONS, loadLocalManifestSuggestions } from '../loc
 import { DEFAULT_SEARCH_LIMIT } from '../search';
 import type { SearchLanguages, SearchLimitValue } from '../search';
 
+export const ADDON_INSTALL_SECTION_ID = 'addon-install-section';
+
 interface AddonManagerProps {
   addons: AddonInstance[];
   disabledAddonUrls: string[];
@@ -120,7 +122,7 @@ export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, s
 
   return (
     <div>
-      <section style={{ marginBottom: 32 }}>
+      <section id={ADDON_INSTALL_SECTION_ID} style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#94a3b8' }}>
           Add add-on by URL
         </h2>

@@ -15,6 +15,7 @@ export const HEALTH_BASE_URLS = [
   'http://localhost:5306', // favorites
   'http://localhost:5307', // health
   'http://localhost:5308', // local storage
+  'http://localhost:5309', // chord editor
 ];
 
 const HEALTH_FALLBACK_NAMES: Record<string, string> = {
@@ -25,6 +26,7 @@ const HEALTH_FALLBACK_NAMES: Record<string, string> = {
   'http://localhost:5306': 'Favorites Add-on',
   'http://localhost:5307': 'Add-on Health',
   'http://localhost:5308': 'Local Storage Add-on',
+  'http://localhost:5309': 'Chord Chart Editor',
 };
 
 export interface HealthEntry {

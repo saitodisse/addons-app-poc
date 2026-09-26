@@ -20,12 +20,13 @@ The host must install and review add-ons without knowing concrete implementation
 | [`@addons/addon-text-wikipedia`](../packages/addon-text-wikipedia/README.md) | HTTP server | Wikipedia summaries and searches in Portuguese | [`packages/addon-text-wikipedia`](../packages/addon-text-wikipedia/README.md) |
 | [`@addons/addon-chord-catalog`](../packages/addon-chord-catalog/README.md) | HTTP server | Chord-chart catalogue: listing, search, and chart delivery | [`packages/addon-chord-catalog`](../packages/addon-chord-catalog/README.md) |
 | [`@addons/addon-chord-viewer`](../packages/addon-chord-viewer/README.md) | in-process add-on | Renders chord charts with controls | [`packages/addon-chord-viewer`](../packages/addon-chord-viewer/README.md) |
+| [`@addons/addon-chord-editor`](../packages/addon-chord-editor/README.md) | in-process add-on | Edits charts with Monaco, live preview, and local drafts | [`packages/addon-chord-editor`](../packages/addon-chord-editor/README.md) |
 
 All add-ons and the host directly depend on `@addons-poc/protocol@1.0.0`,
 installed from npm. The lockfile keeps the published artifact's integrity; there
-is no local protocol link during workspace installation. The four in-process
-add-ons publish their own bundles through their `serve` commands. The remaining
-HTTP add-on depends on `@addons/addon-server`; domain add-ons do not depend on
+is no local protocol link during workspace installation. The six in-process
+add-ons publish their own bundles through their `serve` commands. The two
+HTTP add-ons depend on `@addons/addon-server`; domain add-ons do not depend on
 one another.
 
 ## How to use this documentation
@@ -46,6 +47,7 @@ The complete rules are in [`docs/MANIFEST-SPEC.md`](MANIFEST-SPEC.md), [`docs/AR
 | 5306 | `addon-favorites` |
 | 5307 | `addon-health` |
 | 5308 | `addon-storage-local` |
+| 5309 | `addon-chord-editor` |
 
 These ports are local demonstration conventions. When installing by URL, the
 identity remains the complete `manifest.json` URL.

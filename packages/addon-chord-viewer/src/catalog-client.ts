@@ -27,6 +27,8 @@ export interface ChartRecord {
   text: string;
   chords: Voicing[];
   contentJsonUrl?: string;
+  /** Checksum of the text as published by the catalogue. */
+  sourceChecksum?: string;
   license?: string;
   notice?: string;
   /** Notation family declared by the payload, when it declares one. */
@@ -78,6 +80,7 @@ export function chartFromPayload(payload: unknown, fallbackId = ''): ChartRecord
   const version = (data.playableVersion ?? {}) as Record<string, unknown>;
   const source = (data.source ?? {}) as Record<string, unknown>;
   const notation = (data.notation ?? {}) as Record<string, unknown>;
+  const chart = (data.chordChart ?? {}) as Record<string, unknown>;
 
   const chartText = text(content.text) || text(data.text);
   if (!chartText) return undefined;
@@ -94,6 +97,7 @@ export function chartFromPayload(payload: unknown, fallbackId = ''): ChartRecord
     text: chartText,
     chords: voicings(data.chords),
     ...(text(source.url) ? { contentJsonUrl: text(source.url) } : {}),
+    ...(text(chart.rawTextChecksum) ? { sourceChecksum: text(chart.rawTextChecksum) } : {}),
     ...(text(source.license) ? { license: text(source.license) } : {}),
     ...(text(source.notice) ? { notice: text(source.notice) } : {}),
     ...(text(notation.format) ? { notationFormat: text(notation.format) } : {}),

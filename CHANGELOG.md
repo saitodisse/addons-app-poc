@@ -4,6 +4,25 @@ This file describes, in reverse order, how the project evolved. The quick read s
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+## [1.8.0] - 2026-09-26
+
+### Added
+
+- An independent chord editor add-on with Monaco, a live preview from the viewer's declared service, and browser-local drafts. The editor serves Monaco from its own origin and provides a plain-text fallback.
+- An optional, domain-neutral `host.content-editor` convention for editing a result. The host shows an Edit action only when a provider accepts the content URL.
+- A `addons.chords.drafts` service that lets the viewer display a saved draft while its source checksum matches the published chart; a changed source is not silently overwritten.
+
+### Changed
+
+- Development mode and the local manifest suggestions include the editor on port `5309`. The catalogue remains read-only, and the public protocol package is unchanged.
+- Catalogue rows can declare provider-defined display columns. The chord catalogue uses them for artist portraits, song titles, and albums with first-release years; other add-ons retain the generic table.
+
+### Fixed
+
+- The host restores add-ons and rechecks dependent providers in dependency order. Result pages wait until restoration finishes before checking which add-ons can render or edit them, so the Edit action is not lost during startup transitions.
+
 ## [1.7.0] - 2026-09-22
 
 ### Added

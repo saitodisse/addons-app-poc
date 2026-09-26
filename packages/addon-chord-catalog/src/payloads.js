@@ -49,6 +49,17 @@ export function toMeta(chart, baseUrl) {
     type: CHART_TYPE,
     name: chart.title,
     artist: chart.artist?.name,
+    image: chart.artist?.image ? absolute(baseUrl, chart.artist.image) : undefined,
+    displayFields: [
+      { id: 'artist', label: 'Artist', value: chart.artist?.name ?? 'Unknown artist', image: chart.artist?.image ? absolute(baseUrl, chart.artist.image) : undefined },
+      { id: 'song', label: 'Song', value: chart.title, url: absolute(baseUrl, contentPath(chart, 'txt')) },
+      {
+        id: 'album',
+        label: 'Album · First released',
+        value: chart.album?.title ?? '—',
+        detail: chart.album?.firstReleasedYear ? String(chart.album.firstReleasedYear) : undefined,
+      },
+    ],
     description: chartDescription(chart),
     url: absolute(baseUrl, contentPath(chart, 'txt')),
     emoji: '🎼',
@@ -103,6 +114,9 @@ export function toContentJson(chart, options) {
       title: chart.title,
       artistSlug: chart.artist?.slug,
       artistName: chart.artist?.name,
+      artistImage: chart.artist?.image ? absolute(baseUrl, chart.artist.image) : undefined,
+      albumTitle: chart.album?.title,
+      firstReleasedYear: chart.album?.firstReleasedYear,
       composers: chart.composers ?? [],
     },
     playableVersion: {

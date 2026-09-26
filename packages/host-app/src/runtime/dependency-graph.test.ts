@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AddonManifest, ServiceInteraction } from '@addons-poc/protocol';
-import { analyzeAddonDependencies } from './dependency-graph';
+import { analyzeAddonDependencies, orderAddonKeysByDependencies } from './dependency-graph';
 
 function manifest(id: string, services: ServiceInteraction[]): AddonManifest {
   return {
@@ -23,8 +23,17 @@ function manifest(id: string, services: ServiceInteraction[]): AddonManifest {
   };
 }
 
-function service(id: string, role: ServiceInteraction['role'], version: string, priority?: number): ServiceInteraction {
-  return { id, role, version, name: id, description: id, priority, methods: [{ id: 'run', description: 'Runs the service.' }] };
+function service(id: string, role: ServiceInteraction['role'], version: string, priority?: number, required = true): ServiceInteraction {
+  return {
+    id,
+    role,
+    version,
+    name: id,
+    description: id,
+    priority,
+    ...(role === 'consumes' ? { required } : {}),
+    methods: [{ id: 'run', description: 'Runs the service.' }],
+  };
 }
 
 describe('analyzeAddonDependencies', () => {
@@ -56,5 +65,25 @@ describe('analyzeAddonDependencies', () => {
     expect(result.cycles).toEqual([['a', 'b']]);
     expect(result.statuses.get('a')?.status).toBe('blocked');
     expect(result.statuses.get('b')?.status).toBe('blocked');
+  });
+
+  it('orders requested required providers before consumers and ignores optional dependencies', () => {
+    const editorUrl = 'editor';
+    const viewerUrl = 'viewer';
+    const storageUrl = 'storage';
+    const inputs = [
+      { key: editorUrl, manifest: manifest('editor', [
+        service('addons.chords.viewer', 'consumes', '^1.0.0'),
+        service('state-store', 'consumes', '^1.0.0'),
+        service('addons.chords.drafts', 'provides', '1.0.0'),
+      ]) },
+      { key: viewerUrl, manifest: manifest('viewer', [
+        service('addons.chords.viewer', 'provides', '1.0.0'),
+        service('addons.chords.drafts', 'consumes', '^1.0.0', undefined, false),
+      ]) },
+      { key: storageUrl, manifest: manifest('storage', [service('state-store', 'provides', '1.0.0')]) },
+    ];
+
+    expect(orderAddonKeysByDependencies([editorUrl, viewerUrl], inputs)).toEqual([viewerUrl, editorUrl]);
   });
 });

@@ -75,6 +75,35 @@ describe('manifest', () => {
     expect(services.find((service) => service.id === CONTENT_VIEW_SERVICE)?.role).toBe('provides');
     expect(services.find((service) => service.id === 'state-store')?.role).toBe('consumes');
     expect(services.find((service) => service.id === 'state-store')?.required).toBe(false);
+    expect(services.find((service) => service.id === 'addons.chords.drafts')?.required).toBe(false);
+  });
+
+  it('renders a matching local draft and ignores one based on an older source', async () => {
+    const sourceUrl = 'http://localhost:5295/text/chart/harbor-light/content.json';
+    const draft = { found: true, text: '[Verse]\nA E\nNew words here', baseChecksum: 'current' };
+    const draftService = { get: vi.fn(async () => draft) };
+    const { host, registry } = createHost({ 'addons.chords.drafts': draftService });
+    const payload = {
+      id: 'harbor-light', title: 'Harbor Light',
+      musicalWork: { artistName: 'Mare Alta' },
+      notation: { format: 'chord-over-lyrics' },
+      content: { text: CHART_TEXT },
+      chordChart: { rawTextChecksum: 'current' },
+    };
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => payload })));
+    try {
+      setup(host);
+      const provider = registry.get(CONTENT_VIEW_SERVICE) as ChartContentViewProvider;
+      const current = await provider.render({ url: sourceUrl, type: 'chart' });
+      expect(draftService.get).toHaveBeenCalledWith({ sourceUrl });
+      expect(current?.html).not.toContain('lanterns');
+
+      draft.baseChecksum = 'older';
+      const stale = await provider.render({ url: sourceUrl, type: 'chart' });
+      expect(stale?.html).toContain('lanterns');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('declares one outgoing route per catalogue call it makes', () => {

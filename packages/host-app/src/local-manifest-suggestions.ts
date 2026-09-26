@@ -6,6 +6,7 @@ export const LOCAL_MANIFEST_PORTS = [
   5306,
   5307,
   5308,
+  5309,
 ] as const;
 
 export function localManifestUrl(port: number): string {

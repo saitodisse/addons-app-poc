@@ -9,6 +9,7 @@ interface HeaderProps {
   onSearchValueChange: (value: string) => void;
   onSearch: (value: string) => void;
   onClearSearch: () => void;
+  onSettingsNavigate?: () => void;
 }
 
 export function Header({
@@ -19,6 +20,7 @@ export function Header({
   onSearchValueChange,
   onSearch,
   onClearSearch,
+  onSettingsNavigate,
 }: HeaderProps) {
   const readyCount = addons.filter((a) => a.status === "ready").length;
   const errorCount = addons.filter((a) => a.status === "error").length;
@@ -172,6 +174,7 @@ export function Header({
             </Link>
             <Link
               to={ROUTES.settings}
+              onNavigate={onSettingsNavigate}
               style={{
                 padding: "8px 16px",
                 border: "1px solid rgba(255,255,255,0.15)",

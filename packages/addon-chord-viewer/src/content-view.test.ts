@@ -101,6 +101,19 @@ describe('ChartContentViewProvider', () => {
     expect(changed?.html).toContain('font-size:24px');
   });
 
+  it('renders a local draft supplied by the add-on without changing the catalogue response', async () => {
+    const { provider, chartFromUrl } = providerWith({ ...CHART, sourceChecksum: 'current' });
+    const url = 'http://localhost:5295/text/chart/harbor-light/content.json';
+    const drafted = new ChartContentViewProvider({
+      client: { chartFromUrl } as unknown as CatalogClient,
+      settings: async () => DEFAULT_SETTINGS,
+      withDraft: async (chart) => ({ ...chart, text: '[Verse]\nA E\nEdited lyrics' }),
+    });
+    expect((await drafted.render({ url }))?.html).toContain('ited lyrics');
+    expect((await drafted.render({ url }))?.html).not.toContain('Hello');
+    expect((await provider.render({ url }))?.html).toContain('Hello');
+  });
+
   it('declines when the chart cannot be read', async () => {
     const { provider } = providerWith(async () => { throw new Error('HTTP 404'); });
     await expect(provider.render({ url: 'http://localhost:5295/text/chart/missing/content.json' })).rejects.toThrow(/HTTP 404/u);

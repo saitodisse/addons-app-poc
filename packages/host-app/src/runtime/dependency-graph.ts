@@ -17,6 +17,30 @@ export interface AddonDependencyAnalysis {
   cycles: string[][];
 }
 
+/** Orders only the requested add-ons, placing any requested required provider first. */
+export function orderAddonKeysByDependencies(keys: string[], inputs: AddonDependencyInput[]): string[] {
+  const targets = new Set(keys);
+  const statuses = analyzeAddonDependencies(inputs).statuses;
+  const ordered: string[] = [];
+  const visited = new Set<string>();
+  const visiting = new Set<string>();
+
+  const visit = (key: string) => {
+    if (visited.has(key) || visiting.has(key)) return;
+    visiting.add(key);
+    const providers = statuses.get(key)?.providers ?? {};
+    for (const providerKey of Object.values(providers)) {
+      if (targets.has(providerKey)) visit(providerKey);
+    }
+    visiting.delete(key);
+    visited.add(key);
+    ordered.push(key);
+  };
+
+  for (const key of keys) visit(key);
+  return ordered;
+}
+
 interface Provider {
   key: string;
   manifest: AddonManifest;

@@ -8,6 +8,15 @@ export const MAX_DESCRIPTION_LENGTH = 140;
 
 export type SearchLimitValue = number | '';
 
+export interface SearchResultDisplayField {
+  id: string;
+  label: string;
+  value: string;
+  detail?: string;
+  image?: string;
+  url?: string;
+}
+
 export interface SearchResultRow {
   key: string;
   sourceAddonId: string;
@@ -20,6 +29,8 @@ export interface SearchResultRow {
   description: string;
   emoji?: string;
   image?: string;
+  /** Optional provider-defined columns for a domain-specific listing. */
+  displayFields?: SearchResultDisplayField[];
 }
 
 export interface SearchProviderError {
@@ -318,6 +329,8 @@ interface ExtendedTextMeta extends TextMeta {
   /** Add-ons may choose an emoji or an image for the row. */
   emoji?: string;
   image?: string;
+  /** Optional column labels and values, interpreted generically by the host. */
+  displayFields?: unknown;
 }
 
 function isSearchResource(resource: AddonResource): boolean {
@@ -406,6 +419,26 @@ function absoluteUrl(value: string | undefined, fallback: string, baseUrl: strin
   }
 }
 
+function normalizeDisplayFields(value: unknown, baseUrl: string): SearchResultDisplayField[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const fields = value.flatMap((candidate): SearchResultDisplayField[] => {
+    if (!candidate || typeof candidate !== 'object') return [];
+    const field = candidate as Record<string, unknown>;
+    if (typeof field.id !== 'string' || !field.id.trim()
+      || typeof field.label !== 'string' || !field.label.trim()
+      || typeof field.value !== 'string') return [];
+    return [{
+      id: field.id.trim(),
+      label: field.label.trim(),
+      value: field.value,
+      ...(typeof field.detail === 'string' && field.detail.trim() ? { detail: field.detail.trim() } : {}),
+      ...(typeof field.image === 'string' && field.image.trim() ? { image: absoluteUrl(field.image, field.image, baseUrl) } : {}),
+      ...(typeof field.url === 'string' && field.url.trim() ? { url: absoluteUrl(field.url, field.url, baseUrl) } : {}),
+    }];
+  });
+  return fields.length ? fields : undefined;
+}
+
 function fallbackResultUrl(baseUrl: string, type: string, id: string, language?: string): string {
   const url = new URL(
     `text/${encodeURIComponent(type)}/${encodeURIComponent(id)}/content.txt`,
@@ -441,6 +474,7 @@ function normalizeMeta(
   const emoji = typeof meta.emoji === 'string' && meta.emoji.trim()
     ? meta.emoji.trim()
     : TYPE_EMOJIS[resultType];
+  const displayFields = normalizeDisplayFields(meta.displayFields, baseUrl);
 
   return {
     key: `${addon.manifestUrl}:${resultType}:${id}`,
@@ -454,6 +488,7 @@ function normalizeMeta(
     description,
     ...(emoji ? { emoji } : {}),
     ...(image ? { image: absoluteUrl(image, image, baseUrl) } : {}),
+    ...(displayFields ? { displayFields } : {}),
   };
 }
 

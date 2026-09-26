@@ -443,6 +443,33 @@ Chord diagrams are not drawn (that would need a canvas or SVG library), only the
 chords with flats, and the demo catalogue is original content rather than a real
 repertoire.
 
+## Local chord editing on 2026-09-25
+
+**State: Delivered**
+
+### Why
+
+Reading a chord chart was possible, but changing its text would otherwise
+require a chart-specific host feature or direct imports between add-ons. The
+POC needed an editing flow that kept those boundaries intact.
+
+### What
+
+`addon-chord-editor` (`5309`) opens a chart with Monaco and a live preview from
+the viewer's service. It saves and discards browser-local drafts through
+`state-store`. The viewer may display a saved draft when its source checksum
+still matches. The host offers an optional, content-neutral Edit action on the
+result page. The catalogue remains read-only.
+
+### How it was verified
+
+Targeted tests cover source loading, drafts, service registration, and the
+host's generic editor convention. A browser run installed the four needed
+manifests, opened a chart, loaded Monaco, saved a draft, returned to the viewer,
+and discarded the draft. The repository test and build gates are recorded in
+the delivery summary. Publishing edits and synchronizing across devices remain
+outside this phase.
+
 ## Recommended order for the next work
 
 1. Complete and test unload when disabling or removing add-ons, including recovery when a cleanup callback fails.
