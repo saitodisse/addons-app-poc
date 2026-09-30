@@ -601,6 +601,44 @@ AC project or another add-on.
 The cross-add-on interface and the alternatives are recorded in
 [`adr/0002-independent-chord-editor.md`](adr/0002-independent-chord-editor.md).
 
+## 25. Source Catalog snapshots belong to the browser library
+
+### Why
+
+Source catalogs are static multi-artist datasets. The catalogue needs to import
+their charts and keep them available when the source, catalogue server, and
+viewer server cannot be reached. Storing content only in the HTTP process does
+not meet the offline requirement.
+
+### Decision
+
+The chord catalogue add-on consumes Source Catalog roots in the browser. A
+manual Settings action downloads the manifest and its declared NDJSON files,
+checks the raw-byte SHA-256 values, connects artists to works, playable versions,
+and charts, and replaces one source snapshot in IndexedDB only after the import
+completes. Failures preserve that source's last good snapshot; other configured
+sources update independently. The project treats every song as licensed by
+default, so the importer does not add a licensing gate.
+
+The host renders a generic Settings group and resolves URLs through the
+optional `host.resource-client` service convention. The production service
+worker retains the application shell and installed add-on bundles. Removing a
+source URL stops later updates but keeps the snapshot. A separate action deletes
+one downloaded source; clearing this site's browser data also clears the local
+library.
+
+### Technical consequences
+
+- the published protocol package and Artist Portal generator do not change;
+- browser storage and local resource reads stay inside the catalogue add-on;
+- different source record identities remain different chart variants, even when
+  titles and artists match;
+- source hosts must permit browser cross-origin requests;
+- offline add-on execution depends on a self-contained bundle, and the local Vite
+  development server does not register the production service worker;
+- details and validation are recorded in
+  [`adr/0003-browser-owned-source-catalog-library.md`](adr/0003-browser-owned-source-catalog-library.md).
+
 ## When to revisit a decision
 
 A decision can change when the POC produces better evidence. The review must update, in the same delivery:

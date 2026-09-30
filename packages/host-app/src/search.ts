@@ -78,13 +78,13 @@ const TYPE_EMOJIS: Record<string, string> = {
   text: '📚',
 };
 
-async function fetchJson(url: string): Promise<unknown> {
+async function fetchJson(url: string, fetchFn: typeof fetch = fetch): Promise<unknown> {
   const startedAt = Date.now();
   const request = { method: 'GET', url, headers: { Accept: 'application/json' }, body: null };
   let response: Response | undefined;
   let logged = false;
   try {
-    response = await fetch(url, { headers: { Accept: 'application/json' } });
+    response = await fetchFn(url, { headers: { Accept: 'application/json' } });
     const body = await response.json();
     logBrowserHttpExchange({
       source: 'host-search',
@@ -300,7 +300,7 @@ export async function fetchSearchResultContent(
 }
 
 /** Search adapter used by the host; servers remain independent. */
-export function createFetchSearchClient(): SearchClient {
+export function createFetchSearchClient(fetchFn: typeof fetch = fetch): SearchClient {
   return {
     async search(baseUrl, type, query, page) {
       const url = `${baseUrl.replace(/\/+$/, '')}/search/${encodeURIComponent(type)}/${encodeURIComponent(query)}.json`;
@@ -309,7 +309,7 @@ export function createFetchSearchClient(): SearchClient {
       if (page?.cursor) params.set('cursor', page.cursor);
       if (page?.lang) params.set('lang', page.lang);
       const queryString = params.toString();
-      return (await fetchJson(queryString ? `${url}?${queryString}` : url)) as TextSearchPayload;
+      return (await fetchJson(queryString ? `${url}?${queryString}` : url, fetchFn)) as TextSearchPayload;
     },
     async catalog(baseUrl, type, catalogId, page) {
       const url = `${baseUrl.replace(/\/+$/, '')}/catalog/${encodeURIComponent(type)}/${encodeURIComponent(catalogId)}.json`;
@@ -318,7 +318,7 @@ export function createFetchSearchClient(): SearchClient {
       if (page?.cursor) params.set('cursor', page.cursor);
       if (page?.lang) params.set('lang', page.lang);
       const queryString = params.toString();
-      return (await fetchJson(queryString ? `${url}?${queryString}` : url)) as TextSearchPayload;
+      return (await fetchJson(queryString ? `${url}?${queryString}` : url, fetchFn)) as TextSearchPayload;
     },
   };
 }

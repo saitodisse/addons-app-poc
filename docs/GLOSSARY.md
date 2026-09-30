@@ -14,6 +14,8 @@ This glossary explains the technical names used in the project. Read the short d
 | **Bundle** | JavaScript file ready for execution. The loader imports the ESM bundle indicated by `entrypoint`. |
 | **Global search** | Fixed host field that queries `search` HTTP resources from all active add-ons. The response is combined in the central table without add-on-specific code. |
 | **Catalog** | Browsable collection announced by an HTTP add-on. The catalog route returns items in the `metas` field. |
+| **Source Catalog** | Static dataset published with a `source-manifest.json` and relative NDJSON entity files. The files describe records such as artists, musical works, playable versions, and chord charts. |
+| **Local chart library** | Collection of downloaded chord charts retained on this device for searching and reading without a network connection. A source catalogue can contain several artists and several charts for each artist. |
 | **Chord chart** | Text that a musician reads while playing: chord lines above the lyric line, section titles, and annotations. Also called *cifra*. |
 | **Local chord draft** | An edited copy saved in this browser. It points to the published chart's content URL and source checksum; saving it does not change the catalogue. |
 | **Content editor** | Optional add-on capability requested by the host for a result URL. The editor decides whether it supports the content and supplies its editing view. |

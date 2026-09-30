@@ -11,6 +11,8 @@ const assets = Object.fromEntries(await Promise.all(artistSlugs.map(async (slug)
   { body: await readFile(new URL(`../assets/artists/${slug}.png`, import.meta.url)), contentType: 'image/png' },
 ])));
 
+assets['/bundle.js'] = { body: await readFile(new URL('../dist/bundle.js', import.meta.url)), contentType: 'text/javascript; charset=utf-8' };
+
 const server = await createAddonServer({
   manifest,
   port,

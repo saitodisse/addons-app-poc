@@ -128,6 +128,36 @@ The same limit and language can be edited in the extension sidebar during the
 demo and on the Settings screen; both controls update the same per-URL
 configuration.
 
+### Device library and offline add-on resources
+
+Add-ons can put controls in a `Settings` group in their tab declaration. The
+host renders that group on the generic settings card, using the declared fields
+and actions. The chord catalogue uses it for source URLs, a manual update, and
+explicit deletion of a downloaded source. The URL list is saved by the add-on;
+editing it never starts a download.
+
+The optional `host.resource-client` service convention accepts
+`request({ url })` and returns a status, media type, and response body, or no
+result for a URL it does not own. The host tries providers in registry priority
+order before using HTTP. Its search, catalog, and result page use this adapter;
+the chord viewer also uses it when reading chart content. The host stores no
+chart rules or catalogue imports.
+
+The catalogue stores verified source snapshots in IndexedDB, keyed by the
+normalized source root. Only a complete source import replaces a snapshot, so a
+failure keeps the prior data. Removing a URL from settings does not delete that
+snapshot. **Delete downloaded source** is the explicit add-on action that removes
+it. Search results retain both source and chart record identity, so two
+sources can publish separate arrangements of the same work.
+
+The production host build precaches its shell and runtime assets. The active
+installations are also cached by manifest URL together with their executable
+bundles. Add-ons that need additional runtime files must include them in a
+self-contained bundle for this POC offline path. The local Vite development
+server does not install the production service worker. Source catalogs must
+allow browser cross-origin requests; integrity checks use the manifest checksum
+before parsing each file.
+
 ## Two add-on formats
 
 ### In process

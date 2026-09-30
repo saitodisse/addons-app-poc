@@ -838,3 +838,15 @@ main.host-search-result-page-main {
   background: transparent;
   cursor: pointer;
 }
+
+.host-addon-settings .host-tab-panel {
+  position: static;
+  max-height: none;
+  overflow: visible;
+}
+
+.host-addon-settings .host-tab-control {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}

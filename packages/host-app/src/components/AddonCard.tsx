@@ -4,9 +4,11 @@ import { AddonContractView } from './AddonContractView';
 import { addonRoute, href } from '../router';
 import { getSearchLanguages, parseSearchLimitInput } from '../search';
 import type { SearchLimitValue } from '../search';
+import { AddonSettingsPanel } from './AddonSettingsPanel';
 
 interface AddonCardProps {
   addon: AddonInstance;
+  onResourcesChanged?: () => void;
   enabled: boolean;
   onToggle: (manifestUrl: string) => void;
   onRemove: (manifestUrl: string) => void;
@@ -19,7 +21,7 @@ interface AddonCardProps {
   onAcceptContract?: (manifestUrl: string) => void;
 }
 
-export function AddonCard({ addon, enabled, onToggle, onRemove, stateDestination, searchLimit, searchLanguage, onSearchLimitChange, onSearchLanguageChange, reviewRequired = false, onAcceptContract }: AddonCardProps) {
+export function AddonCard({ addon, onResourcesChanged, enabled, onToggle, onRemove, stateDestination, searchLimit, searchLanguage, onSearchLimitChange, onSearchLanguageChange, reviewRequired = false, onAcceptContract }: AddonCardProps) {
   const [expanded, setExpanded] = useState(false);
   const toggleAvailable = !reviewRequired && addon.status !== 'error';
   const searchTypes = [...new Set((addon.manifest.contract.resources ?? []).filter((resource) => resource.name === 'search').flatMap((resource) => resource.types))];
@@ -162,6 +164,7 @@ export function AddonCard({ addon, enabled, onToggle, onRemove, stateDestination
           </select>
         </div>
       )}
+      {enabled && !reviewRequired && addon.status === 'ready' && addon.ui?.fields?.some((field) => field.group === 'Settings') && <AddonSettingsPanel addon={addon} onResourcesChanged={onResourcesChanged} />}
       {addon.status === 'blocked' && <p role="status" style={{ margin: '12px 0 0', color: '#fbbf24', fontSize: 12 }}>Blocked until a required dependency becomes available{addon.blockReason ? `: ${addon.blockReason}` : '.'}</p>}
       {reviewRequired && <p role="status" style={{ margin: '12px 0 0', color: '#fde68a', fontSize: 12 }}>The contract changed since the last acceptance. Review the JSON below before enabling.</p>}
       {expanded && <AddonContractView manifest={addon.manifest} manifestUrl={addon.manifestUrl} stateDestination={stateDestination} />}

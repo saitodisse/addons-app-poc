@@ -82,6 +82,18 @@ function viewerState(host: HostAPI): ViewerState {
   return sharedState;
 }
 
+interface LocalResourceClient {
+  request(input: { url: string }): Promise<{ status: number; contentType: string; body: string } | undefined>;
+}
+
+function resourceClient(host: HostAPI): CatalogClient {
+  return new CatalogClient(async (url) => {
+    const provider = host.services.use<LocalResourceClient>({ id: 'host.resource-client', version: '^1.0.0', methods: [{ id: 'request' }] });
+    const response = await provider?.request({ url });
+    return response ? new Response(response.body, { status: response.status, headers: { 'Content-Type': response.contentType } }) : fetch(url);
+  });
+}
+
 export function setup(host: HostAPI): void {
   // A new activation starts from this host, which keeps the two services in sync.
   sharedState = createViewerState(host);
@@ -89,6 +101,7 @@ export function setup(host: HostAPI): void {
   const readable = viewerState(host);
   // The host asks this service to render a chord-chart result on its own page.
   host.registerService(CONTENT_VIEW_SERVICE, new ChartContentViewProvider({
+    client: resourceClient(host),
     settings: async () => {
       await readable.ready();
       return readable.settings();
@@ -111,7 +124,7 @@ export function createTab(host: HostAPI): AddonTab {
     methods: [{ id: 'parse' }, { id: 'render' }],
   });
   const state = viewerState(host);
-  const client = new CatalogClient();
+  const client = resourceClient(host);
 
   /** Text the renderer reads: the chart as authored, or simplified on demand. */
   function sourceText(chart: ChartRecord, settings: ViewerSettings): string {

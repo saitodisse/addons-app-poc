@@ -16,6 +16,7 @@ import {
 } from '../search';
 
 interface SearchResultPageProps {
+  fetchResource?: typeof fetch;
   contentUrl: string | null;
   result: SearchResultRow | null;
   /** Whether installed add-ons and saved search results have finished restoring. */
@@ -100,7 +101,7 @@ function LoadingState({ title }: { title: string }) {
   );
 }
 
-export function SearchResultPage({ contentUrl, result, ready, viewProvider, viewAddon, editorProvider }: SearchResultPageProps) {
+export function SearchResultPage({ contentUrl, result, ready, viewProvider, viewAddon, editorProvider, fetchResource = fetch }: SearchResultPageProps) {
   const [details, setDetails] = useState<SearchResultDetails | null>(null);
   const [fallbackContent, setFallbackContent] = useState<string | null>(null);
   const [renderedView, setRenderedView] = useState<ContentViewResult | null>(null);
@@ -196,11 +197,11 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
       }
 
       try {
-        const nextDetails = await fetchSearchResultDetails(contentUrl);
+        const nextDetails = await fetchSearchResultDetails(contentUrl, fetchResource);
         if (active) setDetails(nextDetails);
       } catch (reason) {
         try {
-          const text = await fetchSearchResultContent(contentUrl);
+          const text = await fetchSearchResultContent(contentUrl, fetchResource);
           if (active) setFallbackContent(text);
         } catch {
           if (active) setError(reason instanceof Error ? reason.message : String(reason));
@@ -213,7 +214,7 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
     return () => {
       active = false;
     };
-  }, [contentUrl, editorProvider, editorRequest, loadView, ready]);
+  }, [contentUrl, editorProvider, editorRequest, fetchResource, loadView, ready]);
 
   async function openEditor(): Promise<void> {
     if (!contentUrl || !editorProvider) return;

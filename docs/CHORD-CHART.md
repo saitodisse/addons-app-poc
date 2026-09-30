@@ -320,8 +320,8 @@ Deliberate differences, all of them recorded because they change behaviour:
 
 ### Limits
 
-* The catalogue holds eight original demo charts; it is not a source of
-  copyrighted cifras.
+* The bundled catalogue holds eight demo charts; downloaded charts are kept
+  separately by source in the device library.
 * Only the `chord-over-lyrics` family is parsed. Tablature lines are treated as
   lyric text and never as chords.
 * A section title sharing its line with content produces a warning and the
@@ -355,3 +355,53 @@ Then, in the host at `http://localhost:5280`:
 
 Only the catalogue is needed to see the listing and the search. Only the viewer
 is needed to render a chart, and it accepts a pasted chart text as well.
+
+## Source Catalog imports
+
+**Status: Delivered**
+
+### Why
+
+The demonstration catalogue has a fixed collection. Configurable sources let a
+person build a library of charts and read them when the sources are unavailable.
+
+### What
+
+Settings offers a textarea with one Source Catalog root URL per line. Each
+source can contain multiple artists and their charts. A manual **Update
+catalogue** action downloads and verifies the source files, then saves its charts
+in a persistent library on this device. Search and reading work offline,
+including charts that have not been opened individually before going offline.
+The POC assumes that all songs are licensed and does not make licensing a gate.
+
+### How
+
+The importer reads `source-manifest.json`, verifies each declared NDJSON file
+against its SHA-256 checksum, then connects artists, musical works, playable
+versions, and chart text. Each source snapshot is replaced only after a complete
+successful import. An error preserves that source's last successful snapshot.
+Duplicate source URLs are ignored; different source records remain separate
+chart variants. Removing a URL stops future updates and keeps its downloaded
+charts. **Delete downloaded source** removes one source explicitly; clearing site
+data in the browser also removes the library.
+
+The catalogue add-on stores source snapshots in IndexedDB and answers the same
+generic catalogue, search, and content URLs from the browser. The host renders
+its declared **Settings** control group and routes declared resource URLs to
+local providers without importing an add-on. The production host build includes
+a service worker that caches the application shell and installed add-on bundles.
+Source hosts must permit cross-origin browser requests. See
+[the browser-owned library decision](adr/0003-browser-owned-source-catalog-library.md).
+
+For offline use, serve a production build from the same stable HTTP(S) origin:
+
+```bash
+pnpm build:host
+pnpm --filter @addons/host-app exec vite preview --host 0.0.0.0
+```
+
+Install the catalogue and viewer while online, configure a source URL, then press
+**Update catalogue** before going offline. The development server does not
+register the production service worker. For the local Artist Portal, copy its
+Source Catalog root URL, currently `http://localhost:5287/source-catalog/`, into
+the catalogue settings; a deployed portal can use another base path.

@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-09-30
+
+### Added
+
+- The Chord Chart Catalogue imports multi-artist Source Catalogs from a URL list in Settings. Manual updates verify file checksums and save each complete source snapshot in the browser, keeping the previous snapshot when an update fails.
+- The production host build provides an offline application shell and caches installed add-on bundles, so downloaded charts can be searched and read without the source, catalogue, or viewer servers.
+- Downloaded sources have a separate deletion action; removing a URL from Settings only stops future updates.
+
+### Changed
+
+- The host renders declared Settings controls and resolves local content resources through generic add-on services, without importing catalogue or viewer packages.
+- The chord viewer reads chart content from the browser library when it is available.
+
 ## [1.8.0] - 2026-09-26
 
 ### Added

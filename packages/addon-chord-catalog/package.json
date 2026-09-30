@@ -7,7 +7,7 @@
     ".": "./src/handlers.js"
   },
   "scripts": {
-    "serve": "node src/server.mjs",
+    "serve": "node ../../scripts/build-addon-browser.mjs addon-chord-catalog && node src/server.mjs",
     "test": "vitest run"
   },
   "dependencies": {

@@ -64,6 +64,10 @@ export const manifest = defineAddonManifest({
     protocol: { version: '1.0.0', range: '^1.0.0' },
     capabilities: { required: [], optional: ['registry.services', 'ui.tab', 'logs', 'state-store'] },
     services: [
+      { id: 'host.resource-client', role: 'consumes', version: '^1.0.0', required: false,
+        description: 'Reads device-owned resources through the public service convention.',
+        methods: [{ id: 'request', description: 'Reads a local resource or declines its URL.' }],
+      },
       {
         id: 'addons.chords.viewer',
         role: 'provides',

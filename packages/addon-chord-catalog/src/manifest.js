@@ -189,6 +189,7 @@ const trafficEntrySchema = object('One HTTP exchange observed by the server.', '
 });
 
 export const manifest = defineAddonManifest({
+  entrypoint: './bundle.js',
   id: 'chord-catalog',
   version: '1.0.0',
   name: 'Chord Chart Catalogue',
@@ -197,7 +198,7 @@ export const manifest = defineAddonManifest({
   license: 'MIT',
   ui: {
     title: '🎼 Chord charts',
-    body: 'A catalogue of chord charts served over HTTP. Use the global search to find a chart by title, artist, key, tag, chord, or lyric; the content routes deliver the chart text and its shapes.',
+    body: 'A catalogue of demo and downloaded chord charts available on this device. Use the global search to find a chart by title, artist, key, tag, chord, or lyric; the content routes deliver the chart text and its shapes.',
   },
   resources: [
     { name: 'catalog', types: ['chart'], idPrefixes: [] },
@@ -211,10 +212,30 @@ export const manifest = defineAddonManifest({
     version: '1.0.0',
     protocol: { version: '1.0.0', range: '^1.0.0' },
     capabilities: { required: [], optional: ['registry.services', 'ui.tab', 'logs'] },
-    services: [],
-    ui: { fields: [], actions: [] },
-    state: [],
+    services: [{
+      id: 'host.resource-client', role: 'provides', version: '1.0.0',
+      description: 'Reads catalogue resource responses from the browser library.',
+      methods: [{ id: 'request', description: 'Reads a local resource or declines a URL.',
+        receives: payload('Requested resource.', object('Resource request.', 'public', { url: string('Absolute resource URL.', 'public', 'uri') }, ['url'])),
+        returns: payload('Local response or nothing for unrelated URLs.', object('Resource response.', 'public', { status: integer('HTTP status.'), contentType: string('Media type.'), body: string('Serialized response body.') })),
+      }],
+    }],
+    ui: {
+      fields: [
+        { id: 'sources', label: 'Source catalogue URLs (one per line)', description: 'Source roots to refresh manually.', schema: string('One HTTP(S) source root per line.') },
+        { id: 'deleteSource', label: 'Downloaded source to delete (root URL)', description: 'Source snapshot explicitly selected for deletion.', schema: string('Root URL to remove.') },
+      ],
+      actions: [
+        { id: 'update', label: 'Update catalogue', description: 'Downloads complete source snapshots, retaining previous data on failure.', receives: ['sources'], returns: payload('Import report.', object('Tab response.', 'public', {})) },
+        { id: 'delete', label: 'Delete downloaded source', description: 'Deletes the selected downloaded snapshot from this device.', receives: ['deleteSource'], returns: payload('Deletion report.', object('Tab response.', 'public', {})) },
+      ],
+    },
+    state: [
+      { id: 'source-library', description: 'Browser IndexedDB source snapshots.', key: 'addons:state:chord-catalog:v1', operations: ['read', 'write', 'remove', 'list', 'clear'], value: payload('Source snapshots.', object('Downloaded charts.', 'public', {})), retention: 'Until explicitly deleted or browser site data is cleared.', deletionTrigger: 'Delete downloaded source action or browser site data removal.' },
+      { id: 'source-settings', description: 'Source URLs stored in browser localStorage.', key: 'addons:state:chord-catalog:settings:v1', operations: ['read', 'write', 'remove'], value: payload('Source settings.', object('Configuration.', 'public', {})), retention: 'Until browser site data is cleared.', deletionTrigger: 'Factory reset or browser site data removal.' },
+    ],
     http: [
+      { id: 'source-pull', direction: 'outgoing', method: 'GET', origin: 'https://{configured-source}', path: '/{catalogueRoot}/{file}', purpose: 'Downloads configured Source Catalog manifests, checksums, and NDJSON files.', returns: payload('Source bytes.', string('Static source document.')) },
       {
         id: 'catalog',
         direction: 'incoming',

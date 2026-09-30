@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { getInteractionContractFingerprint, validateManifest } from '@addons-poc/protocol';
 import type { AddonInstance, AddonManifest, AddonModule, AddonStateStore } from '@addons-poc/protocol';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
+import { createResourceFetch } from './runtime/resource-client';
+import { retainInstalledAddons } from './offline';
 import { ServiceRegistry } from './runtime/registry';
 import { orderAddonKeysByDependencies } from './runtime/dependency-graph';
 import { ConsoleLogger } from './runtime/logger';
@@ -158,7 +160,9 @@ export function App({ importAddonModule }: AppProps = {}) {
   const browsePagesRef = useRef(new Map<number, SearchCollection>());
   const [browsing, setBrowsing] = useState(false);
   const addonLifecycleRef = useRef(0);
-  const httpTextClient = useMemo(() => createFetchSearchClient(), []);
+  const fetchResource = useMemo(() => createResourceFetch(registry), [registry]);
+  const httpTextClient = useMemo(() => createFetchSearchClient(fetchResource), [fetchResource]);
+  useEffect(() => { void retainInstalledAddons(addons.filter((addon) => addon.status === 'ready').map((addon) => addon.manifestUrl)); }, [addons]);
   const route = useRoute();
 
   const createLoader = useCallback(
@@ -413,6 +417,12 @@ export function App({ importAddonModule }: AppProps = {}) {
     searchPagesRef.current.clear();
     browsePagesRef.current.clear();
   }, [addons, disabledAddonUrls, searchLanguages, searchLimits]);
+
+  const refreshResources = useCallback(() => {
+    searchPagesRef.current.clear();
+    browsePagesRef.current.clear();
+    setSearchRefreshKey((key) => key + 1);
+  }, []);
 
   const loadSearchPage = useCallback((query: string, page: number) => {
     let cachedPages = searchPagesRef.current.get(query);
@@ -736,6 +746,7 @@ export function App({ importAddonModule }: AppProps = {}) {
           <section>
             <AddonManager
               addons={addons}
+              onResourcesChanged={refreshResources}
               disabledAddonUrls={disabledAddonUrls}
               pendingContractUrls={pendingContractUrls}
               searchLimits={searchLimits}
@@ -754,6 +765,7 @@ export function App({ importAddonModule }: AppProps = {}) {
         ) : isSearchResultRoute ? (
           <SearchResultPage
             key={searchResultContentUrl ?? 'invalid-result'}
+            fetchResource={fetchResource}
             contentUrl={searchResultContentUrl}
             result={selectedSearchResult}
             ready={installationsReady && searchStateReady}

@@ -470,6 +470,33 @@ and discarded the draft. The repository test and build gates are recorded in
 the delivery summary. Publishing edits and synchronizing across devices remain
 outside this phase.
 
+## Browser Source Catalog library on 2026-09-30
+
+**State: Delivered**
+
+### Why
+
+The fixed example catalogue did not let a person build a library from published
+Source Catalogs or keep its charts available offline.
+
+### What
+
+The Chord Chart Catalogue accepts one Source Catalog root URL per line in its
+generic Settings controls. **Update catalogue** imports multiple artists' charts
+into the device library. The production PWA shell, installed catalogue, and
+viewer can search and render charts when their servers are unavailable.
+
+### How it was verified
+
+- import tests cover checksums, multiple artists, separate chart identities,
+  invalid paths, relationship errors, independent updates, and last-good data;
+- the host boundary check, host build, and full workspace test suite pass;
+- browser QA imported two artists, searched both charts, rendered each result,
+  stopped the temporary source/add-on/host processes, reopened the app, and
+  rendered the chart that had not previously been opened;
+- `pnpm dev` remains the development flow; offline application behavior requires
+  a production host build served from a stable HTTP(S) origin.
+
 ## Recommended order for the next work
 
 1. Complete and test unload when disabling or removing add-ons, including recovery when a cleanup callback fails.

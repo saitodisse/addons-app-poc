@@ -12,6 +12,7 @@ export const ADDON_INSTALL_SECTION_ID = 'addon-install-section';
 
 interface AddonManagerProps {
   addons: AddonInstance[];
+  onResourcesChanged?: () => void;
   disabledAddonUrls: string[];
   pendingContractUrls: string[];
   searchLimits: Record<string, SearchLimitValue>;
@@ -32,7 +33,7 @@ interface PendingInstallation {
   manifest: AddonManifest;
 }
 
-export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, searchLimits, searchLanguages, onSearchLimitChange, onSearchLanguageChange, onInspectManifest, onInstallFromUrl, onToggle, onRemove, onAcceptContract, onFactoryReset, loading }: AddonManagerProps) {
+export function AddonManager({ addons, onResourcesChanged, disabledAddonUrls, pendingContractUrls, searchLimits, searchLanguages, onSearchLimitChange, onSearchLanguageChange, onInspectManifest, onInstallFromUrl, onToggle, onRemove, onAcceptContract, onFactoryReset, loading }: AddonManagerProps) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pendingInstallation, setPendingInstallation] = useState<PendingInstallation | null>(null);
@@ -187,6 +188,7 @@ export function AddonManager({ addons, disabledAddonUrls, pendingContractUrls, s
               <AddonCard
                 key={addon.manifestUrl}
                 addon={addon}
+                onResourcesChanged={onResourcesChanged}
                 enabled={!disabledAddonUrls.includes(addon.manifestUrl)}
                 onToggle={onToggle}
                 onRemove={onRemove}
