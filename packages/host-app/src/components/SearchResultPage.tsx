@@ -247,6 +247,7 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
   const data = details?.body;
   const title = plainTextValue(data?.displaytitle) ?? plainTextValue(data?.title) ?? plainTextValue(data?.id) ?? result?.name ?? 'Article';
   const description = textValue(data?.description) ?? result?.description;
+  const contentText = textValue(data?.content?.text);
   const extract = textValue(data?.extract);
   const extractHtml = textValue(data?.extract_html);
   const sanitizedExtractHtml = useMemo(() => extractHtml ? sanitizeExtractHtml(extractHtml) : '', [extractHtml]);
@@ -342,15 +343,21 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
           )}
 
           <header className="host-article-header">
-            <span className="host-article-kicker">Wikipedia article</span>
+            <span className="host-article-kicker">{textValue(data.source?.name) ?? 'Content'}</span>
             <h1>{title}</h1>
             {description && <p className="host-article-description">{description}</p>}
             {originalArticleUrl && (
               <a className="host-article-original-link" href={originalArticleUrl} target="_blank" rel="noreferrer">
-                Open original Wikipedia article ↗
+                Open original article ↗
               </a>
             )}
           </header>
+
+          {contentText && (
+            <section className="host-article-section" aria-label="Content">
+              <pre className="host-article-fallback-content">{contentText}</pre>
+            </section>
+          )}
 
           {(sanitizedExtractHtml || extract) && (
             <section className="host-article-section" aria-labelledby="host-article-summary-title">

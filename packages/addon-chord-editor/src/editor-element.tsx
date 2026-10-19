@@ -23,8 +23,15 @@ export interface EditorSession {
   staleDraft: boolean;
 }
 
-const sessions = new Map<string, EditorSession>();
-let nextSession = 0;
+interface EditorElementConstructor extends CustomElementConstructor {
+  sessions: Map<string, EditorSession>;
+  nextSession: number;
+}
+
+function editorElement(): EditorElementConstructor {
+  registerEditorElement();
+  return customElements.get('addons-chord-editor') as EditorElementConstructor;
+}
 
 const STYLE = `
 addons-chord-editor { display:block; min-width:0; }
@@ -156,10 +163,12 @@ export function registerEditorElement(): void {
   document.head.append(style);
 
   customElements.define('addons-chord-editor', class extends HTMLElement {
+    static sessions = new Map<string, EditorSession>();
+    static nextSession = 0;
     private root?: Root;
 
     connectedCallback(): void {
-      const session = sessions.get(this.dataset.session ?? '');
+      const session = editorElement().sessions.get(this.dataset.session ?? '');
       if (!session) return;
       this.root = createRoot(this);
       this.root.render(<EditorSurface session={session} />);
@@ -168,14 +177,15 @@ export function registerEditorElement(): void {
     disconnectedCallback(): void {
       const root = this.root;
       this.root = undefined;
-      sessions.delete(this.dataset.session ?? '');
+      editorElement().sessions.delete(this.dataset.session ?? '');
       if (root) queueMicrotask(() => root.unmount());
     }
   });
 }
 
 export function editorMarkup(session: EditorSession): string {
-  const id = `chart-editor-${++nextSession}`;
-  sessions.set(id, session);
+  const element = editorElement();
+  const id = `chart-editor-${++element.nextSession}`;
+  element.sessions.set(id, session);
   return `<addons-chord-editor data-session="${id}"></addons-chord-editor>`;
 }

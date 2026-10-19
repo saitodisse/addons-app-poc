@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.10.1] - 2026-10-19
+
+### Fixed
+
+- Imported charts now open in the editor through the browser-owned resource service, even when the catalogue server has no copy of the chart.
+- The editor keeps its rendering session on the registered custom element, so reloading its bundle no longer leaves an empty editor element.
+- The host fallback displays structured chart text and its source label when no chart renderer is active.
+
 ## [1.10.0] - 2026-10-19
 
 ### Added

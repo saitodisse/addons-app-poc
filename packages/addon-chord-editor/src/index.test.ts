@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 import { validateManifest, type HostAPI } from '@addons-poc/protocol';
 import { ChartContentEditor, manifest } from './index';
@@ -15,12 +16,30 @@ describe('chord editor add-on', () => {
     const result = validateManifest(served);
     expect(result.errors).toEqual([]);
     expect(result.valid).toBe(true);
-    expect(manifest.contract.services.filter((service) => service.role === 'consumes').map((service) => service.id)).toEqual(['addons.chords.viewer', 'state-store']);
+    expect(manifest.contract.services.filter((service) => service.role === 'consumes').map((service) => service.id)).toEqual(['host.resource-client', 'addons.chords.viewer', 'state-store']);
     expect(manifest.contract.services.find((service) => service.id === 'addons.chords.viewer')).toMatchObject({
       role: 'consumes',
       version: '^1.0.0',
       required: true,
     });
+  });
+
+  it('opens an imported chart through device resources when HTTP has no copy', async () => {
+    const url = 'http://localhost:5295/text/chart/' + encodeURIComponent('source:https://archive.example/downloads.tar.zst.enc:scraper:https://www.cifraclub.com.br/nana-caymmi/so-louco/') + '/content.txt';
+    const request = vi.fn(async () => ({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      id: 'imported', title: 'Só Louco', notation: { format: 'chord-over-lyrics' },
+      content: { text: '  Am\nCanção' }, chordChart: { rawTextChecksum: 'source-checksum' },
+    }) }));
+    const network = vi.fn(async () => new Response('', { status: 404 }));
+    vi.stubGlobal('fetch', network);
+    try {
+      const host = { services: { use: ({ id }: { id: string }) => id === 'host.resource-client' ? { request } : { render: vi.fn() } } } as unknown as HostAPI;
+      const drafts = { get: vi.fn(async () => ({ found: false })), save: vi.fn(), remove: vi.fn() };
+      const view = await new ChartContentEditor(host, drafts).render({ url, type: 'chart' });
+      expect(view.title).toContain('Só Louco');
+      expect(request).toHaveBeenCalledWith({ url: url.replace('/content.txt', '/content.json') });
+      expect(network).not.toHaveBeenCalled();
+    } finally { vi.unstubAllGlobals(); }
   });
 
   it('opens only chart URLs and restores a saved local draft', async () => {

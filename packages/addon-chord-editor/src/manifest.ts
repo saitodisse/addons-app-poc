@@ -50,6 +50,11 @@ export const manifest = defineAddonManifest({
     capabilities: { required: ['registry.services', 'ui.tab', 'state-store'], optional: ['logs'] },
     services: [
       {
+        id: 'host.resource-client', role: 'consumes', version: '^1.0.0', required: false,
+        description: 'Reads imported charts stored on this device before requesting HTTP content.',
+        methods: [{ id: 'request', description: 'Reads a device-owned resource or declines the URL.' }],
+      },
+      {
         id: DRAFTS_SERVICE,
         role: 'provides',
         version: '1.0.0',

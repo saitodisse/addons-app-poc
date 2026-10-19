@@ -17,7 +17,15 @@ export class ChartContentEditor {
   constructor(
     private readonly host: HostAPI,
     private readonly drafts: DraftService,
-    private readonly load: typeof loadEditableChart = loadEditableChart,
+    private readonly load: typeof loadEditableChart = (url) => loadEditableChart(url, async (input) => {
+      const resource = host.services.use<{
+        request(input: { url: string }): Promise<{ status: number; contentType: string; body: string } | undefined>;
+      }>({ id: 'host.resource-client', version: '^1.0.0', methods: [{ id: 'request' }] });
+      const local = await resource?.request({ url: String(input) });
+      return local
+        ? new Response(local.body, { status: local.status, headers: { 'Content-Type': local.contentType } })
+        : fetch(input);
+    }),
   ) {}
 
   supports(request: EditorRequest): boolean {

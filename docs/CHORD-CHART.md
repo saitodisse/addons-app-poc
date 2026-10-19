@@ -263,6 +263,11 @@ add-on, so both add-ons are read the same way by the host and by the viewer.
 
 ### Local editing and cross-add-on conversation
 
+The editor resolves `content.json` through the optional `host.resource-client`
+service first, so imported charts are read from this device. If that service
+declines the URL, it uses HTTP. Imported charts need no copy on the catalogue
+server.
+
 The editor reads a chart's `content.json`, presents its original text in
 Monaco, and asks the viewer's `addons.chords.viewer.render` service to produce
 the live preview. Monaco assets come from the editor's own server, not the

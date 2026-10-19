@@ -51,6 +51,20 @@ describe('SearchResultPage', () => {
     vi.unstubAllGlobals();
   });
 
+  it('shows structured text without mislabelling it as Wikipedia when no renderer is active', async () => {
+    const body = '    C       Am\nTexto da música\n';
+    const fetchResource = vi.fn(async () => new Response(JSON.stringify({
+      title: 'Casa no Campo', type: 'chart', extract: 'Chart summary',
+      content: { text: body, contentType: 'text/plain' },
+      source: { name: 'Chord chart catalogue' },
+    }))) as unknown as typeof fetch;
+    await act(async () => {
+      root.render(<SearchResultPage contentUrl={chartUrl} result={chart} ready fetchResource={fetchResource} />);
+    });
+    expect(container.textContent).not.toContain('Wikipedia');
+    expect(container.querySelector('pre')?.textContent).toBe(body);
+  });
+
   it('shows the final rendered chart and Edit together, even when the chart finishes first', async () => {
     const view = deferred<{ html: string; title: string }>();
     const editorSupport = deferred<boolean>();
