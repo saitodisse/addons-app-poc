@@ -6,6 +6,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-10-19
+
+### Added
+
+- The chord catalogue imports scraper exports as ZIP or TAR.ZST archives and
+  supports end-to-end encrypted TAR.ZST archives that are decrypted locally
+  with a passphrase-protected certificate.
+- Catalogue settings accept local certificate files and short-lived credentials
+  without persisting them in host tab state; sensitive values are cleared after
+  the action that uses them.
+- Archive imports validate and bound extraction, preserve scraper metadata, and
+  store large source snapshots in bounded IndexedDB records while retaining
+  the previous snapshot when an import fails.
+
 ## [1.9.0] - 2026-09-30
 
 ### Added

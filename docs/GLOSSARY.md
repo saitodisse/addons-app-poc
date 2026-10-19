@@ -48,6 +48,7 @@ This glossary explains the technical names used in the project. Read the short d
 | **Control panel** | Fixed column beside an add-on response that holds the declared fields and actions. A control may declare a `group`, used as the heading of its section in the panel, and a kind (`range`, `toggle`, `color`) that decides how the host renders it. |
 | **Live action** | Action marked `live` in the tab. The host runs it again shortly after a field it receives changes, so a slider updates the response while the person drags it. |
 | **Control values** | Optional `values` map of a tab response. The host applies it to the controls, which is how a preset or a reset moves the sliders it rewrote. |
+| **Sensitive tab value** | Runtime control value marked `sensitive`; the host does not restore or persist it and clears it after the action that receives it. The add-on still receives it, so this is not a sandbox. |
 | **Rendered view** | Optional `view` field of a tab response. With `kind: "html"` the host inserts the markup produced by the add-on; the text `body` remains the fallback. |
 | **Content view** | Service declared by convention as `host.content-view`. An add-on that provides it renders the result of a search row inside the host's dedicated page; a provider that does not understand the URL returns nothing. |
 | **Port** (of code) | A copy of source code from another project, kept inside this repository with its license and a provenance file. The chord viewer carries a ported tab renderer. |

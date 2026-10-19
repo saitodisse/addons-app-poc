@@ -193,12 +193,12 @@ export const manifest = defineAddonManifest({
   id: 'chord-catalog',
   version: '1.0.0',
   name: 'Chord Chart Catalogue',
-  description: 'Lists and searches chord charts, and delivers chart text with its shapes.',
+  description: 'Lists, searches and imports chord charts, including locally decrypted private archives.',
   author: 'AC Team',
   license: 'MIT',
   ui: {
     title: '🎼 Chord charts',
-    body: 'A catalogue of demo and downloaded chord charts available on this device. Use the global search to find a chart by title, artist, key, tag, chord, or lyric; the content routes deliver the chart text and its shapes.',
+    body: 'A catalogue of demo and downloaded chord charts available on this device. Encrypted archives are decrypted in this browser with the selected local certificate; its private key and passphrase are not saved. Use the global search to find a chart by title, artist, key, tag, chord, or lyric.',
   },
   resources: [
     { name: 'catalog', types: ['chart'], idPrefixes: [] },
@@ -222,11 +222,13 @@ export const manifest = defineAddonManifest({
     }],
     ui: {
       fields: [
-        { id: 'sources', label: 'Source catalogue URLs (one per line)', description: 'Source roots to refresh manually.', schema: string('One HTTP(S) source root per line.') },
-        { id: 'deleteSource', label: 'Downloaded source to delete (root URL)', description: 'Source snapshot explicitly selected for deletion.', schema: string('Root URL to remove.') },
+        { id: 'sources', label: 'Source catalogue URLs (one per line)', description: 'Source Catalog roots or ZIP or TAR.ZST archives to refresh manually.', schema: string('One HTTP(S) catalogue root or ZIP, TAR.ZST or encrypted TAR.ZST URL per line.') },
+        { id: 'deleteSource', label: 'Downloaded source to delete (URL)', description: 'Source snapshot explicitly selected for deletion.', schema: string('Catalogue root or ZIP, TAR.ZST or encrypted TAR.ZST URL to remove.') },
+        { id: 'certificate', label: 'Local private certificate (.cvcert)', description: 'Encrypted local certificate read into memory only when updating an encrypted source.', schema: string('Certificate JSON held in the current page only.', 'secret') },
+        { id: 'certificatePassphrase', label: 'Certificate passphrase', description: 'Passphrase used to unlock the local certificate in the browser only.', schema: string('Local passphrase held in the current page only.', 'secret') },
       ],
       actions: [
-        { id: 'update', label: 'Update catalogue', description: 'Downloads complete source snapshots, retaining previous data on failure.', receives: ['sources'], returns: payload('Import report.', object('Tab response.', 'public', {})) },
+        { id: 'update', label: 'Update catalogue', description: 'Downloads snapshots and decrypts encrypted archives in the browser, retaining previous data on failure.', receives: ['sources', 'certificate', 'certificatePassphrase'], returns: payload('Import report.', object('Tab response.', 'public', {})) },
         { id: 'delete', label: 'Delete downloaded source', description: 'Deletes the selected downloaded snapshot from this device.', receives: ['deleteSource'], returns: payload('Deletion report.', object('Tab response.', 'public', {})) },
       ],
     },
@@ -235,7 +237,7 @@ export const manifest = defineAddonManifest({
       { id: 'source-settings', description: 'Source URLs stored in browser localStorage.', key: 'addons:state:chord-catalog:settings:v1', operations: ['read', 'write', 'remove'], value: payload('Source settings.', object('Configuration.', 'public', {})), retention: 'Until browser site data is cleared.', deletionTrigger: 'Factory reset or browser site data removal.' },
     ],
     http: [
-      { id: 'source-pull', direction: 'outgoing', method: 'GET', origin: 'https://{configured-source}', path: '/{catalogueRoot}/{file}', purpose: 'Downloads configured Source Catalog manifests, checksums, and NDJSON files.', returns: payload('Source bytes.', string('Static source document.')) },
+      { id: 'source-pull', direction: 'outgoing', method: 'GET', origin: 'https://{configured-source}', path: '/{catalogueRoot}/{file}', purpose: 'Downloads configured Source Catalog documents or encrypted archives; a certificate token is sent in an Authorization header and the archive is decrypted locally.', returns: payload('Source bytes.', string('Static source document or encrypted archive.')) },
       {
         id: 'catalog',
         direction: 'incoming',

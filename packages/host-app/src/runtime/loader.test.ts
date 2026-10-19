@@ -107,6 +107,31 @@ describe('FetchAddonLoader', () => {
     expect(instance.error).toBeUndefined();
   });
 
+  it('imports a fresh module identity on every reinstall of the same entrypoint', async () => {
+    const addonManifest = manifest('catalog', [service('addons.catalog.library', 'provides', '1.0.0')]);
+    addonManifest.entrypoint = 'https://example.test/catalog/bundle.js?build=2#bundle';
+    setupFetch(addonManifest);
+    const importFn = vi.fn(async (_url: string) => moduleFor(addonManifest));
+    const loader = new FetchAddonLoader(new ServiceRegistry(), { log() {} }, importFn);
+
+    const first = await loader.load('https://example.test/catalog/manifest.json');
+    const second = await loader.load('https://example.test/catalog/manifest.json');
+
+    expect(first.status).toBe('ready');
+    expect(second.status).toBe('ready');
+    const importedUrls = importFn.mock.calls.map(([url]) => new URL(url));
+    expect(importedUrls.map((url) => `${url.origin}${url.pathname}`)).toEqual([
+      'https://example.test/catalog/bundle.js',
+      'https://example.test/catalog/bundle.js',
+    ]);
+    expect(importedUrls.map((url) => url.searchParams.get('build'))).toEqual(['2', '2']);
+    expect(importedUrls.map((url) => url.searchParams.get('__host_load'))[0]).toBeTruthy();
+    expect(importedUrls[0]?.searchParams.get('__host_load')).not.toBe(importedUrls[1]?.searchParams.get('__host_load'));
+    expect(importedUrls.map((url) => url.hash)).toEqual(['#bundle', '#bundle']);
+    expect(globalThis.fetch).toHaveBeenNthCalledWith(1, 'https://example.test/catalog/manifest.json', { cache: 'no-store' });
+    expect(globalThis.fetch).toHaveBeenNthCalledWith(2, 'https://example.test/catalog/manifest.json', { cache: 'no-store' });
+  });
+
   it('fetches each manifest only once when restoring multiple add-ons', async () => {
     const addonManifest = manifest('http-addon', [service('addons.http-addon.runner', 'provides', '1.0.0')]);
     const manifestUrl = 'https://example.test/http-addon/manifest.json';
@@ -116,6 +141,7 @@ describe('FetchAddonLoader', () => {
     const instances = await loader.loadAll([manifestUrl]);
 
     expect(instances[0]?.status).toBe('ready');
+    expect(globalThis.fetch).toHaveBeenCalledWith(manifestUrl, { cache: 'no-store' });
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 

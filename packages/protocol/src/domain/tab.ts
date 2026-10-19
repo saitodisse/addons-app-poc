@@ -11,14 +11,18 @@ export interface AddonTabMetadata {
  * looking at the response; a host that cannot render one of them falls back to
  * the text input, so an unknown kind never hides a control.
  */
-export type AddonTabFieldType = 'text' | 'textarea' | 'url' | 'range' | 'toggle' | 'color';
+export type AddonTabFieldType = 'text' | 'textarea' | 'url' | 'range' | 'toggle' | 'color' | 'file';
 
 export interface AddonTabField {
   id: string;
   label: string;
   type?: AddonTabFieldType;
   placeholder?: string;
+  /** Accepted file types when `type` is `file`. The host reads the file as text for the action. */
+  accept?: string;
   required?: boolean;
+  /** Keeps this control out of tab persistence and clears it after an action receives it. */
+  sensitive?: boolean;
   /** Optional heading used by a host that renders a control panel. */
   group?: string;
   /**

@@ -135,6 +135,15 @@ export function restoredValues(
   return { ...(stored ?? {}), ...current };
 }
 
+/** Values safe to pass to an add-on persistence adapter. */
+export function persistentTabValues(
+  values: Record<string, string>,
+  fields: readonly AddonTabField[],
+): Record<string, string> {
+  const sensitive = new Set(fields.filter((field) => field.sensitive).map((field) => field.id));
+  return Object.fromEntries(Object.entries(values).filter(([id]) => !sensitive.has(id)));
+}
+
 /** Action that must run again when a field it receives changes. */
 export function liveAction<TAction extends object>(
   actions: readonly TAction[],

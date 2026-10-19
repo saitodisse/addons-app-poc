@@ -2,6 +2,8 @@ import type { AddonInstance } from '@addons-poc/protocol';
 import { readingSections } from '../tab-view';
 import type { AddonTabController } from './useAddonTab';
 
+const MAX_TEXT_FILE_BYTES = 64 * 1024;
+
 interface AddonControlPanelProps {
   addon: AddonInstance;
   controller: AddonTabController;
@@ -90,6 +92,31 @@ export function AddonControlPanel({ addon, controller, title, reading }: AddonCo
               );
             }
 
+            if (field.type === 'file') {
+              return (
+                <label key={field.id} className="host-tab-panel-field">
+                  {field.label}
+                  <input
+                    type="file"
+                    accept={field.accept}
+                    onChange={async (event) => {
+                      const input = event.currentTarget;
+                      const file = input.files?.[0];
+                      if (!file) return;
+                      try {
+                        if (file.size > MAX_TEXT_FILE_BYTES) throw new Error('Selected file exceeds 64 KiB.');
+                        setValue(field.id, await file.text());
+                      } catch {
+                        setValue(field.id, '');
+                      } finally { input.value = ''; }
+                    }}
+                    className="host-tab-control"
+                  />
+                  {value && <span role="status" className="host-tab-field-help">Certificate loaded in memory; it is cleared after update.</span>}
+                </label>
+              );
+            }
+
             return (
               <label key={field.id} className="host-tab-panel-field">
                 {field.label}
@@ -103,7 +130,8 @@ export function AddonControlPanel({ addon, controller, title, reading }: AddonCo
                   />
                 ) : (
                   <input
-                    type={field.type ?? 'text'}
+                    type={field.sensitive ? 'password' : field.type ?? 'text'}
+                    autoComplete={field.sensitive ? 'new-password' : undefined}
                     value={value}
                     onChange={(event) => setValue(field.id, event.target.value)}
                     placeholder={field.placeholder}

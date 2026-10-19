@@ -63,6 +63,8 @@ export function toMeta(chart, baseUrl) {
 /** Voicing shapes of the chart, so a renderer never needs a second lookup. */
 export function chartVoicings(chart) {
   return chart.chords.map((symbol) => {
+    // Imported shapes stay in sourceMetadata; never substitute a demo shape.
+    if (chart.scraperMetadata) return { symbol };
     const voicing = VOICINGS[symbol];
     if (!voicing) return { symbol };
     return { symbol, frets: voicing.frets, fingers: voicing.fingers, position: voicing.position };

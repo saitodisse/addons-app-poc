@@ -143,6 +143,12 @@ order before using HTTP. Its search, catalog, and result page use this adapter;
 the chord viewer also uses it when reading chart content. The host stores no
 chart rules or catalogue imports.
 
+Runtime tab controls can be marked `sensitive`. The generic host excludes those
+values when it restores or writes tab persistence and clears them after the
+action that receives them. A `file` control reads a small text file into the
+action value in memory. This prevents ordinary host persistence but does not
+sandbox trusted add-on code; an add-on can still inspect the values it receives.
+
 The catalogue stores verified source snapshots in IndexedDB, keyed by the
 normalized source root. Only a complete source import replaces a snapshot, so a
 failure keeps the prior data. Removing a URL from settings does not delete that

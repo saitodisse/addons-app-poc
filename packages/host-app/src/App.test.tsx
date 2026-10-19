@@ -198,7 +198,10 @@ describe('App add-on bootstrap', () => {
     }));
     window.location.hash = resultRoute(chartUrl);
     const importAddonModule = async (url: string): Promise<AddonModule> => {
-      const addonModule = fixtures.modules.get(url);
+      const httpUrl = new URL(url);
+      httpUrl.searchParams.delete('__host_load');
+      httpUrl.hash = '';
+      const addonModule = fixtures.modules.get(httpUrl.href);
       if (!addonModule) throw new Error(`No fixture module for ${url}`);
       return addonModule;
     };

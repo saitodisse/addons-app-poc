@@ -74,6 +74,12 @@ Received and returned information is also classified as:
 The contract describes the data type and classification. Real passwords,
 tokens, and other secrets must not be stored in the manifest.
 
+An in-process tab can return runtime controls with `type: "file"` and an
+optional `accept` filter. The host reads the selected text file into the string
+value passed to the action. A runtime field may be marked `sensitive`; the host
+then omits its value from tab persistence and clears it after the receiving
+action. These runtime hints are not manifest permissions or a sandbox.
+
 ## How installation happens
 
 ```text

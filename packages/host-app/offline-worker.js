@@ -55,7 +55,11 @@ self.addEventListener('fetch', (event) => {
       if (cached) return cached;
     }
     const addons = await caches.open(ADDONS);
-    const cached = await addons.match(event.request);
+    // Runtime imports add a cache-busting query parameter. Installed bundles
+    // are stored under their canonical URL so they remain available offline.
+    const cachedUrl = new URL(event.request.url);
+    cachedUrl.searchParams.delete('__host_load');
+    const cached = await addons.match(cachedUrl.href);
     try { return await fetch(event.request); }
     catch (error) { if (cached) return cached; throw error; }
   })());

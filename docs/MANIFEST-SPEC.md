@@ -119,9 +119,13 @@ field or an action may also declare an optional `group`, a heading a host can us
 to organise a control panel; a host that ignores it keeps a single list.
 
 A field may declare the kind of control it wants: `text`, `textarea`, `url`,
-`range`, `toggle`, or `color`, with optional `min`, `max`, and `step` for a
-range. The value travels as text, because that is what an action receives, and a
-host that cannot render a kind falls back to the text input.
+`range`, `toggle`, `color`, or `file`, with optional `min`, `max`, and `step`
+for a range and `accept` for a file input. A file control reads a bounded text
+file as a string for the action. These are runtime `AddonTabField` controls,
+which an in-process add-on returns from `createTab`; they are not extra manifest
+fields. A runtime field may set `sensitive: true`; the host omits that value
+from tab persistence and clears it after an action receives it. The value still
+travels as text, and a host that cannot render a kind falls back to text.
 
 An action may declare `live`, which makes the host run it again shortly after a
 field it receives changes; that is how a slider updates a response while the

@@ -8,11 +8,13 @@ import { sha256, sourceLines, updateSources } from './source-import.js';
 export { manifest };
 const SETTINGS_KEY = 'addons:state:chord-catalog:settings:v1';
 const FIELDS = [
-  { id: 'sources', label: 'Source catalogue URLs (one per line)', type: 'textarea', group: 'Settings', placeholder: 'https://example.com/source-catalog/' },
-  { id: 'deleteSource', label: 'Downloaded source to delete (root URL)', type: 'url', group: 'Settings', placeholder: 'https://example.com/source-catalog/' },
+  { id: 'sources', label: 'Source catalogue URLs (one per line)', type: 'textarea', group: 'Settings', placeholder: 'https://example.com/source-catalog/\nhttps://example.com/downloads.tar.zst.enc#token=…' },
+  { id: 'deleteSource', label: 'Downloaded source to delete (URL)', type: 'url', group: 'Settings', placeholder: 'https://example.com/downloads.tar.zst.enc' },
+  { id: 'certificate', label: 'Local private certificate (.cvcert)', type: 'file', accept: '.cvcert,.json,application/json', group: 'Settings', sensitive: true },
+  { id: 'certificatePassphrase', label: 'Certificate passphrase', type: 'text', group: 'Settings', sensitive: true },
 ];
 const ACTIONS = [
-  { id: 'update', label: 'Update catalogue', group: 'Settings', receives: ['sources'] },
+  { id: 'update', label: 'Update catalogue', group: 'Settings', receives: ['sources', 'certificate', 'certificatePassphrase'] },
   { id: 'delete', label: 'Delete downloaded source', variant: 'danger', group: 'Settings', receives: ['deleteSource'] },
 ];
 let library;
@@ -21,7 +23,10 @@ let hostOrigin;
 let demoCharts;
 
 function settings() {
-  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}'); } catch { return {}; }
+  try {
+    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}');
+    return { sources: typeof saved.sources === 'string' ? saved.sources : '' };
+  } catch { return { sources: '' }; }
 }
 
 export async function setup(host) {
@@ -36,11 +41,15 @@ export async function setup(host) {
 function contentPayload(chart) {
   const payload = toContentJson(chart, { baseUrl, checksum: chart.checksum });
   if (chart.sourceRoot) {
-    payload.source = { name: chart.sourceName, provider: manifest.id, origin: new URL(chart.sourceRoot).origin, url: chart.sourceRoot };
+    const origin = chart.sourceUrl ?? chart.sourceRoot;
+    payload.source = { name: chart.sourceName, provider: manifest.id, origin: new URL(origin).origin, url: origin, catalogueUrl: chart.sourceRoot };
     if (chart.tuningId !== 'guitar-standard') delete payload.notation.tuning;
+    if (chart.tuning) payload.notation.tuning = chart.tuning;
     payload.playableVersion.label = chart.versionLabel ?? 'Imported version';
     payload.chordChart.instrumentId = chart.instrumentId;
     payload.chordChart.tuningId = chart.tuningId;
+    if (chart.scraperMetadata) payload.chordChart.sourceMetadata = chart.scraperMetadata;
+    if (chart.collectedAt) payload.observability.collectedAt = chart.collectedAt;
   }
   return payload;
 }
@@ -89,21 +98,24 @@ export function createTab() {
     async run(actionId, values) {
       if (actionId === 'delete') {
         const candidates = sourceLines(values.deleteSource ?? '');
-        if (candidates.length !== 1 || candidates[0].error) throw new Error('Enter one valid downloaded source root to delete.');
+        if (candidates.length !== 1 || candidates[0].error) throw new Error('Enter one valid downloaded source URL to delete.');
         await library.remove(candidates[0].root);
         return { status: 'success', body: `Downloaded charts deleted: ${candidates[0].root}` };
       }
       if (actionId !== 'update') throw new Error('Unknown catalogue action.');
       // Save the list before downloading, even if every source fails.
       localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...settings(), sources: values.sources ?? '' }));
-      const results = await updateSources(values.sources ?? '', library);
+      const results = await updateSources(values.sources ?? '', library, fetch, {
+        certificate: values.certificate,
+        passphrase: values.certificatePassphrase,
+      });
       const failed = results.filter((result) => result.error);
       let offline = '';
       try {
         const ready = await prepareOffline();
         offline = ready ? '\nOffline application ready on this device.' : '\nOffline application requires a production build; chart data is stored on this device.';
       } catch (error) { offline = `\nCharts saved, but offline application preparation failed: ${error.message}`; }
-      return { status: failed.length ? 'error' : 'success', body: (results.length ? results.map((result) => `${result.root}: ${result.error ? `failed (${result.error}); previous charts kept` : `${result.count} charts downloaded`}`).join('\n') : 'No source URLs configured.') + offline };
+      return { status: failed.length ? 'error' : 'success', body: (results.length ? results.map((result) => `${result.root}: ${result.error ? `failed (${result.error}); previous charts kept` : `${result.count} charts downloaded`}${result.warnings?.length ? `\n${result.warnings.join('\n')}` : ''}`).join('\n') : 'No source URLs configured.') + offline };
     },
   };
 }

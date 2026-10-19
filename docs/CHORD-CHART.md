@@ -367,7 +367,7 @@ person build a library of charts and read them when the sources are unavailable.
 
 ### What
 
-Settings offers a textarea with one Source Catalog root URL per line. Each
+Settings offers a textarea with one Source Catalog root or archive URL per line. Each
 source can contain multiple artists and their charts. A manual **Update
 catalogue** action downloads and verifies the source files, then saves its charts
 in a persistent library on this device. Search and reading work offline,
@@ -384,6 +384,113 @@ Duplicate source URLs are ignored; different source records remain separate
 chart variants. Removing a URL stops future updates and keeps its downloaded
 charts. **Delete downloaded source** removes one source explicitly; clearing site
 data in the browser also removes the library.
+
+### Importing a ZIP of scraper downloads
+
+ZIP and TAR.ZST archives are supported, including the entire `downloads/` folder.
+
+The scraper already exports text and metadata together. Importing that export
+directly avoids requiring a separate catalogue generator. In **Chord Chart
+Catalog → Settings → Source catalogue URLs (one per line)**, enter the HTTP(S)
+URL of a `.zip`, `.tar.zst` or `.tzst` file, then press **Update catalogue**. Archive URLs keep their exact
+path and query parameters, including signed download URLs. A direct
+`source-manifest.json` URL also resolves to its catalogue root.
+For an endpoint without a recognized archive extension, a missing catalogue manifest triggers
+a check of the endpoint's response bytes. A 403 or another manifest failure
+never triggers this fallback.
+
+The archive can contain one Source Catalog (with its manifest, checksums and NDJSON)
+or scraper pairs in any wrapper folder:
+
+```text
+downloads/
+  jorge-vercillo/
+    que-nem-mare.txt
+    que-nem-mare.source.json
+  maria-rita/
+    exemplo.txt
+    exemplo.source.json
+```
+
+Each chart needs a `.txt` and matching `.source.json`; the metadata must include
+`title`, `artist.name`, `artist.slug`, `sourceUrl` and `collectedAt`. When present,
+`file.sha256`, `file.bytes` and `file.name` are checked before import. Text,
+including spaces and line endings, is preserved. The converter maps key, capo,
+instrument, tuning, version, composers, chord names, genre and collection date.
+All original metadata, including chord shapes, is retained in
+`chordChart.sourceMetadata` in the structured content response. Imported shapes
+are not substituted with demo shapes. `source.url` is the original song URL;
+`source.catalogueUrl` is the archive used to import it. Archive imports use the same
+IndexedDB library and offline search/reading as Source Catalog imports.
+
+The archive's URL identifies the snapshot. Updating the same URL replaces that
+snapshot; changing a signed URL creates a separate source. Prefer a stable URL
+for repeated updates. Chart identity within an archive uses the original song URL,
+so renaming wrapper folders does not create new chart IDs. Duplicate song URLs,
+metadata without its matching TXT, malformed metadata or mismatched hashes
+reject the whole snapshot and keep the previous version. `songs.json` and
+unrelated non-chart files are ignored. TXT files without metadata (such as an
+auxiliary `musicas.txt` list) are skipped with a warning in the import report.
+
+### End-to-end encrypted archive links
+
+The catalogue also accepts `.tar.zst.enc` URLs. The portal distributes only
+ciphertext; its short-lived token authorizes downloading those bytes, while a
+local certificate is required to read them. The token may be kept in the URL
+fragment and is sent by the catalogue in an `Authorization` header. In the
+catalogue's **Settings** controls, select the local `.cvcert` file and enter its
+passphrase before pressing **Update catalogue**.
+
+The archive is encrypted before upload with a random AES-256-GCM data key,
+wrapped to the certificate's RSA public key with RSA-OAEP-SHA256. The browser
+unlocks the local private key and decrypts the archive in memory. It does not
+send either the private key or passphrase to the portal. The host excludes both
+fields from tab persistence and clears them after the update. A failed password,
+authentication tag, or import leaves the previous local snapshot intact.
+
+The certificate is protected by a passphrase using PBKDF2-HMAC-SHA256 and
+AES-256-GCM. Keep a backup of the certificate and passphrase separately. Losing
+either prevents reading the current archive; replacing the certificate means
+encrypting and uploading the archive again. All trusted devices share the same
+certificate in this first version. Because the add-on is trusted executable
+code and the host does not sandbox it, only use the certificate with the
+reviewed production catalogue application.
+
+ZIPs are decompressed in the browser with `fflate`; TAR.ZST uses streaming
+Zstandard decoding with `fzstd` and incremental TAR reading. Both are bundled
+into this add-on; no external decompression service or installed browser tool is needed.
+There is no code dependency on the scraper. Encrypted archive support uses only
+generic host controls and the protocol's runtime tab-field hints. Supported ZIP methods are Store and Deflate. TAR supports regular files, folders,
+GNU long filenames and POSIX extended headers; links and special files are rejected.
+The archive type is detected from its bytes. Limits are 128 MiB per
+download, 512 MiB expanded, 32 MiB per entry and 100,000 entries. The importer
+rejects unsafe or duplicate paths, redirects, unsupported responses and incomplete
+archives. The file server must allow CORS (cross-origin browser requests).
+Windows/WSL filesystem paths cannot be pasted into this HTTP(S) field.
+
+For example, from the scraper directory, create the archive without changing
+the original files:
+
+```bash
+tar -I 'zstd -T0 -3' -cf downloads.tar.zst downloads/
+```
+
+Serve `downloads.tar.zst` from an HTTP(S) server that permits the host's origin,
+then paste its URL, for example `http://localhost:8080/downloads.tar.zst`.
+
+The real archive can be verified against GNU tar over local HTTP with:
+
+```bash
+node scripts/verify-scraper-archive.mjs ../artist-portal-scraper/downloads.tar.zst
+```
+
+This explicit integration check requires local `tar` and `zstd`. It compares every
+imported chart's text, SHA-256 and complete metadata with the original files in a
+temporary extraction directory, then deletes that temporary directory.
+
+Source snapshots use small IndexedDB records within one transaction, avoiding
+Chromium's per-record size limit for complete multi-artist archives. Existing
+snapshots are preserved during the storage upgrade.
 
 The catalogue add-on stores source snapshots in IndexedDB and answers the same
 generic catalogue, search, and content URLs from the browser. The host renders

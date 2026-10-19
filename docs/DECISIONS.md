@@ -629,7 +629,8 @@ library.
 
 ### Technical consequences
 
-- the published protocol package and Artist Portal generator do not change;
+- the Artist Portal generator remains independent; the host's generic sensitive
+  field handling is recorded in decision 26;
 - browser storage and local resource reads stay inside the catalogue add-on;
 - different source record identities remain different chart variants, even when
   titles and artists match;
@@ -638,6 +639,29 @@ library.
   development server does not register the production service worker;
 - details and validation are recorded in
   [`adr/0003-browser-owned-source-catalog-library.md`](adr/0003-browser-owned-source-catalog-library.md).
+
+## 26. Sensitive tab values stay out of host persistence
+
+### Why
+
+An add-on action may need a local certificate or another credential for one
+operation. Persisting that field with ordinary tab settings would keep the
+secret in browser storage after the operation ends.
+
+### Decision
+
+Runtime `AddonTabField` may mark a value `sensitive`. The generic host omits it
+from restored and saved tab values, then clears it from the current controls
+after an action that receives it. A `file` field reads a bounded text file into
+the in-memory action values. Sensitive values are not logged by the host.
+
+### Technical consequences
+
+- add-ons still receive the field value and remain trusted executable code;
+- this convention prevents ordinary host tab persistence but is not sandboxing
+  or guaranteed memory zeroization;
+- the chord catalogue uses the field for its local encrypted certificate and
+  passphrase, and persists only source URLs.
 
 ## When to revisit a decision
 

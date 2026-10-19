@@ -60,6 +60,25 @@ curl -s 'http://localhost:5295/text/chart/harbor-light/content.json' | head -c 4
 | [`src/manifest.js`](src/manifest.js) | Contract v1 with one described route per resource |
 | [`src/server.mjs`](src/server.mjs) | Node.js server built on `@addons/addon-server` |
 
-The add-on depends only on `@addons-poc/protocol` and `@addons/addon-server`. It
-uses plain ESM JavaScript, has no external runtime dependency, and does not know
-the viewer add-on exists.
+The add-on uses plain ESM JavaScript and does not know the viewer add-on exists.
+Its browser bundle includes `fflate` for ZIP and `fzstd` for TAR.ZST imports; the shared HTTP server
+remains free of external runtime dependencies.
+
+## Importing a downloaded library
+
+To reuse a scraper export, paste a ZIP or TAR.ZST URL into **Source catalogue URLs (one per
+line)** and press **Update catalogue**. Each chart must have its `.txt` and
+matching `.source.json`. Multiple artist folders are supported. An archive containing
+one complete Source Catalog is also accepted, alongside regular catalogue root
+URLs. Downloads must be served over HTTP(S) with CORS enabled.
+
+Conversion preserves chart whitespace, provenance and chord metadata and stores
+the result on the device for offline search and reading. A failed import keeps
+the previous snapshot. See [the import contract and limits](../../docs/CHORD-CHART.md#importing-a-zip-of-scraper-downloads).
+
+The importer also accepts an encrypted `.tar.zst.enc` URL. In the catalogue's
+**Settings** panel, select the local `.cvcert` file, enter its passphrase and run the update.
+The browser decrypts and authenticates the archive before import. The host does
+not persist either credential and clears them after the action. The short-lived
+link permits downloading ciphertext only. Certificate backup and replacement
+guidance is in [`docs/CHORD-CHART.md`](../../docs/CHORD-CHART.md).

@@ -37,6 +37,7 @@ const addonModule = await import(`${pathToFileURL(bundlePath).href}?built=${Date
 const manifest = addonModule.manifest;
 
 const server = createServer(async (request, response) => {
+  const requestPath = new URL(request.url ?? '/', 'http://localhost').pathname;
   response.setHeader('Access-Control-Allow-Origin', '*');
   // The bundle is rebuilt on every start and this server is for development, so
   // a cached copy would keep a browser on the previous contract.
@@ -47,7 +48,7 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  if ((request.method === 'GET' || request.method === 'HEAD') && request.url === '/manifest.json') {
+  if ((request.method === 'GET' || request.method === 'HEAD') && requestPath === '/manifest.json') {
     response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     response.end(request.method === 'HEAD' ? undefined : JSON.stringify({
       ...manifest,
@@ -56,7 +57,7 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  if ((request.method === 'GET' || request.method === 'HEAD') && request.url === '/bundle.js') {
+  if ((request.method === 'GET' || request.method === 'HEAD') && requestPath === '/bundle.js') {
     const bundle = await readFile(bundlePath);
     response.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' });
     response.end(request.method === 'HEAD' ? undefined : bundle);
@@ -65,9 +66,9 @@ const server = createServer(async (request, response) => {
 
   // An add-on that depends on Monaco serves its own editor assets. The host
   // keeps no asset list or dependency on that add-on.
-  if ((request.method === 'GET' || request.method === 'HEAD') && request.url?.startsWith('/monaco/vs/')) {
+  if ((request.method === 'GET' || request.method === 'HEAD') && requestPath.startsWith('/monaco/vs/')) {
     try {
-      const assetName = decodeURIComponent(new URL(request.url, 'http://localhost').pathname.slice('/monaco/vs/'.length));
+      const assetName = decodeURIComponent(requestPath.slice('/monaco/vs/'.length));
       const assetPath = resolve(monacoRoot, assetName);
       const withinRoot = relative(monacoRoot, assetPath);
       if (!withinRoot || withinRoot.startsWith('..') || withinRoot.startsWith('/')) throw new Error('Invalid asset path');

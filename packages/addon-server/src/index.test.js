@@ -82,9 +82,28 @@ describe('createAddonServer (estilo Stremio)', () => {
     const server = await startServer();
     const res = await fetch(server.manifestUrl);
     expect(res.status).toBe(200);
+    expect(res.headers.get('cache-control')).toBe('no-store');
     const body = await res.json();
     expect(body.id).toBe('text-test');
     expect(body.contract.resources[0].name).toBe('catalog');
+  });
+
+  it('serves runtime bundles without caching while preserving the asset route with a query', async () => {
+    const server = await startServer(0, {
+      assets: {
+        '/bundle.js': {
+          body: Buffer.from('export const version = 2;'),
+          contentType: 'text/javascript; charset=utf-8',
+          cacheControl: 'no-store',
+        },
+      },
+    });
+
+    const response = await fetch(`${server.url}/bundle.js?__host_load=fresh`);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(await response.text()).toBe('export const version = 2;');
   });
 
   it('serves /catalog/<type>/<id>.json', async () => {

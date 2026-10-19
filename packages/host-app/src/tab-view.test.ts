@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyResponseValues, firstLiveAction, followedFields, groupPanel, LIVE_PAUSE_MS, liveAction, liveRunDecision, liveSignature, liveWaitMs, readingSections, renderedHtml, restoredValues } from './tab-view';
+import { applyResponseValues, firstLiveAction, followedFields, groupPanel, LIVE_PAUSE_MS, liveAction, liveRunDecision, liveSignature, liveWaitMs, persistentTabValues, readingSections, renderedHtml, restoredValues } from './tab-view';
 
 describe('renderedHtml', () => {
   it('returns the html published by the add-on', () => {
@@ -153,6 +153,19 @@ describe('restoredValues', () => {
   it('survives an empty or missing record', () => {
     expect(restoredValues({}, { fontSize: '30' })).toEqual({ fontSize: '30' });
     expect(restoredValues(undefined, {})).toEqual({});
+  });
+});
+
+describe('persistentTabValues', () => {
+  it('removes fields marked sensitive before storage', () => {
+    expect(persistentTabValues(
+      { sources: 'https://example.test/', certificate: '{"private":"key"}', passphrase: 'secret' },
+      [{ id: 'sources', label: 'Sources' }, { id: 'certificate', label: 'Certificate', sensitive: true }, { id: 'passphrase', label: 'Passphrase', sensitive: true }],
+    )).toEqual({ sources: 'https://example.test/' });
+  });
+
+  it('keeps values for fields the add-on did not mark sensitive', () => {
+    expect(persistentTabValues({ value: 'text' }, [{ id: 'value', label: 'Value' }])).toEqual({ value: 'text' });
   });
 });
 

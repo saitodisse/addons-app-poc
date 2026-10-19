@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { validateTabActionInput, validateTabResult } from '@addons-poc/protocol';
 import type { AddonInstance, AddonTabAction, AddonTabResult } from '@addons-poc/protocol';
-import { applyResponseValues, firstLiveAction, followedFields, groupPanel, LIVE_PAUSE_MS, liveRunDecision, liveSignature, liveWaitMs, restoredValues, type ControlSection } from '../tab-view';
+import { applyResponseValues, firstLiveAction, followedFields, groupPanel, LIVE_PAUSE_MS, liveRunDecision, liveSignature, liveWaitMs, persistentTabValues, restoredValues, type ControlSection } from '../tab-view';
 
 /**
  * Pause before the tab state reaches storage.
@@ -64,7 +64,7 @@ export function useAddonTab(addon: AddonInstance | null, options: AddonTabOption
         // Storage fills the controls the add-on has not reported yet. What the
         // add-on already said wins, so a late or empty record cannot wipe the
         // panel of a page that is already rendered.
-        setValues((current) => restoredValues(saved.values, current));
+        setValues((current) => restoredValues(persistentTabValues(saved.values, tab.fields ?? []), current));
         setResponse((current) => current ?? saved.response ?? null);
       }
       setReady(true);
@@ -79,7 +79,7 @@ export function useAddonTab(addon: AddonInstance | null, options: AddonTabOption
   useEffect(() => {
     if (!tab || !ready || !tab.persistence) return;
     const persistence = tab.persistence;
-    const payload = { values, ...(response ? { response } : {}) };
+    const payload = { values: persistentTabValues(values, tab.fields ?? []), ...(response ? { response } : {}) };
     pendingSaveRef.current = payload;
     const timer = setTimeout(() => {
       pendingSaveRef.current = null;
@@ -143,6 +143,14 @@ export function useAddonTab(addon: AddonInstance | null, options: AddonTabOption
     } catch (error) {
       publish({ status: 'error', body: (error as Error).message || 'The action could not be completed.' });
     } finally {
+      const action = tab.actions?.find((candidate) => candidate.id === actionId);
+      const declaredAction = addon.manifest.contract.ui.actions.find((candidate) => candidate.id === actionId);
+      const received = new Set(action?.receives ?? declaredAction?.receives ?? []);
+      const sensitive = (tab.fields ?? []).filter((field) => field.sensitive && received.has(field.id));
+      if (sensitive.length) {
+        const sensitiveIds = new Set(sensitive.map((field) => field.id));
+        setValues((current) => Object.fromEntries(Object.entries(current).filter(([id]) => !sensitiveIds.has(id))));
+      }
       setRunningAction(null);
     }
   }, [addon, publish, tab, values]);

@@ -72,7 +72,7 @@ function pageRequest(searchParams) {
  * @param {object} options
  * @param {Record<string, unknown>} options.manifest Stremio-style manifest.
  * @param {number} options.port HTTP port.
- * @param {Record<string, { body: Uint8Array, contentType: string }>} [options.assets] Public static files keyed by exact URL path.
+ * @param {Record<string, { body: Uint8Array, contentType: string, cacheControl?: string }>} [options.assets] Public static files keyed by URL path.
  * @param {{
  *   catalog(type: string, catalogId: string, page?: { limit?: number, cursor?: string, lang?: string }): Promise<{ metas: unknown[], pagination?: { limit: number, total?: number, next?: string } }>,
  *   search(type: string, query: string, page?: { limit?: number, cursor?: string, lang?: string }): Promise<{ metas: unknown[], pagination?: { limit: number, total?: number, next?: string } }>,
@@ -90,7 +90,8 @@ export async function createAddonServer(options) {
 
   for (const [path, asset] of Object.entries(assets)) {
     if (!path.startsWith('/') || path.startsWith('//') || path.includes('..')
-      || !(asset?.body instanceof Uint8Array) || typeof asset.contentType !== 'string' || !asset.contentType.trim()) {
+      || !(asset?.body instanceof Uint8Array) || typeof asset.contentType !== 'string' || !asset.contentType.trim()
+      || (asset.cacheControl !== undefined && (typeof asset.cacheControl !== 'string' || !asset.cacheControl.trim()))) {
       throw new Error(`Invalid static asset configuration for ${path}`);
     }
   }
@@ -166,7 +167,7 @@ export async function createAddonServer(options) {
     const respondAsset = (asset) => {
       const headers = {
         ...CORS_HEADERS,
-        'Cache-Control': 'public, max-age=86400',
+        'Cache-Control': asset.cacheControl ?? 'public, max-age=86400',
         'Content-Length': String(asset.body.byteLength),
         'Content-Type': asset.contentType,
       };
@@ -191,7 +192,7 @@ export async function createAddonServer(options) {
     try {
       // Manifest
       if (url === '/manifest.json') {
-        respondJson(manifest);
+        respondJson(manifest, 200, { 'Cache-Control': 'no-store' });
         return;
       }
 

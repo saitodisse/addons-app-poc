@@ -8,6 +8,14 @@ interface LoggerPort { log(level: 'info' | 'warn' | 'error', message: string): v
 
 const HOST_CAPABILITIES = new Set(['registry.services', 'ui.tab', 'logs', 'state-store']);
 
+function createFreshModuleUrl(url: string, sequence: number): string {
+  const moduleUrl = new URL(url);
+  // Fragments only change the ESM module identity. A query parameter also
+  // changes the HTTP cache key, so an old bundle cannot survive a reinstall.
+  moduleUrl.searchParams.set('__host_load', `${Date.now()}-${sequence}`);
+  return moduleUrl.href;
+}
+
 class HostAPIImpl implements HostAPI {
   readonly services;
   private unload: (() => void)[] = [];
@@ -41,12 +49,14 @@ class HostAPIImpl implements HostAPI {
 }
 
 export class FetchAddonLoader {
+  private moduleImportSequence = 0;
+
   constructor(private registry: ServiceRegistry, private logger: LoggerPort, private importFn: (url: string) => Promise<AddonModule> = (url) => import(/* @vite-ignore */ url)) {}
 
   async load(manifestUrl: string): Promise<AddonInstance> {
     let manifest: AddonManifest;
     try {
-      const response = await fetch(manifestUrl);
+      const response = await fetch(manifestUrl, { cache: 'no-store' });
       if (!response.ok) throw new Error(`HTTP ${response.status} while fetching the manifest`);
       const data = await response.json();
       const validation = validateManifest(data);
@@ -94,7 +104,8 @@ export class FetchAddonLoader {
 
     let module: AddonModule;
     try {
-      module = await this.importFn(new URL(manifest.entrypoint, manifestUrl).href);
+      const entrypointUrl = new URL(manifest.entrypoint, manifestUrl).href;
+      module = await this.importFn(createFreshModuleUrl(entrypointUrl, ++this.moduleImportSequence));
       if (!module.manifest || typeof module.setup !== 'function' || typeof module.createTab !== 'function') throw new Error('The add-on must export manifest, setup, and createTab');
       // The remote manifest is the source of the bundle's public URL. The
       // manifest exported by the bundle may use a build-project-relative
@@ -128,7 +139,7 @@ export class FetchAddonLoader {
     const invalid = new Map<string, AddonInstance>();
     for (const manifestUrl of manifestUrls) {
       try {
-        const response = await fetch(manifestUrl);
+        const response = await fetch(manifestUrl, { cache: 'no-store' });
         if (!response.ok) throw new Error(`HTTP ${response.status} while fetching the manifest`);
         const data = await response.json();
         const validation = validateManifest(data);
