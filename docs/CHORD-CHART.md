@@ -202,11 +202,11 @@ The panel opens with the values kept in storage, and the store is split in two:
 
 | Record | Key | Controls |
 | --- | --- | --- |
-| Global | `chords-viewer:settings` | Layout, colours, sections, page, and options — how the person reads, in every chart |
+| Global | `chords-viewer:settings` | Layout, colours, sections, page, options, and the last used font size |
 | One per chart | `chords-viewer:song:<chart id>` | Font size and transposition — the group the AC viewer calls the current chart |
 
 A chart nobody has adjusted opens as written: the transposition starts from
-**zero** while the font size falls back to the global preference. Transposing one
+**zero** while the font size falls back to the last size used in another chart. Transposing one
 song therefore cannot follow into the next one, and returning to a song brings
 back what it had. The record of a chart is read once, when the chart reaches the
 screen, and written when a control of that chart moves.
@@ -517,3 +517,50 @@ Install the catalogue and viewer while online, configure a source URL, then pres
 register the production service worker. For the local Artist Portal, copy its
 Source Catalog root URL, currently `http://localhost:5287/source-catalog/`, into
 the catalogue settings; a deployed portal can use another base path.
+
+### Cache de navegação do catálogo
+
+Para evitar reler toda a biblioteca ao trocar de página, o catálogo no navegador
+reutiliza uma fotografia em memória dos dados persistidos. Atualizar ou excluir
+uma fonte invalida essa fotografia e os resultados de busca. Os campos de busca
+normalizados acompanham os objetos das cifras em um `WeakMap`; até vinte buscas
+ou listagens recentes mantêm seus resultados ordenados em memória.
+
+O host prepara até duas páginas seguintes após exibir a página atual. Um cache
+limitado a doze páginas de exibição compartilha também as promessas em andamento,
+evita repetir a mesma preparação e é invalidado ao atualizar os recursos ou mudar
+a configuração dos provedores. Falhas no pré-carregamento não interrompem a página
+aberta. Esses caches duram apenas enquanto o módulo ou a configuração atual estão
+ativos; o IndexedDB continua sendo a fonte persistente do catálogo.
+
+A preparação dos campos de busca ocorre em blocos de 128 cifras, com uma pausa
+assíncrona entre blocos para permitir que o navegador processe a interface.
+
+Medição local em Chromium em 19/10/2026, com 17.274 cifras reais importadas pelo
+fluxo de atualização e 25 itens por página: as transições 5 → 6, 6 → 5, 5 → 6
+e 6 → 7 levaram, respectivamente, 33, 26, 23 e 33 ms entre o clique e a pintura,
+sem novas chamadas a `IDBObjectStore.getAll`. A preparação inicial da busca
+levou 563 ms sem tarefas longas acima de 50 ms nessa etapa. A primeira leitura
+da biblioteca completa ainda levou cerca de 1,2 segundo; esses números são uma
+medição local, não uma garantia para outros dispositivos.
+
+Na listagem, fora de campos de edição, `←` e `→` mudam uma página;
+`Home` abre a primeira e `End` localiza a última, carregando as páginas de
+provedores que ainda não foram consultadas. `Page Up` e `Page Down` voltam ou
+avançam cinco páginas. Saltos respeitam os limites da listagem. As teclas mantêm
+seu comportamento nativo enquanto o foco está em um campo de edição.
+
+
+The rendered result header also displays external links supplied by the catalogue.
+Chord charts supply YouTube and YouTube Music searches using the artist name and
+song title. The host accepts HTTP(S) links with labels and opens them in a new tab.
+
+Após navegar com `←`, `→`, `Home`, `End`, `Page Up` ou `Page Down`, a primeira
+música da página de destino recebe o foco assim que seus dados aparecem.
+
+Na leitura de uma cifra, o painel abre recolhido a cada música: somente fonte e
+transposição aparecem em uma faixa compacta, e a cifra usa toda a largura.
+O botão discreto `Settings` expande as demais configurações no painel lateral;
+recolhê-lo devolve a largura à cifra sem alterar os valores dos controles.
+Em telas estreitas, o painel expandido continua empilhado conforme o layout
+responsivo existente.

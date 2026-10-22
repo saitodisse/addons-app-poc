@@ -51,6 +51,7 @@ export function createViewerState(host: HostAPI): ViewerState {
   let song: Partial<ViewerSettings> = {};
   let chart: ChartRecord | undefined;
   let loaded: Promise<void> | undefined;
+  const songs = new Map<string, Partial<ViewerSettings>>();
   const listeners = new Set<() => void>();
 
   const notify = (): void => {
@@ -66,9 +67,13 @@ export function createViewerState(host: HostAPI): ViewerState {
   /** Record of one chart, read from storage the first time it is asked for. */
   async function readSong(chartId: string | undefined): Promise<Partial<ViewerSettings>> {
     const service = store();
-    if (!service || !chartId) return {};
+    if (!chartId) return {};
+    if (songs.has(chartId)) return songs.get(chartId)!;
+    if (!service) return {};
     try {
-      return normalizeSongSettings(await service.get<Partial<ViewerSettings>>(songKey(chartId)));
+      const saved = normalizeSongSettings(await service.get<Partial<ViewerSettings>>(songKey(chartId)));
+      songs.set(chartId, saved);
+      return saved;
     } catch {
       return {};
     }
@@ -89,6 +94,7 @@ export function createViewerState(host: HostAPI): ViewerState {
       chart = undefined;
     }
     song = await readSong(chart?.id);
+    if (song.fontSize !== undefined) global = { ...global, fontSize: song.fontSize };
   }
 
   return {
@@ -106,16 +112,16 @@ export function createViewerState(host: HostAPI): ViewerState {
     chart: () => chart,
     async setSettings(next) {
       const settings = normalizeSettings(next);
-      // One record for the chart and one for everything else: the font size and
-      // the transposition of one song cannot follow into the next chart.
+      // Font size is also the fallback for charts without their own preference.
       global = normalizeSettings(globalPart(settings));
       song = songPart(settings);
+      if (chart) songs.set(chart.id, song);
       const service = store();
       if (!service) {
         notify();
         return;
       }
-      // Only the shared part is written here; the song part has its own record.
+      // Transposition stays in the song record.
       await service.set(SETTINGS_KEY, globalPart(global));
       if (chart) await service.set(songKey(chart.id), song);
       notify();
@@ -125,7 +131,13 @@ export function createViewerState(host: HostAPI): ViewerState {
       chart = next;
       // A chart nobody has adjusted opens as written: the transposition starts
       // from zero instead of borrowing the previous song.
-      if (changed) song = await readSong(next?.id);
+      if (changed) {
+        song = await readSong(next?.id);
+        if (song.fontSize !== undefined) {
+          global = { ...global, fontSize: song.fontSize };
+          await store()?.set(SETTINGS_KEY, globalPart(global));
+        }
+      }
       // The declared state value is an object, so an empty object means "nothing loaded".
       await store()?.set(CHART_KEY, next ?? {});
       if (changed) notify();

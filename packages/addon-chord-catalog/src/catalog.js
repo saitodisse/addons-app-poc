@@ -32,9 +32,12 @@ export function chartSections(text) {
     .map(({ title, index }) => ({ title: title.slice(1, -1).trim(), line: index }));
 }
 
+const normalizedFields = new WeakMap();
+
 /** Text fields a query can match, with the weight each one carries. */
 function fieldsOf(chart) {
-  return {
+  if (normalizedFields.has(chart)) return normalizedFields.get(chart);
+  const fields = {
     title: normalizeText(chart.title),
     artist: normalizeText(chart.artist?.name),
     artistSlug: normalizeText(chart.artist?.slug),
@@ -44,6 +47,8 @@ function fieldsOf(chart) {
     chords: (chart.chords ?? []).map((chord) => normalizeText(chord)),
     lyrics: normalizeText(String(chart.text ?? '').replace(/\[[^\]]*\]/g, ' ')),
   };
+  normalizedFields.set(chart, fields);
+  return fields;
 }
 
 function scoreField(value, term, exactScore, partialScore) {

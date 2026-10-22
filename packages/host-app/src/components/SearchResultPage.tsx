@@ -6,6 +6,7 @@ import { AddonControlPanel } from './AddonControlPanel';
 import { RenderedHtmlView } from './RenderedHtmlView';
 import { renderedHtml } from '../tab-view';
 import { useAddonTab } from './useAddonTab';
+import { navigate, ROUTES } from '../router';
 import {
   fetchSearchResultContent,
   fetchSearchResultDetails,
@@ -27,6 +28,7 @@ interface SearchResultPageProps {
   viewAddon?: AddonInstance | null;
   /** Optional provider of an editing view for this result. */
   editorProvider?: ContentEditorProvider;
+  onBackToResults?: () => void;
 }
 
 const ALLOWED_EXTRACT_TAGS = new Set(['P', 'BR', 'STRONG', 'B', 'EM', 'I', 'U', 'UL', 'OL', 'LI', 'SUB', 'SUP', 'SPAN']);
@@ -101,7 +103,7 @@ function LoadingState({ title }: { title: string }) {
   );
 }
 
-export function SearchResultPage({ contentUrl, result, ready, viewProvider, viewAddon, editorProvider, fetchResource = fetch }: SearchResultPageProps) {
+export function SearchResultPage({ contentUrl, result, ready, viewProvider, viewAddon, editorProvider, onBackToResults, fetchResource = fetch }: SearchResultPageProps) {
   const [details, setDetails] = useState<SearchResultDetails | null>(null);
   const [fallbackContent, setFallbackContent] = useState<string | null>(null);
   const [renderedView, setRenderedView] = useState<ContentViewResult | null>(null);
@@ -112,6 +114,7 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
   const [editorLoading, setEditorLoading] = useState(false);
   const [editorError, setEditorError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [controlsExpanded, setControlsExpanded] = useState(false);
   const editorRequestNumber = useRef(0);
   const renderedHeaderRef = useRef<HTMLElement>(null);
   const scrolledContentUrlRef = useRef<string | null>(null);
@@ -154,6 +157,53 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
       setRenderedView((current) => ({ html, ...(current?.title ? { title: current.title } : {}) }));
     },
   });
+  const viewerFields = new Map((viewAddon?.ui?.fields ?? []).map((field) => [field.id, field]));
+  const liveFieldIds = new Set(controller.sections.flatMap((section) => section.actions.flatMap((action) => action.live ? action.receives ?? [] : [])));
+  const fontField = viewerFields.get('fontSize');
+  const transposeField = viewerFields.get('transposeNumber');
+  const canAdjustFontSize = Boolean(fontField?.type === 'range' && liveFieldIds.has('fontSize'));
+  const canTranspose = Boolean(transposeField?.type === 'range' && liveFieldIds.has('transposeNumber'));
+  const hasPrimaryControls = canAdjustFontSize || canTranspose;
+  const compactControls = hasPrimaryControls && !controlsExpanded;
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        if (onBackToResults) onBackToResults();
+        else navigate(ROUTES.home);
+        return;
+      }
+      if (!renderedView || editing) return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest('input, textarea, select, button, [contenteditable="true"]')) return;
+
+      if ((event.key === '-' || event.key === '=' || event.key === '+') && canAdjustFontSize && fontField) {
+        const min = fontField.type === 'range' ? fontField.min ?? 10 : 10;
+        const max = fontField.type === 'range' ? fontField.max ?? 40 : 40;
+        const current = Number.parseFloat(controller.values.fontSize ?? '');
+        const size = Number.isFinite(current) ? current : 16;
+        const next = Math.min(max, Math.max(min, size + (event.key === '-' ? -1 : 1)));
+        if (next === size) return;
+        event.preventDefault();
+        controller.setValue('fontSize', String(next));
+        return;
+      }
+
+      if ((event.key === '[' || event.key === ']') && canTranspose && transposeField) {
+        const currentValue = Number.parseInt(controller.values.transposeNumber ?? '0', 10);
+        const current = Number.isFinite(currentValue) ? currentValue : 0;
+        const direction = event.key === ']' ? 1 : -1;
+        const next = ((current + direction + 6) % 12 + 12) % 12 - 6;
+        event.preventDefault();
+        controller.setValue('transposeNumber', String(next));
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [canAdjustFontSize, canTranspose, controller, editing, fontField, onBackToResults, renderedView, transposeField]);
 
   useEffect(() => {
     let active = true;
@@ -169,6 +219,7 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
     setEditorView(null);
     setEditorError(null);
     setEditing(false);
+    setControlsExpanded(false);
 
     if (!ready) return () => { active = false; };
 
@@ -193,6 +244,9 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
         setRenderedView(view);
         setEditorAvailable(canEdit);
         setLoading(false);
+        void fetchSearchResultDetails(contentUrl, fetchResource)
+          .then((nextDetails) => { if (active) setDetails(nextDetails); })
+          .catch(() => { /* Optional metadata must not interrupt the rendered view. */ });
         return;
       }
 
@@ -247,6 +301,13 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
   const data = details?.body;
   const title = plainTextValue(data?.displaytitle) ?? plainTextValue(data?.title) ?? plainTextValue(data?.id) ?? result?.name ?? 'Article';
   const description = textValue(data?.description) ?? result?.description;
+  const externalLinks = (Array.isArray(data?.externalLinks) ? data.externalLinks : []).flatMap((link: unknown) => {
+    if (!link || typeof link !== 'object') return [];
+    const item = link as Record<string, unknown>;
+    const label = plainTextValue(item.label);
+    const url = httpUrl(item.url);
+    return label && url ? [{ label, url }] : [];
+  });
   const contentText = textValue(data?.content?.text);
   const extract = textValue(data?.extract);
   const extractHtml = textValue(data?.extract_html);
@@ -267,11 +328,13 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
     const header = renderedHeaderRef.current;
     if (!header) return;
     const stickyHeaderHeight = document.querySelector('.host-site-header')?.getBoundingClientRect().height ?? 0;
-    header.style.scrollMarginTop = `${Math.ceil(stickyHeaderHeight + 16)}px`;
+    const compactPanel = compactControls ? header.closest('.host-rendered-result')?.querySelector('.host-tab-panel') : null;
+    const controlsHeight = compactPanel ? compactPanel.getBoundingClientRect().height + 12 : 0;
+    header.style.scrollMarginTop = `${Math.ceil(stickyHeaderHeight + controlsHeight + 16)}px`;
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     header.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
     scrolledContentUrlRef.current = contentUrl;
-  }, [contentUrl, editorAvailable, loading, ready, renderedView]);
+  }, [compactControls, contentUrl, editorAvailable, loading, ready, renderedView]);
 
   useEffect(() => {
     if (!details) return;
@@ -290,7 +353,15 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
       lang={language}
       dir={direction}
     >
-      <a href="#/" className="host-article-back">← Back to results</a>
+      <a
+        href="#/"
+        className="host-article-back"
+        onClick={(event) => {
+          if (!onBackToResults) return;
+          event.preventDefault();
+          onBackToResults();
+        }}
+      >← Back to results</a>
 
       {loading && <LoadingState title={result?.name ?? title} />}
 
@@ -304,22 +375,37 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
       )}
 
       {!loading && !error && renderedView && (
-        <div className={`host-rendered-result${!editing && viewAddon?.ui ? ' has-panel' : ''}`}>
+        <div className={`host-rendered-result${!editing && viewAddon?.ui ? compactControls ? ' is-controls-collapsed' : ' has-panel' : ''}`}>
           <article className="host-article-card">
             <header ref={renderedHeaderRef} className="host-article-header">
               <span className="host-article-kicker">{editing ? 'Editing' : 'Rendered view'}</span>
               <h1>{(editing ? editorView?.title : renderedView.title) ?? result?.name ?? title}</h1>
               {result?.description && <p className="host-article-description">{result.description}</p>}
+              {!editing && renderedView && (canAdjustFontSize || canTranspose) && (
+                <p className="host-article-keyboard-hint" aria-keyshortcuts="- = [ ] Escape">
+                  {canAdjustFontSize && <span>- / = font size</span>}
+                  {canAdjustFontSize && canTranspose && <span aria-hidden="true"> · </span>}
+                  {canTranspose && <span>[ / ] transpose</span>}
+                  <span aria-hidden="true"> · Esc returns to results</span>
+                </p>
+              )}
               {editorAvailable && (
                 <button type="button" className="host-article-edit-button" onClick={() => void (editing ? closeEditor() : openEditor())}>
                   {editing ? '← Back to reading' : 'Edit'}
                 </button>
               )}
-              {contentUrl && (
-                <a className="host-article-original-link" href={contentUrl} target="_blank" rel="noreferrer">
-                  Open the content URL ↗
-                </a>
-              )}
+              <div className="host-article-links">
+                {contentUrl && (
+                  <a className="host-article-original-link" href={contentUrl} target="_blank" rel="noreferrer">
+                    Open the content URL ↗
+                  </a>
+                )}
+                {externalLinks.map((link) => (
+                  <a key={link.url} className="host-article-original-link" href={link.url} target="_blank" rel="noopener noreferrer">
+                    {link.label} ↗
+                  </a>
+                ))}
+              </div>
             </header>
             <section className="host-article-section">
               {editing
@@ -329,7 +415,14 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
             </section>
           </article>
 
-          {!editing && viewAddon?.ui && <AddonControlPanel addon={viewAddon} controller={controller} reading />}
+          {!editing && viewAddon?.ui && <AddonControlPanel
+            addon={viewAddon}
+            controller={controller}
+            reading
+            compact={compactControls}
+            primaryFieldIds={['fontSize', 'transposeNumber']}
+            onToggleExpanded={hasPrimaryControls ? () => setControlsExpanded((expanded) => !expanded) : undefined}
+          />}
         </div>
       )}
 

@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getInteractionContractFingerprint } from '@addons-poc/protocol';
 import type { AddonManifest, AddonModule, AddonStateStore, HostAPI, ServiceInteraction } from '@addons-poc/protocol';
 import { App } from './App';
+import * as search from './search';
 import { INSTALLATIONS_STORAGE_KEY } from './factory-reset';
 import { resultRoute } from './router';
 
@@ -163,7 +164,45 @@ describe('App add-on bootstrap', () => {
     window.location.hash = '';
     if (originalScrollIntoView) HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
     else delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView;
+    vi.restoreAllMocks();
+    window.history.replaceState(null, '', '/');
     vi.unstubAllGlobals();
+  });
+
+  it('clears q on artist click and alphabetizes across provider pages before pagination', async () => {
+    window.history.replaceState(null, '', '/?q=Skank&artist=Skank&size=5#/');
+    const row = (name: string): search.SearchResultRow => ({
+      key: name, id: name, name, type: 'chart', url: `https://fixtures.test/${name}`,
+      sourceAddonId: 'fixture', sourceAddonName: 'Fixture', sourceManifestUrl: viewerUrl,
+      description: '', displayFields: [
+        { id: 'artist', label: 'Artist', value: 'Skank' },
+        { id: 'song', label: 'Song', value: name },
+        { id: 'album', label: 'Album', value: 'Fixture' },
+      ],
+    });
+    vi.spyOn(search, 'searchPage').mockImplementation(async (_addons, _disabled, _query, page) => ({
+      page: page!, collection: {
+        results: (page === 1 ? ['Zulu', 'Vento', 'Sol', 'Mar', 'Lua'] : ['Água']).map(row),
+        errors: [], providerCount: 1,
+        pagination: { fixture: { loaded: page === 1 ? 5 : 6, ...(page === 1 ? { next: 'second' } : {}) } },
+      },
+    }));
+    await act(async () => { root.render(<NuqsAdapter><App /></NuqsAdapter>); });
+    const titles = () => [...container.querySelectorAll('tbody tr td:nth-child(2)')].map((cell) => cell.textContent);
+    expect(titles()).toEqual(['Água', 'Lua', 'Mar', 'Sol', 'Vento']);
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('button[aria-label="Show songs by Skank"]')!.click();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+    expect(new URLSearchParams(window.location.search).get('q')).toBeNull();
+    expect(new URLSearchParams(window.location.search).get('artist')).toBe('Skank');
+    expect(container.querySelector<HTMLInputElement>('#global-addon-search')?.value).toBe('');
+    expect(titles()).toEqual(['Água', 'Lua', 'Mar', 'Sol', 'Vento']);
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('button[aria-label="Next page"]')!.click();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+    expect(titles()).toEqual(['Zulu']);
   });
 
   it.each([

@@ -35,6 +35,7 @@ describe('SearchResultPage', () => {
 
   beforeEach(() => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}')));
     originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
     scrollIntoView = vi.fn();
     HTMLElement.prototype.scrollIntoView = scrollIntoView;
@@ -89,6 +90,26 @@ describe('SearchResultPage', () => {
     expect(container.querySelector('[role="status"]')).toBeNull();
   });
 
+  it('shows provider external links beside the content URL and rejects unsafe URLs', async () => {
+    const fetchResource = vi.fn(async () => new Response(JSON.stringify({
+      externalLinks: [
+        { label: 'YouTube', url: 'https://www.youtube.com/results?search_query=Alcione+L%C3%A1+Vem+Voc%C3%AA' },
+        { label: 'YouTube Music', url: 'https://music.youtube.com/search?q=Alcione+L%C3%A1+Vem+Voc%C3%AA' },
+        { label: 'Unsafe', url: 'javascript:alert(1)' },
+      ],
+    })));
+    const viewProvider: ContentViewProvider = { render: () => ({ html: '<pre>Am F C G</pre>' }) };
+    await act(async () => {
+      root.render(<SearchResultPage contentUrl={chartUrl} result={chart} ready fetchResource={fetchResource} viewProvider={viewProvider} />);
+    });
+    const links = [...container.querySelectorAll<HTMLAnchorElement>('.host-article-links a')];
+    expect(links).toHaveLength(3);
+    expect(new URL(links[1]!.href).searchParams.get('search_query')).toBe('Alcione Lá Vem Você');
+    expect(new URL(links[2]!.href).searchParams.get('q')).toBe('Alcione Lá Vem Você');
+    expect(links[1]!.target).toBe('_blank');
+    expect(container.textContent).not.toContain('Unsafe');
+  });
+
   it('waits for installed add-ons and saved results before resolving a direct article URL', async () => {
     const fetch = vi.fn(() => new Promise<Response>(() => {}));
     vi.stubGlobal('fetch', fetch);
@@ -105,7 +126,7 @@ describe('SearchResultPage', () => {
     await act(async () => {
       root.render(<SearchResultPage contentUrl={chartUrl} result={chart} ready viewProvider={viewProvider} editorProvider={editorProvider} />);
     });
-    expect(fetch).not.toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledTimes(1);
     expect(container.querySelector('.host-article-card pre')?.textContent).toBe('Am F C G');
     expect(container.querySelector('.host-article-edit-button')?.textContent).toBe('Edit');
   });

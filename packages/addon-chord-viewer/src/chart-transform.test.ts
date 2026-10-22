@@ -96,7 +96,7 @@ describe('settings', () => {
   it('splits the controls into the chart and the global preferences', () => {
     const settings = { ...DEFAULT_SETTINGS, fontSize: 24, transposeNumber: 3, chordColor: '#123456' };
     expect(songPart(settings)).toEqual({ fontSize: 24, transposeNumber: 3 });
-    expect(globalPart(settings)).not.toHaveProperty('fontSize');
+    expect(globalPart(settings).fontSize).toBe(24);
     expect(globalPart(settings)).not.toHaveProperty('transposeNumber');
     expect(globalPart(settings).chordColor).toBe('#123456');
   });

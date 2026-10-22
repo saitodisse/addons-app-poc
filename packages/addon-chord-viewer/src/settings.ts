@@ -179,7 +179,7 @@ export function songPart(settings: ViewerSettings): Partial<ViewerSettings> {
 /** The part of the settings shared by every chart. */
 export function globalPart(settings: ViewerSettings): ViewerSettings {
   const global = { ...settings } as Record<string, unknown>;
-  for (const field of SONG_FIELDS) delete global[field];
+  delete global.transposeNumber;
   return global as unknown as ViewerSettings;
 }
 

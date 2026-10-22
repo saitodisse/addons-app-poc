@@ -22,10 +22,23 @@ import { INSTALLATIONS_STORAGE_KEY, resetFactoryStorage } from './factory-reset'
 import { headersToObject, logBrowserHttpExchange } from './http-observability';
 
 const SEARCH_STATE_KEY = 'host:search:results:v1';
+const SEARCH_PAGE_SIZES = [5, 10, 25, 50, 100] as const;
+const DEFAULT_SEARCH_PAGE_SIZE = 25;
 const SEARCH_URL_PARAMS = {
   q: parseAsString.withDefault(''),
+  artist: parseAsString.withDefault(''),
   page: parseAsInteger.withDefault(1),
+  size: parseAsInteger.withDefault(DEFAULT_SEARCH_PAGE_SIZE),
 };
+
+function normalizeArtistName(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+function matchesArtist(result: SearchResultRow, artist: string): boolean {
+  const artistField = result.displayFields?.find((field) => field.id === 'artist');
+  return Boolean(artistField && normalizeArtistName(artistField.value) === normalizeArtistName(artist));
+}
 
 interface PersistedInstallations {
   manifestUrls: string[];
@@ -131,8 +144,11 @@ export function App({ importAddonModule }: AppProps = {}) {
   const [pendingContractUrls, setPendingContractUrls] = useState<string[]>([]);
   const [searchLimits, setSearchLimits] = useState<Record<string, SearchLimitValue>>({});
   const [searchLanguages, setSearchLanguages] = useState<SearchLanguages>({});
-  const [{ q: searchUrlQuery, page: searchUrlPage }, setSearchUrl] = useQueryStates(SEARCH_URL_PARAMS, { history: 'push' });
+  const [{ q: searchUrlQuery, artist: searchUrlArtist, page: searchUrlPage, size: searchUrlSize }, setSearchUrl] = useQueryStates(SEARCH_URL_PARAMS, { history: 'push' });
   const currentSearchPage = Number.isSafeInteger(searchUrlPage) && searchUrlPage > 0 ? searchUrlPage : 1;
+  const currentSearchPageSize = SEARCH_PAGE_SIZES.includes(searchUrlSize as typeof SEARCH_PAGE_SIZES[number])
+    ? searchUrlSize
+    : DEFAULT_SEARCH_PAGE_SIZE;
   const [searchInput, setSearchInput] = useState(searchUrlQuery);
   /**
    * The query the address bar carried when the page opened.
@@ -154,6 +170,8 @@ export function App({ importAddonModule }: AppProps = {}) {
   const [installationsReady, setInstallationsReady] = useState(false);
   const loadedRef = useRef(false);
   const searchRequestRef = useRef(0);
+  const loadedListKeyRef = useRef<string | null>(null);
+  const [resultToFocus, setResultToFocus] = useState<string | null>(null);
   const [searchRefreshKey, setSearchRefreshKey] = useState(0);
   const searchPagesRef = useRef(new Map<string, Map<number, SearchCollection>>());
   /** Pages of the catalogue listing, used while the search field is empty. */
@@ -164,6 +182,13 @@ export function App({ importAddonModule }: AppProps = {}) {
   const httpTextClient = useMemo(() => createFetchSearchClient(fetchResource), [fetchResource]);
   useEffect(() => { void retainInstalledAddons(addons.filter((addon) => addon.status === 'ready').map((addon) => addon.manifestUrl)); }, [addons]);
   const route = useRoute();
+
+  const returnToResults = useCallback(() => {
+    setResultToFocus(resultUrlFromRoute(route));
+    navigate(ROUTES.home);
+  }, [route]);
+
+  const clearResultToFocus = useCallback(() => setResultToFocus(null), []);
 
   const createLoader = useCallback(
     () => new FetchAddonLoader(registry, logger, importAddonModule),
@@ -410,7 +435,8 @@ export function App({ importAddonModule }: AppProps = {}) {
 
   const clearSearch = useCallback(() => {
     clearSearchView();
-    void setSearchUrl({ q: null, page: null });
+    void setSearchUrl({ q: null, artist: null, page: null });
+    setSearchRefreshKey((key) => key + 1);
   }, [clearSearchView, setSearchUrl]);
 
   useEffect(() => {
@@ -443,52 +469,80 @@ export function App({ importAddonModule }: AppProps = {}) {
     searchLanguages,
   ), [addons, disabledAddonUrls, httpTextClient, searchLanguages, searchLimits]);
 
+  const collectDisplayPage = useCallback(async (query: string, displayPage: number, pageSize: number, artistFilter: string) => {
+    const requiredCount = displayPage * pageSize;
+    const results: SearchResultRow[] = [];
+    const errors = new Map<string, SearchProviderError>();
+    let providerCount = 0;
+    let pagination: SearchPagination = {};
+    let sourcePage = 1;
+    const maxSourcePages = artistFilter ? Number.MAX_SAFE_INTEGER : requiredCount + 25;
+
+    while (sourcePage <= maxSourcePages) {
+      const loaded = query ? await loadSearchPage(query, sourcePage) : await loadBrowsePage(sourcePage);
+      if (loaded.page < sourcePage) break;
+      results.push(...(artistFilter
+        ? loaded.collection.results.filter((result) => matchesArtist(result, artistFilter))
+        : loaded.collection.results));
+      for (const error of loaded.collection.errors) errors.set(`${error.addonName}:${error.message}`, error);
+      providerCount = loaded.collection.providerCount;
+      pagination = loaded.collection.pagination;
+
+      if ((!artistFilter && results.length >= requiredCount) || !hasNextSearchPage(pagination)) break;
+      sourcePage = loaded.page + 1;
+    }
+
+    if (sourcePage > maxSourcePages && hasNextSearchPage(pagination)) {
+      pagination = Object.fromEntries(Object.entries(pagination).map(([key, state]) => [key, {
+        loaded: state.loaded,
+        ...(state.total === undefined ? {} : { total: state.total }),
+      }]));
+    }
+
+    // Artist lists need every provider page before alphabetical pagination.
+    if (artistFilter) results.sort((left, right) => left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base', numeric: true }) || left.key.localeCompare(right.key));
+
+    return {
+      page: Math.min(displayPage, Math.max(1, Math.ceil(results.length / pageSize))),
+      collection: { results, errors: [...errors.values()], providerCount, pagination },
+    };
+  }, [loadBrowsePage, loadSearchPage]);
+
+  const loadDisplayPage = useMemo(() => {
+    const pages = new Map<string, ReturnType<typeof collectDisplayPage>>();
+    return (query: string, page: number, pageSize: number, artist: string) => {
+      const key = JSON.stringify([query, page, pageSize, artist]);
+      const cached = pages.get(key);
+      if (cached) return cached;
+      const pending = collectDisplayPage(query, page, pageSize, artist).catch((error) => {
+        pages.delete(key);
+        throw error;
+      });
+      if (pages.size >= 12) pages.delete(pages.keys().next().value!);
+      pages.set(key, pending);
+      return pending;
+    };
+  }, [collectDisplayPage, searchRefreshKey]);
+
   useEffect(() => {
     if (!installationsReady || !searchStateReady) return;
-    const query = searchUrlQuery.trim();
-    if (!query) {
-      // Nothing to search: list what the active add-ons publish.
-      setSearchInput('');
-      setSearchQuery('');
-      setBrowsing(true);
+    const artistFilter = searchUrlArtist.trim();
+    const query = searchUrlQuery.trim() || artistFilter;
+    const listKey = `${query ? `search:${query}` : 'browse'}${artistFilter ? `:artist:${artistFilter}` : ''}`;
+    const changedList = loadedListKeyRef.current !== listKey;
+    loadedListKeyRef.current = listKey;
+    setBrowsing(!query);
+    setSearchInput(searchUrlQuery);
+    setSearchQuery(query);
+    if (changedList) {
       setSearchResults([]);
       setSearchErrors([]);
       setSearchProviderCount(0);
       setSearchPagination({});
-      setSearching(true);
-      const requestId = ++searchRequestRef.current;
-      void loadBrowsePage(currentSearchPage)
-        .then(({ page, collection }) => {
-          if (requestId !== searchRequestRef.current) return;
-          setSearchResults(collection.results);
-          setSearchErrors(collection.errors);
-          setSearchProviderCount(collection.providerCount);
-          setSearchPagination(collection.pagination);
-          if (page !== currentSearchPage) void setSearchUrl({ page });
-        })
-        .catch((error) => {
-          if (requestId !== searchRequestRef.current) return;
-          setSearchResults([]);
-          setSearchErrors([{ addonName: 'Host', message: (error as Error).message || 'The listing could not be completed.' }]);
-          setSearchProviderCount(0);
-          setSearchPagination({});
-        })
-        .finally(() => {
-          if (requestId === searchRequestRef.current) setSearching(false);
-        });
-      return;
     }
-
-    setBrowsing(false);
-    setSearchInput(searchUrlQuery);
-    setSearchQuery(query);
-    setSearchResults([]);
-    setSearchErrors([]);
-    setSearchProviderCount(0);
-    setSearchPagination({});
     setSearching(true);
     const requestId = ++searchRequestRef.current;
-    void loadSearchPage(query, currentSearchPage)
+    void loadDisplayPage(query, currentSearchPage, currentSearchPageSize, artistFilter)
       .then(({ page, collection }) => {
         if (requestId !== searchRequestRef.current) return;
         setSearchResults(collection.results);
@@ -496,33 +550,66 @@ export function App({ importAddonModule }: AppProps = {}) {
         setSearchProviderCount(collection.providerCount);
         setSearchPagination(collection.pagination);
         if (page !== currentSearchPage) void setSearchUrl({ page });
+        // Keep cursor requests ordered and yield before preparing the next pages.
+        window.setTimeout(() => {
+          void (async () => {
+            for (let ahead = 1; ahead <= 2; ahead += 1) {
+              if (requestId !== searchRequestRef.current) return;
+              const prefetched = await loadDisplayPage(query, page + ahead, currentSearchPageSize, artistFilter);
+              if (prefetched.page < page + ahead || !hasNextSearchPage(prefetched.collection.pagination)) break;
+            }
+          })().catch(() => { /* Foreground navigation reports provider errors. */ });
+        }, 100);
       })
       .catch((error) => {
         if (requestId !== searchRequestRef.current) return;
         setSearchResults([]);
-        setSearchErrors([{ addonName: 'Host', message: (error as Error).message || 'The search could not be completed.' }]);
+        setSearchErrors([{ addonName: 'Host', message: (error as Error).message || (query ? 'The search could not be completed.' : 'The listing could not be completed.') }]);
         setSearchProviderCount(0);
         setSearchPagination({});
       })
       .finally(() => {
         if (requestId === searchRequestRef.current) setSearching(false);
       });
-  }, [currentSearchPage, installationsReady, loadBrowsePage, loadSearchPage, searchRefreshKey, searchStateReady, searchUrlQuery, setSearchUrl]);
+  }, [currentSearchPage, currentSearchPageSize, installationsReady, loadDisplayPage, searchRefreshKey, searchStateReady, searchUrlArtist, searchUrlQuery, setSearchUrl]);
 
-  const hasMoreSearchResults = hasNextSearchPage(searchPagination);
+  const visibleSearchResults = searchResults.slice(
+    (currentSearchPage - 1) * currentSearchPageSize,
+    currentSearchPage * currentSearchPageSize,
+  );
+  const hasMoreSearchResults = currentSearchPage < Math.ceil(searchResults.length / currentSearchPageSize)
+    || hasNextSearchPage(searchPagination);
 
   const changeSearchPage = useCallback((page: number) => {
     if (searching || page < 1) return;
-    if (page > currentSearchPage && !hasMoreSearchResults) return;
-    setSearchResults([]);
-    setSearchErrors([]);
-    setSearchPagination({});
-    void setSearchUrl({ page });
-  }, [currentSearchPage, hasMoreSearchResults, searching, setSearchUrl]);
+    const loadedPageCount = Math.max(1, Math.ceil(searchResults.length / currentSearchPageSize));
+    const destination = hasNextSearchPage(searchPagination) ? page : Math.min(page, loadedPageCount);
+    void setSearchUrl({ page: destination });
+  }, [currentSearchPageSize, searchPagination, searchResults.length, searching, setSearchUrl]);
 
-  const runSearch = useCallback((value: string) => {
+  const goToLastSearchPage = useCallback(async () => {
+    if (searching) return;
+    const requestId = ++searchRequestRef.current;
+    setSearching(true);
+    try {
+      const loaded = await loadDisplayPage(searchQuery, Number.MAX_SAFE_INTEGER, currentSearchPageSize, searchUrlArtist.trim());
+      if (requestId === searchRequestRef.current) await setSearchUrl({ page: loaded.page });
+    } catch (error) {
+      if (requestId === searchRequestRef.current) setSearchErrors([{ addonName: 'Host', message: (error as Error).message }]);
+    } finally {
+      if (requestId === searchRequestRef.current) setSearching(false);
+    }
+  }, [searching, loadDisplayPage, searchQuery, currentSearchPageSize, searchUrlArtist, setSearchUrl]);
+
+  const changeSearchPageSize = useCallback((pageSize: number) => {
+    if (!SEARCH_PAGE_SIZES.includes(pageSize as typeof SEARCH_PAGE_SIZES[number])) return;
+    void setSearchUrl({ size: pageSize, page: 1 });
+  }, [setSearchUrl]);
+
+  const runSearch = useCallback((value: string, artistFilter = '') => {
     const query = value.trim();
-    setSearchInput(value);
+    setSearchInput(artistFilter ? '' : value);
+    navigate(ROUTES.home);
     if (!query) {
       clearSearch();
       return;
@@ -532,7 +619,7 @@ export function App({ importAddonModule }: AppProps = {}) {
     setSearchResults([]);
     setSearchErrors([]);
     setSearchPagination({});
-    void setSearchUrl({ q: query, page: 1 });
+    void setSearchUrl({ q: artistFilter ? null : query, artist: artistFilter || null, page: 1 });
   }, [clearSearch, setSearchUrl]);
 
   const installFromUrl = useCallback(async (value: string, acceptedFingerprint: string): Promise<string | undefined> => {
@@ -730,16 +817,27 @@ export function App({ importAddonModule }: AppProps = {}) {
         {!isAddonRoute && !isSearchResultRoute && (
           <SearchResultsTable
             query={searchQuery}
+            artistFilter={searchUrlArtist}
             browsing={browsing}
-            results={searchResults}
+            results={visibleSearchResults}
             errors={searchErrors}
             loading={searching}
             providerCount={searchProviderCount}
+            keyboardActive={route === ROUTES.home}
             page={currentSearchPage}
+            pageSize={currentSearchPageSize}
+            pageSizes={SEARCH_PAGE_SIZES}
             canGoPrevious={currentSearchPage > 1}
             canGoNext={hasMoreSearchResults}
+            onClearSearch={clearSearch}
+            onArtistSearch={(artist) => runSearch(artist, artist)}
+            focusResultUrl={route === ROUTES.home ? resultToFocus : null}
+            onResultFocused={clearResultToFocus}
+            onPageChange={changeSearchPage}
+            onLastPage={() => { void goToLastSearchPage(); }}
             onPreviousPage={() => changeSearchPage(currentSearchPage - 1)}
             onNextPage={() => changeSearchPage(currentSearchPage + 1)}
+            onPageSizeChange={changeSearchPageSize}
           />
         )}
         {route === ROUTES.settings ? (
@@ -769,6 +867,7 @@ export function App({ importAddonModule }: AppProps = {}) {
             contentUrl={searchResultContentUrl}
             result={selectedSearchResult}
             ready={installationsReady && searchStateReady}
+            onBackToResults={returnToResults}
             viewProvider={contentViewProvider}
             viewAddon={contentViewAddon}
             editorProvider={contentEditorProvider}

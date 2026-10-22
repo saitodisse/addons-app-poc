@@ -11,6 +11,9 @@ interface AddonControlPanelProps {
   title?: string;
   /** Hides the controls that choose the content, for a page that already has it. */
   reading?: boolean;
+  compact?: boolean;
+  primaryFieldIds?: readonly string[];
+  onToggleExpanded?: () => void;
 }
 
 /**
@@ -21,19 +24,32 @@ interface AddonControlPanelProps {
  * is what both the add-on page and the rendered result page show beside the
  * response.
  */
-export function AddonControlPanel({ addon, controller, title, reading }: AddonControlPanelProps) {
+export function AddonControlPanel({ addon, controller, title, reading, compact = false, primaryFieldIds = [], onToggleExpanded }: AddonControlPanelProps) {
   const tab = addon.ui;
   if (!tab) return null;
 
   const { values, setValue, runningAction, run, sections } = controller;
   // The result page already holds the content, so the source controls stay out.
-  const visibleSections = reading ? readingSections(sections) : sections;
+  const readingControls = reading ? readingSections(sections) : sections;
+  const visibleSections = compact
+    ? readingControls.map((section) => ({ ...section, fields: section.fields.filter((field) => primaryFieldIds.includes(field.id)), actions: [] }))
+      .filter((section) => section.fields.length > 0)
+    : readingControls;
 
   return (
-    <aside className="host-tab-panel" aria-label={title ?? `Controls for ${tab.title}`}>
+    <aside className={`host-tab-panel${compact ? ' is-compact' : ''}`} aria-label={title ?? `Controls for ${tab.title}`}>
+      {onToggleExpanded && <button
+        type="button"
+        className="host-tab-panel-disclosure"
+        aria-expanded={!compact}
+        onClick={onToggleExpanded}
+        title={compact ? 'Expand settings' : 'Collapse settings'}
+      >
+        <span aria-hidden="true">{compact ? '⚙' : '−'}</span> Settings
+      </button>}
       {visibleSections.map((section, index) => (
         <div className="host-tab-panel-group" key={`${section.title ?? 'controls'}-${index}`}>
-          {section.title && <h4 className="host-tab-panel-heading">{section.title}</h4>}
+          {!compact && section.title && <h4 className="host-tab-panel-heading">{section.title}</h4>}
 
           {section.fields.map((field) => {
             const value = values[field.id] ?? '';

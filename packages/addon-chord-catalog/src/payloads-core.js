@@ -105,6 +105,10 @@ export function toContentJson(chart, options) {
     type: CHART_TYPE,
     title: chart.title,
     description: chartDescription(chart),
+    externalLinks: [
+      { label: 'YouTube', url: `https://www.youtube.com/results?${new URLSearchParams({ search_query: `${chart.artist?.name ?? ''} ${chart.title}`.trim() })}` },
+      { label: 'YouTube Music', url: `https://music.youtube.com/search?${new URLSearchParams({ q: `${chart.artist?.name ?? ''} ${chart.title}`.trim() })}` },
+    ],
     extract: chartSummary(chart),
     musicalWork: {
       title: chart.title,

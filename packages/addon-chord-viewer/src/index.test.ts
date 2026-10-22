@@ -281,16 +281,16 @@ describe('tab behaviour with a chart', () => {
     await tab.run!('load', { text: CHART_TEXT, chart: 'alpha' });
     await tab.run!('apply', { fontSize: '30', transposeNumber: '3', chordColor: '#e67428' });
 
-    // The song record carries the two controls of the chart; the rest is global.
+    // Each song keeps its controls; the font size also becomes the shared fallback.
     expect(store.map.get('chords-viewer:song:alpha')).toEqual({ fontSize: 30, transposeNumber: 3 });
     const global = store.map.get('chords-viewer:settings') as Record<string, unknown>;
     expect(global.chordColor).toBe('#e67428');
-    expect(global).not.toHaveProperty('fontSize');
+    expect(global.fontSize).toBe(30);
     expect(global).not.toHaveProperty('transposeNumber');
 
     // Another chart opens as written, keeping what is a reading preference.
     const other = await tab.run!('load', { text: CHART_TEXT, chart: 'beta' }) as ResponseWithView;
-    expect(other.values?.fontSize).toBe('16');
+    expect(other.values?.fontSize).toBe('30');
     expect(other.values?.transposeNumber).toBe('0');
     expect(other.values?.chordColor).toBe('#e67428');
 
@@ -298,6 +298,16 @@ describe('tab behaviour with a chart', () => {
     const back = await tab.run!('load', { text: CHART_TEXT, chart: 'alpha' }) as ResponseWithView;
     expect(back.values?.fontSize).toBe('30');
     expect(back.values?.transposeNumber).toBe('3');
+
+    await tab.run!('load', { text: CHART_TEXT, chart: 'beta' });
+    await tab.run!('apply', { fontSize: '22', transposeNumber: '-2' });
+    const alpha = await tab.run!('load', { text: CHART_TEXT, chart: 'alpha' }) as ResponseWithView;
+    expect(alpha.values).toMatchObject({ fontSize: '30', transposeNumber: '3' });
+    const fresh = await tab.run!('load', { text: CHART_TEXT, chart: 'gamma' }) as ResponseWithView;
+    expect(fresh.values).toMatchObject({ fontSize: '30', transposeNumber: '0' });
+    const reloaded = createReadyTab(store);
+    const beta = await reloaded.tab.run!('load', { text: CHART_TEXT, chart: 'beta' }) as ResponseWithView;
+    expect(beta.values).toMatchObject({ fontSize: '22', transposeNumber: '-2' });
   });
 
   it('opens a chart with no transposition even after transposing another song', async () => {

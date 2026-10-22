@@ -84,6 +84,12 @@ describe('contentJson handler', () => {
     const body = payload.body;
     expect(body.id).toBe('harbor-light');
     expect(body.musicalWork.artistName).toBe('Mare Alta');
+    const youtube = new URL(body.externalLinks.find((link) => link.label === 'YouTube').url);
+    const music = new URL(body.externalLinks.find((link) => link.label === 'YouTube Music').url);
+    expect(youtube.origin).toBe('https://www.youtube.com');
+    expect(youtube.searchParams.get('search_query')).toBe('Mare Alta Harbor Light');
+    expect(music.origin).toBe('https://music.youtube.com');
+    expect(music.searchParams.get('q')).toBe('Mare Alta Harbor Light');
     expect(body.playableVersion.key).toBe('G');
     expect(body.sections[0]).toEqual({ title: 'Intro', line: 0 });
     expect(body.chords.some((chord) => chord.symbol === 'D/F#')).toBe(true);

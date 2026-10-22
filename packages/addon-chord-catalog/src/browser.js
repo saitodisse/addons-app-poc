@@ -1,6 +1,6 @@
 import { manifest } from './manifest.js';
 import { CHARTS } from './data/charts.js';
-import { listCatalog, searchCharts, paginate } from './catalog.js';
+import { listCatalog, searchCharts, scoreChart, paginate } from './catalog.js';
 import { toMeta, toContentJson, toTextOption } from './payloads-core.js';
 import { createLibraryStore } from './library-store.js';
 import { sha256, sourceLines, updateSources } from './source-import.js';
@@ -21,6 +21,32 @@ let library;
 let baseUrl;
 let hostOrigin;
 let demoCharts;
+let chartSnapshot;
+let searchIndex;
+const resultCache = new Map();
+
+function invalidateCatalogue() {
+  chartSnapshot = undefined;
+  searchIndex = undefined;
+  resultCache.clear();
+}
+
+function loadCharts() {
+  return chartSnapshot ??= library.list()
+    .then((sources) => [...demoCharts, ...sources.flatMap((source) => source.charts)])
+    .catch((error) => { chartSnapshot = undefined; throw error; });
+}
+
+async function prepareSearchIndex(charts) {
+  return searchIndex ??= (async () => {
+    for (let offset = 0; offset < charts.length; offset += 128) {
+      const end = Math.min(offset + 128, charts.length);
+      for (let index = offset; index < end; index += 1) scoreChart(charts[index], []);
+      if (globalThis.scheduler?.yield) await globalThis.scheduler.yield();
+      else await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+  })().catch((error) => { searchIndex = undefined; throw error; });
+}
 
 function settings() {
   try {
@@ -31,7 +57,7 @@ function settings() {
 
 export async function setup(host) {
   library = createLibraryStore();
-  await library.list();
+  invalidateCatalogue();
   baseUrl = new URL('.', import.meta.url).href;
   hostOrigin = location.origin;
   demoCharts = await Promise.all(CHARTS.map(async (chart) => ({ ...chart, checksum: await sha256(chart.text) })));
@@ -64,11 +90,19 @@ export async function request({ url }) {
   if (!match) return undefined;
   const [, resource, encodedId, extension] = match;
   const id = decodeURIComponent(encodedId);
-  const charts = [...demoCharts, ...(await library.list()).flatMap((source) => source.charts)];
+  const charts = await loadCharts();
   let body;
   let contentType = 'application/json';
   if (resource === 'search' || resource === 'catalog') {
-    const { items, pagination } = paginate(resource === 'search' ? searchCharts(charts, id) : listCatalog(charts, id), {
+    if (resource === 'search') await prepareSearchIndex(charts);
+    const cacheKey = JSON.stringify([resource, id]);
+    let matches = resultCache.get(cacheKey);
+    if (!matches) {
+      matches = resource === 'search' ? searchCharts(charts, id) : listCatalog(charts, id);
+      if (resultCache.size >= 20) resultCache.delete(resultCache.keys().next().value);
+      resultCache.set(cacheKey, matches);
+    }
+    const { items, pagination } = paginate(matches, {
       limit: parsed.searchParams.get('limit') ? Number(parsed.searchParams.get('limit')) : undefined,
       cursor: parsed.searchParams.get('cursor') ?? undefined,
     });
@@ -100,6 +134,7 @@ export function createTab() {
         const candidates = sourceLines(values.deleteSource ?? '');
         if (candidates.length !== 1 || candidates[0].error) throw new Error('Enter one valid downloaded source URL to delete.');
         await library.remove(candidates[0].root);
+        invalidateCatalogue();
         return { status: 'success', body: `Downloaded charts deleted: ${candidates[0].root}` };
       }
       if (actionId !== 'update') throw new Error('Unknown catalogue action.');
@@ -108,7 +143,7 @@ export function createTab() {
       const results = await updateSources(values.sources ?? '', library, fetch, {
         certificate: values.certificate,
         passphrase: values.certificatePassphrase,
-      });
+      }).finally(invalidateCatalogue);
       const failed = results.filter((result) => result.error);
       let offline = '';
       try {

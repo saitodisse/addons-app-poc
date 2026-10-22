@@ -106,12 +106,6 @@ export function Header({
                 onSearchValueChange(value);
                 if (!value) onClearSearch();
               }}
-              onKeyDown={(event) => {
-                if (event.key === "Escape") {
-                  event.preventDefault();
-                  onClearSearch();
-                }
-              }}
               placeholder="Search add-ons…"
               aria-keyshortcuts="Enter Escape"
               disabled={searchDisabled}
@@ -127,22 +121,30 @@ export function Header({
                 fontSize: 13,
               }}
             />
-            <span
-              aria-hidden="true"
+            <button
+              type="submit"
+              aria-label="Search"
+              title="Search"
+              disabled={searchDisabled}
               style={{
                 position: "absolute",
                 right: 12,
                 top: "50%",
                 transform: "translateY(-50%)",
                 color: searching ? "#fbbf24" : "#64748b",
+                border: 0,
+                padding: 2,
+                background: "transparent",
+                cursor: searchDisabled ? "not-allowed" : "pointer",
+                font: "inherit",
                 fontSize: 13,
               }}
             >
               {searching ? "…" : "↵"}
-            </span>
+            </button>
           </div>
           <span style={{ color: "#64748b", fontSize: 10 }}>
-            Enter to search · Esc to clear
+            Enter or click ↵ to search · Esc to return or clear
           </span>
         </form>
 

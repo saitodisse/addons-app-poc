@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-10-21
+
+### Added
+
+- Artist search results can be filtered from the list, alphabetized across provider pages, and navigated with configurable page sizes and keyboard controls.
+- Chord results include YouTube and YouTube Music search links, and the viewer keeps the last font size as the default for charts without a saved preference.
+- Catalogue browsing reuses its in-memory library snapshot and search results, with cache invalidation after source updates or deletion.
+
+### Changed
+
+- The chart viewer opens with a compact control panel and allows advanced settings to expand on demand.
+- Returning from a chart with Escape restores focus to that chart in the results list.
+
 ## [1.10.1] - 2026-10-19
 
 ### Fixed
