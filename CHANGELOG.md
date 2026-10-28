@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-10-28
+
+### Added
+
+- The chart detail page navigates to the previous or next result with the left and right arrow keys, following the active search list and artist filter.
+- The chart detail page copies the complete original text source to the clipboard.
+
 ## [1.11.0] - 2026-10-21
 
 ### Added

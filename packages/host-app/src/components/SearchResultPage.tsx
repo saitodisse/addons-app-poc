@@ -6,7 +6,7 @@ import { AddonControlPanel } from './AddonControlPanel';
 import { RenderedHtmlView } from './RenderedHtmlView';
 import { renderedHtml } from '../tab-view';
 import { useAddonTab } from './useAddonTab';
-import { navigate, ROUTES } from '../router';
+import { navigate, resultRoute, ROUTES } from '../router';
 import {
   fetchSearchResultContent,
   fetchSearchResultDetails,
@@ -29,6 +29,8 @@ interface SearchResultPageProps {
   /** Optional provider of an editing view for this result. */
   editorProvider?: ContentEditorProvider;
   onBackToResults?: () => void;
+  previousResultUrl?: string | null;
+  nextResultUrl?: string | null;
 }
 
 const ALLOWED_EXTRACT_TAGS = new Set(['P', 'BR', 'STRONG', 'B', 'EM', 'I', 'U', 'UL', 'OL', 'LI', 'SUB', 'SUP', 'SPAN']);
@@ -103,8 +105,10 @@ function LoadingState({ title }: { title: string }) {
   );
 }
 
-export function SearchResultPage({ contentUrl, result, ready, viewProvider, viewAddon, editorProvider, onBackToResults, fetchResource = fetch }: SearchResultPageProps) {
+export function SearchResultPage({ contentUrl, result, ready, viewProvider, viewAddon, editorProvider, onBackToResults, previousResultUrl, nextResultUrl, fetchResource = fetch }: SearchResultPageProps) {
   const [details, setDetails] = useState<SearchResultDetails | null>(null);
+  const [originalText, setOriginalText] = useState<string | null>(null);
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [fallbackContent, setFallbackContent] = useState<string | null>(null);
   const [renderedView, setRenderedView] = useState<ContentViewResult | null>(null);
   const [loading, setLoading] = useState(Boolean(contentUrl));
@@ -175,7 +179,17 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
         else navigate(ROUTES.home);
         return;
       }
-      if (!renderedView || editing) return;
+      if (editing) return;
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        const target = event.target instanceof Element ? event.target : null;
+        if (target?.closest('input, textarea, select, button, [contenteditable="true"]')) return;
+        const destination = event.key === 'ArrowLeft' ? previousResultUrl : nextResultUrl;
+        if (!destination) return;
+        event.preventDefault();
+        navigate(resultRoute(destination));
+        return;
+      }
+      if (!renderedView) return;
       const target = event.target instanceof Element ? event.target : null;
       if (target?.closest('input, textarea, select, button, [contenteditable="true"]')) return;
 
@@ -203,7 +217,7 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [canAdjustFontSize, canTranspose, controller, editing, fontField, onBackToResults, renderedView, transposeField]);
+  }, [canAdjustFontSize, canTranspose, controller, editing, fontField, nextResultUrl, onBackToResults, previousResultUrl, renderedView, transposeField]);
 
   useEffect(() => {
     let active = true;
@@ -247,6 +261,9 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
         void fetchSearchResultDetails(contentUrl, fetchResource)
           .then((nextDetails) => { if (active) setDetails(nextDetails); })
           .catch(() => { /* Optional metadata must not interrupt the rendered view. */ });
+        void fetchSearchResultContent(contentUrl, fetchResource)
+          .then((text) => { if (active) setOriginalText(text); })
+          .catch(() => { if (active) setOriginalText(null); });
         return;
       }
 
@@ -269,6 +286,16 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
       active = false;
     };
   }, [contentUrl, editorProvider, editorRequest, fetchResource, loadView, ready]);
+
+  async function copyOriginalText(): Promise<void> {
+    if (originalText === null || !navigator.clipboard?.writeText) return;
+    try {
+      await navigator.clipboard.writeText(originalText);
+      setCopyStatus('Cifra original copiada.');
+    } catch {
+      setCopyStatus('Não foi possível copiar a cifra.');
+    }
+  }
 
   async function openEditor(): Promise<void> {
     if (!contentUrl || !editorProvider) return;
@@ -395,6 +422,15 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
                 </button>
               )}
               <div className="host-article-links">
+                <button
+                  type="button"
+                  className="host-article-original-link"
+                  disabled={originalText === null}
+                  onClick={() => void copyOriginalText()}
+                >
+                  {originalText === null ? 'Carregando cifra original…' : 'Copiar cifra original'}
+                </button>
+                {copyStatus && <span role="status">{copyStatus}</span>}
                 {contentUrl && (
                   <a className="host-article-original-link" href={contentUrl} target="_blank" rel="noreferrer">
                     Open the content URL ↗

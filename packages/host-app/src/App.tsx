@@ -780,6 +780,9 @@ export function App({ importAddonModule }: AppProps = {}) {
   const selectedSearchResult = searchResultContentUrl
     ? searchResults.find((result) => result.url === searchResultContentUrl) ?? null
     : null;
+  const selectedSearchResultIndex = searchResultContentUrl
+    ? searchResults.findIndex((result) => result.url === searchResultContentUrl)
+    : -1;
 
   useEffect(() => {
     if (!loading && selectedManifestUrl && !selectedAddon) {
@@ -868,6 +871,8 @@ export function App({ importAddonModule }: AppProps = {}) {
             result={selectedSearchResult}
             ready={installationsReady && searchStateReady}
             onBackToResults={returnToResults}
+            previousResultUrl={selectedSearchResultIndex > 0 ? searchResults[selectedSearchResultIndex - 1]?.url : null}
+            nextResultUrl={selectedSearchResultIndex >= 0 ? searchResults[selectedSearchResultIndex + 1]?.url ?? null : null}
             viewProvider={contentViewProvider}
             viewAddon={contentViewAddon}
             editorProvider={contentEditorProvider}

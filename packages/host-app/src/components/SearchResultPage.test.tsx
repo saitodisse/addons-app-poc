@@ -126,7 +126,7 @@ describe('SearchResultPage', () => {
     await act(async () => {
       root.render(<SearchResultPage contentUrl={chartUrl} result={chart} ready viewProvider={viewProvider} editorProvider={editorProvider} />);
     });
-    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledTimes(2);
     expect(container.querySelector('.host-article-card pre')?.textContent).toBe('Am F C G');
     expect(container.querySelector('.host-article-edit-button')?.textContent).toBe('Edit');
   });
