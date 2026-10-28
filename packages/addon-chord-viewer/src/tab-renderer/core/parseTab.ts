@@ -308,7 +308,10 @@ function parseTabInternal(body: string): ParsedTab {
       return;
     }
 
-    if (currentSection === null && rawLine.trim().length === 0) {
+    if (rawLine.trim().length === 0) {
+      if (currentSection?.lines.some((line) => line.kind !== "section-header")) {
+        finalizeCurrentSection();
+      }
       return;
     }
 

@@ -154,7 +154,7 @@ export function generateBarList({
   return sectionTexts.map((sectionText) => {
     const lines = sectionText?.lines?.reduce<BarsList>(
       (finalArray, barLine) => {
-        if (!barLine.chordsList && !barLine.chordLineMarkers) {
+        if (!barLine.chordsList && !barLine.chordLineMarkers && !barLine.liricsTextBar) {
           finalArray.push({ isSpace: true });
           return finalArray;
         }

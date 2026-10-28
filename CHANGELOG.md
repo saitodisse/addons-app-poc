@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.12.1] - 2026-10-28
+
+### Fixed
+
+- Blank lines separate chord-chart sections even without bracketed titles, while blank lines immediately after a title keep it attached to its content.
+- Loading charts from structured catalogue payloads or pasted text preserves the indentation of the first chord and the original whitespace.
+- The local tab renderer preserves standalone and consecutive lyric lines, including text annotations, instead of dropping lines without chords.
+
 ## [1.12.0] - 2026-10-28
 
 ### Added

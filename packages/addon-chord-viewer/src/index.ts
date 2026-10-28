@@ -236,13 +236,13 @@ export function createTab(host: HostAPI): AddonTab {
   }
 
   async function loadChart(values: Record<string, string>): Promise<TabResponse> {
-    const pasted = (values[TEXT_FIELD] ?? '').trim();
+    const pasted = values[TEXT_FIELD] ?? '';
     const base = (values[CATALOG_FIELD] ?? '').trim() || DEFAULT_CATALOG_ORIGIN;
     const target = (values[CHART_FIELD] ?? '').trim();
 
     try {
       let chart: ChartRecord | undefined;
-      if (pasted) {
+      if (pasted.trim()) {
         chart = chartFromText(pasted, target || 'pasted');
         if (!chart) return { status: 'error', body: 'The pasted content is neither chart text nor a structured payload.' };
       } else if (/^https?:\/\//u.test(target)) {

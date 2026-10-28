@@ -77,6 +77,7 @@ The parser accepts the variations found in the archive:
 | Element | Accepted forms |
 | --- | --- |
 | Section titles | Any short name between brackets, in any language: `[Intro]`, `[Chorus]`, `[Solo]`, `[Outro]` |
+| Section boundaries | One or more blank lines separate blocks even without a title; whitespace-only lines also count. Blank lines immediately after a title keep that title attached to its content. |
 | Chord lines | Any line with more chord tokens than lyric tokens |
 | Chord-only lines | `G   D   Em   C`, used for intros and solos |
 | Annotations | `(G / D / F#) - 2x`, `( Bm   D   G )` |
@@ -89,6 +90,11 @@ The parser accepts the variations found in the archive:
 Words that only start like a chord stay lyric words: `Eu`, `De`, `Com`, and
 `Amor` are rejected by the grammar because `m` and `M` only count as a quality
 when no letter follows them.
+
+Spaces place each chord above the lyric syllable where it is played. The viewer
+preserves the complete chart text from structured payloads and pasted input,
+including indentation before the first chord and trailing line endings. Trimming
+metadata must not trim the chart body.
 
 ### The engine is a ported tab renderer
 

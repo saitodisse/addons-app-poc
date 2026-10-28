@@ -20,6 +20,15 @@ in Portuguese were translated in `core/observe.ts` and in `core/parseTab.ts`,
 because this repository keeps every file in English. No behaviour changes: those
 strings only appear in debug logs.
 
+Local behaviour change: `core/parseTab.ts` also ends a section at a blank or
+whitespace-only line after content. The next block has no title unless it starts
+with a bracketed header. Blank lines immediately after a header do not detach it
+from its content. This preserves stanza boundaries in charts without titles.
+
+Local fix: `core/renderer/generateBarList.ts` preserves lyric-only lines even
+when the aligned line has neither chord markers nor a legacy chord list.
+Previously those lines became empty spacing entries and their text disappeared.
+
 ## What was ported
 
 The port keeps the same relative structure under this directory, with three adaptations:

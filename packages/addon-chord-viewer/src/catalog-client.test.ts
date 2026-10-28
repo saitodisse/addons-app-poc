@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { CatalogClient, chartFromPayload, chartFromText } from './catalog-client';
 
 const BASE = 'http://localhost:5295';
+const INDENTED_CHART = '                    E7\r\nTamborim avisou, cuidado\r\n                       A\r\nViolão respondeu, me espera\r\n';
 
 const PAYLOAD = {
   id: 'harbor-light',
@@ -28,6 +29,11 @@ function textResponse(body: string) {
 }
 
 describe('chartFromPayload', () => {
+  it.each(['nested', 'legacy'])('preserves chart whitespace in %s payloads', (format) => {
+    const payload = format === 'nested' ? { content: { text: INDENTED_CHART } } : { text: INDENTED_CHART };
+    expect(chartFromPayload(payload)?.text).toBe(INDENTED_CHART);
+  });
+
   it('reads the chart text, metadata, and shapes', () => {
     const chart = chartFromPayload(PAYLOAD);
     expect(chart?.id).toBe('harbor-light');
@@ -48,6 +54,10 @@ describe('chartFromPayload', () => {
 });
 
 describe('chartFromText', () => {
+  it('preserves the indentation of the first chord in pasted text', () => {
+    expect(chartFromText(INDENTED_CHART)?.text).toBe(INDENTED_CHART);
+  });
+
   it('accepts a structured payload', () => {
     expect(chartFromText(JSON.stringify(PAYLOAD))?.title).toBe('Harbor Light');
   });

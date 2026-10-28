@@ -82,7 +82,9 @@ export function chartFromPayload(payload: unknown, fallbackId = ''): ChartRecord
   const notation = (data.notation ?? {}) as Record<string, unknown>;
   const chart = (data.chordChart ?? {}) as Record<string, unknown>;
 
-  const chartText = text(content.text) || text(data.text);
+  const chartText = [content.text, data.text].find(
+    (value): value is string => typeof value === 'string' && value.trim().length > 0,
+  );
   if (!chartText) return undefined;
 
   return {
@@ -120,7 +122,7 @@ export function chartFromText(value: string, id = 'pasted'): ChartRecord | undef
     id,
     title: /^\[[^\]]+\]$/u.test(firstLine) ? 'Pasted chart' : firstLine || 'Pasted chart',
     artist: 'Pasted locally',
-    text: raw,
+    text: value,
     chords: [],
   };
 }

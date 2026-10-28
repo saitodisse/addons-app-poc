@@ -221,6 +221,15 @@ describe('tab behaviour without a chart', () => {
 });
 
 describe('tab behaviour with a chart', () => {
+  it('renders a pasted chart with the same first-chord alignment as the editor service', async () => {
+    const { tab, registry } = createReadyTab();
+    const text = '                    E7\nTamborim avisou, cuidado\n                       A\nViolão respondeu, me espera\n';
+    const response = await tab.run!('load', { text }) as ResponseWithView;
+    const service = registry.get('addons.chords.viewer') as ChordViewerService;
+    expect(response.body).toContain(text);
+    expect(response.view?.kind === 'html' ? response.view.html : '').toBe(service.render({ text }).html);
+  });
+
   it('renders the chart as HTML and keeps the text body', async () => {
     const { tab } = createReadyTab();
     const response = await tab.run!('load', { text: CHART_TEXT }) as ResponseWithView;

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { CatalogClient, type ChartRecord } from './catalog-client';
 import { CONTENT_VIEW_SERVICE, ChartContentViewProvider } from './content-view';
 import { DEFAULT_SETTINGS, normalizeSettings, type ViewerSettings } from './settings';
+import { renderChart } from './render-chart';
 
 const CHART: ChartRecord = {
   id: 'harbor-light',
@@ -33,6 +34,17 @@ function providerWith(chart: ChartRecord | (() => Promise<ChartRecord>), setting
 }
 
 describe('ChartContentViewProvider', () => {
+  it('preserves the first chord alignment when loading a catalogue payload', async () => {
+    const text = '                    E7\nTamborim avisou, cuidado\n                       A\nViolão respondeu, me espera\n';
+    const client = new CatalogClient(async () => ({
+      ok: true, status: 200,
+      json: async () => ({ content: { text }, notation: { format: 'chord-over-lyrics' } }),
+    }));
+    const provider = new ChartContentViewProvider({ client, settings: async () => DEFAULT_SETTINGS });
+    const result = await provider.render({ url: 'http://localhost:5295/text/chart/example/content.txt' });
+    expect(result?.html).toBe(renderChart({ text }).html);
+  });
+
   it('declares the service the host asks for', () => {
     expect(CONTENT_VIEW_SERVICE).toBe('host.content-view');
   });
