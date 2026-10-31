@@ -109,7 +109,7 @@ describe('manifest', () => {
   it('declares one outgoing route per catalogue call it makes', () => {
     const outgoing = manifest.contract.http.filter((entry) => entry.direction === 'outgoing');
     expect(outgoing.map((entry) => entry.id)).toEqual(['catalog-list', 'catalog-text', 'catalog-content']);
-    expect(outgoing.every((entry) => entry.origin === 'https://addons-poc-addons.vercel.app')).toBe(true);
+    expect(outgoing.every((entry) => entry.origin === 'https://addons-poc-release-1-15-0.vercel.app')).toBe(true);
   });
 
   it('groups every control for the panel', () => {

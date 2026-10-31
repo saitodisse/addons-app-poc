@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-10-31
+
+### Changed
+
+- Suggest local manifests on localhost and release-specific manifests in production.
+- Publish the chord add-ons as a preserved release with its own catalogue and editor assets.
+
 ## [1.14.1] - 2026-10-31
 
 ### Fixed

@@ -30,16 +30,22 @@ function fallbackSuggestion(port: number): LocalManifestSuggestion {
 }
 
 export const PUBLISHED_MANIFEST_URLS = [
-  'https://addons-poc-addons.vercel.app/chord-catalog/manifest.json',
-  'https://addons-poc-addons.vercel.app/chord-viewer/manifest.json',
-  'https://addons-poc-addons.vercel.app/storage-local/manifest.json',
-  'https://addons-poc-addons.vercel.app/chord-editor/manifest.json',
+  'https://addons-poc-release-1-15-0.vercel.app/chord-catalog/manifest.json',
+  'https://addons-poc-release-1-15-0.vercel.app/chord-viewer/manifest.json',
+  'https://addons-poc-release-1-15-0.vercel.app/storage-local/manifest.json',
+  'https://addons-poc-release-1-15-0.vercel.app/chord-editor/manifest.json',
 ] as const;
 
-export const LOCAL_MANIFEST_SUGGESTIONS: LocalManifestSuggestion[] = [
-  ...PUBLISHED_MANIFEST_URLS.map((manifestUrl) => ({ manifestUrl, title: 'Published manifest', description: 'Published add-on manifest.' })),
-  ...LOCAL_MANIFEST_PORTS.map(fallbackSuggestion),
-];
+export function manifestSuggestions(hostname: string): LocalManifestSuggestion[] {
+  const local = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1';
+  return local
+    ? LOCAL_MANIFEST_PORTS.map(fallbackSuggestion)
+    : PUBLISHED_MANIFEST_URLS.map((manifestUrl) => ({ manifestUrl, title: 'Published manifest', description: 'Published add-on manifest.' }));
+}
+
+export const LOCAL_MANIFEST_SUGGESTIONS = manifestSuggestions(
+  typeof location === 'undefined' ? 'localhost' : location.hostname,
+);
 
 interface ManifestResponse {
   ok: boolean;

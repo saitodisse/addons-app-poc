@@ -11,7 +11,7 @@ import { TAB_ACTIONS, TAB_FIELDS } from './tab-definition';
  */
 
 /** Default origin of the demo catalogue, declared for transparency. */
-export const DEFAULT_CATALOG_ORIGIN = 'https://addons-poc-addons.vercel.app/chord-catalog';
+export const DEFAULT_CATALOG_ORIGIN = 'https://addons-poc-release-1-15-0.vercel.app/chord-catalog';
 
 const text = (description: string, classification = 'public') => ({ type: 'string', description, classification });
 const whole = (description: string, classification = 'public') => ({ type: 'integer', description, classification });
@@ -41,7 +41,7 @@ const fieldSchema = (id: string) => {
 
 export const manifest = defineAddonManifest({
   id: 'chord-viewer',
-  version: '1.1.1',
+  version: '1.1.2',
   name: 'Chord Chart Viewer',
   description: 'Renders a chord chart with controls for transposition, layout, shapes, and colors.',
   author: 'AC Team',

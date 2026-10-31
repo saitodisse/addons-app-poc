@@ -50,12 +50,17 @@ export { CONTENT_VIEW_SERVICE, ChartContentViewProvider } from './content-view';
  * consumers on the next publication of `@addons-poc/protocol`. Until then the
  * add-on describes the response with this local extension.
  */
+const bundleHostname = new URL(import.meta.url).hostname;
+const catalogDefault = ['localhost', '127.0.0.1', '[::1]', '::1'].includes(bundleHostname)
+  ? 'http://localhost:5295'
+  : DEFAULT_CATALOG_ORIGIN;
+
 type TabResponse = AddonTabResult & { view?: { kind: 'text' } | { kind: 'html'; html: string } };
 
 const WELCOME = [
   'No chart is loaded yet.',
   '',
-  `1. Keep the catalogue URL (${DEFAULT_CATALOG_ORIGIN}) in the first field.`,
+  `1. Keep the catalogue URL (${catalogDefault}) in the first field.`,
   '2. Press "List charts" to see the identifiers published by the catalogue.',
   '3. Type an identifier in "Chart" and press "Load chart".',
   '',
@@ -237,7 +242,7 @@ export function createTab(host: HostAPI): AddonTab {
 
   async function loadChart(values: Record<string, string>): Promise<TabResponse> {
     const pasted = values[TEXT_FIELD] ?? '';
-    const base = (values[CATALOG_FIELD] ?? '').trim() || DEFAULT_CATALOG_ORIGIN;
+    const base = (values[CATALOG_FIELD] ?? '').trim() || catalogDefault;
     const target = (values[CHART_FIELD] ?? '').trim();
 
     try {
@@ -263,7 +268,7 @@ export function createTab(host: HostAPI): AddonTab {
   }
 
   async function listCharts(values: Record<string, string>): Promise<TabResponse> {
-    const base = (values[CATALOG_FIELD] ?? '').trim() || DEFAULT_CATALOG_ORIGIN;
+    const base = (values[CATALOG_FIELD] ?? '').trim() || catalogDefault;
     try {
       const page = await client.list(base, 'recent', { limit: 10 });
       if (page.rows.length === 0) {

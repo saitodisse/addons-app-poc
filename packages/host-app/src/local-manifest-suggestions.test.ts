@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LOCAL_MANIFEST_PORTS, LOCAL_MANIFEST_URLS, loadLocalManifestSuggestions, localManifestUrl } from './local-manifest-suggestions';
+import { LOCAL_MANIFEST_PORTS, LOCAL_MANIFEST_URLS, loadLocalManifestSuggestions, localManifestUrl, manifestSuggestions, PUBLISHED_MANIFEST_URLS } from './local-manifest-suggestions';
 
 describe('suggested local manifests', () => {
   it('keeps local URLs even before reading metadata', () => {
@@ -13,6 +13,12 @@ describe('suggested local manifests', () => {
       'http://localhost:5308/manifest.json',
       'http://localhost:5309/manifest.json',
     ]);
+  });
+
+  it('selects only the manifests for the current environment', () => {
+    expect(manifestSuggestions('localhost').map((item) => item.manifestUrl)).toEqual(LOCAL_MANIFEST_URLS);
+    expect(manifestSuggestions('127.0.0.1').map((item) => item.manifestUrl)).toEqual(LOCAL_MANIFEST_URLS);
+    expect(manifestSuggestions('addons-app-poc.vercel.app').map((item) => item.manifestUrl)).toEqual([...PUBLISHED_MANIFEST_URLS]);
   });
 
   it('builds a local URL from the port', () => {
