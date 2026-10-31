@@ -399,6 +399,14 @@ data in the browser also removes the library.
 ### Importing a ZIP of scraper downloads
 
 ZIP and TAR.ZST archives are supported, including the entire `downloads/` folder.
+Choose **Local archive** to import a file directly, then press **Update catalogue**.
+The file stays on this device and is read only for that action. The imported
+snapshot is identified by a URL containing its SHA-256; the same file replaces
+its previous snapshot, while a changed file creates a separate snapshot. Copy
+that identifier from the list into **Downloaded source to delete** to remove it.
+The archive type and encryption are detected from the bytes, not its extension;
+only encrypted archives require the certificate and passphrase. The same
+compressed-size and extraction limits apply to URL and local imports.
 
 The scraper already exports text and metadata together. Importing that export
 directly avoids requiring a separate catalogue generator. In **Chord Chart

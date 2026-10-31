@@ -4,7 +4,22 @@ This file describes, in reverse order, how the project evolved. The quick read s
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.16.0] - 2026-10-31
+
+### Added
+
+- Import local ZIP and TAR.ZST archives into the chord catalogue without uploading them to a server.
+- Add-on release preparation and public verification commands, with a documented release workflow.
+
+### Changed
+
+- Detect encrypted and unencrypted archives by their contents, regardless of URL extension.
+
+- Suggest the fixed 1.16.0 add-on release in production.
+
+### Fixed
+
+- Published catalogue functions return plain-text content using the supported response API.
 
 ## [1.15.0] - 2026-10-31
 

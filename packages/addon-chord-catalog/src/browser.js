@@ -3,18 +3,19 @@ import { CHARTS } from './data/charts.js';
 import { listCatalog, searchCharts, scoreChart, paginate } from './catalog.js';
 import { toMeta, toContentJson, toTextOption } from './payloads-core.js';
 import { createLibraryStore } from './library-store.js';
-import { sha256, sourceLines, updateSources } from './source-import.js';
+import { sha256, sourceLines, updateSources, importArchive } from './source-import.js';
 
 export { manifest };
 const SETTINGS_KEY = 'addons:state:chord-catalog:settings:v1';
 const FIELDS = [
   { id: 'sources', label: 'Source catalogue URLs (one per line)', type: 'textarea', group: 'Settings', placeholder: 'https://example.com/source-catalog/\nhttps://example.com/downloads.tar.zst.enc#token=…' },
+  { id: 'archive', label: 'Local archive (.zip, .tar.zst, .tzst)', type: 'file', accept: '.zip,.tar.zst,.tzst,.enc,application/octet-stream', group: 'Settings', sensitive: true },
   { id: 'deleteSource', label: 'Downloaded source to delete (URL)', type: 'url', group: 'Settings', placeholder: 'https://example.com/downloads.tar.zst.enc' },
   { id: 'certificate', label: 'Local private certificate (.cvcert)', type: 'file', accept: '.cvcert,.json,application/json', group: 'Settings', sensitive: true },
   { id: 'certificatePassphrase', label: 'Certificate passphrase', type: 'text', group: 'Settings', sensitive: true },
 ];
 const ACTIONS = [
-  { id: 'update', label: 'Update catalogue', group: 'Settings', receives: ['sources', 'certificate', 'certificatePassphrase'] },
+  { id: 'update', label: 'Update catalogue', group: 'Settings', receives: ['sources', 'archive', 'certificate', 'certificatePassphrase'] },
   { id: 'delete', label: 'Delete downloaded source', variant: 'danger', group: 'Settings', receives: ['deleteSource'] },
 ];
 let library;
@@ -144,6 +145,21 @@ export function createTab() {
         certificate: values.certificate,
         passphrase: values.certificatePassphrase,
       }).finally(invalidateCatalogue);
+      if (values.archive) {
+        try {
+          if (!values.archive.startsWith('blob:')) throw new Error('Select a local archive file.');
+          const response = await fetch(values.archive);
+          if (!response.ok) throw new Error('Could not read the selected archive.');
+          const file = await response.blob();
+          if (file.size > 128 * 1024 * 1024 + 1024) throw new Error('Archive exceeds the import limit.');
+          const bytes = new Uint8Array(await file.arrayBuffer());
+          const root = `https://local-upload.invalid/${await sha256(bytes)}/`;
+          const snapshot = await importArchive(root, bytes, { certificate: values.certificate, passphrase: values.certificatePassphrase });
+          await library.put(snapshot);
+          results.push({ root, count: snapshot.charts.length, warnings: snapshot.warnings });
+        } catch (error) { results.push({ root: 'Local archive', error: error.message }); }
+        invalidateCatalogue();
+      }
       const failed = results.filter((result) => result.error);
       let offline = '';
       try {

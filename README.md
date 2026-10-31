@@ -107,7 +107,7 @@ The host starts without embedded add-ons. In **Settings**, enter a manifest URL:
 - open the route created in the sidebar;
 - disable, remove, or reload the page to check that the choice persists.
 
-The same screen shows local `manifest.json` URLs as shortcuts. Titles and
+The same screen suggests local `manifest.json` URLs on localhost and fixed published release URLs on other hosts. See the [add-on release guide](deployment/addons/README.md) to prepare and verify a new release. Titles and
 descriptions are read generically from each manifest without loading its bundle:
 **Copy** fills in the URL field, and **Install** fills in the field and starts
 contract review.

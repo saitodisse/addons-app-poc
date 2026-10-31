@@ -36,6 +36,23 @@ describe('sensitive tab controls', () => {
     expect(input.accept).toBe('.cvcert');
   });
 
+  it('passes a selected binary archive as a temporary object URL', async () => {
+    vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:archive') }));
+    container = document.createElement('div'); document.body.append(container); root = createRoot(container);
+    const setValue = vi.fn();
+    const field: AddonTabField = { id: 'archive', label: 'Archive', type: 'file', accept: '.zip,application/octet-stream', sensitive: true };
+    const addon = { ui: { title: 'Catalogue', fields: [field] } } as unknown as AddonInstance;
+    const controller = { values: {}, setValue, runningAction: null, run: vi.fn(), sections: [{ fields: [field], actions: [] }] } as unknown as AddonTabController;
+    await act(async () => root.render(createElement(AddonControlPanel, { addon, controller })));
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['archive'], 'charts.zip', { type: 'application/zip' });
+    Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+    await act(async () => input.dispatchEvent(new Event('change', { bubbles: true })));
+    expect(setValue).toHaveBeenCalledWith('archive', 'blob:archive');
+    expect(URL.createObjectURL).toHaveBeenCalledWith(file);
+  });
+
   it('sends the credential to its action once and clears it from the controls afterward', async () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
     container = document.createElement('div');

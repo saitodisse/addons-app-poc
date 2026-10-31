@@ -40,6 +40,7 @@ export function useAddonTab(addon: AddonInstance | null, options: AddonTabOption
   const [response, setResponse] = useState<AddonTabResult | null>(null);
   const [runningAction, setRunningAction] = useState<string | null>(null);
   const [ready, setReady] = useState(!tab?.persistence);
+  const fileUrlsRef = useRef(new Map<string, string>());
   const renderedSignatureRef = useRef<string | null>(null);
   const latestSignatureRef = useRef<string | null>(null);
   const liveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -148,8 +149,12 @@ export function useAddonTab(addon: AddonInstance | null, options: AddonTabOption
       const received = new Set(action?.receives ?? declaredAction?.receives ?? []);
       const sensitive = (tab.fields ?? []).filter((field) => field.sensitive && received.has(field.id));
       if (sensitive.length) {
+        for (const field of sensitive) {
+          const url = fileUrlsRef.current.get(field.id);
+          if (url && url === input.values[field.id]) { URL.revokeObjectURL(url); fileUrlsRef.current.delete(field.id); }
+        }
         const sensitiveIds = new Set(sensitive.map((field) => field.id));
-        setValues((current) => Object.fromEntries(Object.entries(current).filter(([id]) => !sensitiveIds.has(id))));
+        setValues((current) => Object.fromEntries(Object.entries(current).filter(([id, value]) => !sensitiveIds.has(id) || value !== input.values[id])));
       }
       setRunningAction(null);
     }
@@ -206,7 +211,16 @@ export function useAddonTab(addon: AddonInstance | null, options: AddonTabOption
     if (liveTimerRef.current) clearTimeout(liveTimerRef.current);
   }, []);
 
+  useEffect(() => () => {
+    for (const url of fileUrlsRef.current.values()) URL.revokeObjectURL(url);
+    fileUrlsRef.current.clear();
+  }, []);
+
   const setValue = useCallback((id: string, value: string) => {
+    const previous = fileUrlsRef.current.get(id);
+    if (previous && previous !== value) URL.revokeObjectURL(previous);
+    if (value.startsWith('blob:')) fileUrlsRef.current.set(id, value);
+    else fileUrlsRef.current.delete(id);
     setValues((current) => ({ ...current, [id]: value }));
   }, []);
 

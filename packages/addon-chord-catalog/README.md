@@ -67,7 +67,7 @@ remains free of external runtime dependencies.
 ## Importing a downloaded library
 
 To reuse a scraper export, paste a ZIP or TAR.ZST URL into **Source catalogue URLs (one per
-line)** and press **Update catalogue**. Each chart must have its `.txt` and
+line)** or select a file with **Local archive**, then press **Update catalogue**. The selected file stays in the browser. Each chart must have its `.txt` and
 matching `.source.json`. Multiple artist folders are supported. An archive containing
 one complete Source Catalog is also accepted, alongside regular catalogue root
 URLs. Downloads must be served over HTTP(S) with CORS enabled.
@@ -76,7 +76,7 @@ Conversion preserves chart whitespace, provenance and chord metadata and stores
 the result on the device for offline search and reading. A failed import keeps
 the previous snapshot. See [the import contract and limits](../../docs/CHORD-CHART.md#importing-a-zip-of-scraper-downloads).
 
-The importer also accepts an encrypted `.tar.zst.enc` URL. In the catalogue's
+The importer detects ZIP, TAR.ZST and encrypted archives from their contents, including when the filename or URL extension is misleading. In the catalogue's
 **Settings** panel, select the local `.cvcert` file, enter its passphrase and run the update.
 The browser decrypts and authenticates the archive before import. The host does
 not persist either credential and clears them after the action. The short-lived

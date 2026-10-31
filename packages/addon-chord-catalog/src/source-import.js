@@ -236,8 +236,6 @@ async function importScraper(root, files) {
 export async function importSource(value, fetchFn = fetch, credentials = {}) {
   const root = sourceRoot(value);
   const url = new URL(root);
-  const encrypted = /\.tar\.zst\.enc$/i.test(url.pathname);
-  if (encrypted && (!credentials.certificate || !credentials.passphrase)) throw new Error('A local private certificate and its passphrase are required for this encrypted archive.');
   let downloadUrl = root;
   let response;
   if (url.pathname.endsWith('/') && !url.search) {
@@ -252,8 +250,19 @@ export async function importSource(value, fetchFn = fetch, credentials = {}) {
       response = undefined;
     }
   }
-  let bytes = await readBytes(downloadUrl, fetchFn, MAX_ARCHIVE_BYTES + (encrypted ? 1024 : 0), response);
-  if (encrypted) bytes = await decryptArchive(bytes, credentials.certificate, credentials.passphrase);
+  const bytes = await readBytes(downloadUrl, fetchFn, MAX_ARCHIVE_BYTES + 1024, response);
+  return importArchive(root, bytes, credentials, fetchFn);
+}
+
+/** Imports an archive by its bytes; the identity is stable across repeated imports. */
+export async function importArchive(root, input, credentials = {}, fetchFn = fetch) {
+  let bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
+  if (bytes.byteLength > MAX_ARCHIVE_BYTES + 1024) throw new Error('Archive exceeds the import limit.');
+  const encrypted = bytes[0] === 0x43 && bytes[1] === 0x43 && bytes[2] === 0x41 && bytes[3] === 0x45;
+  if (encrypted) {
+    if (!credentials.certificate || !credentials.passphrase) throw new Error('A local private certificate and its passphrase are required for this encrypted archive.');
+    bytes = await decryptArchive(bytes, credentials.certificate, credentials.passphrase);
+  } else if (bytes.byteLength > MAX_ARCHIVE_BYTES) throw new Error('Archive exceeds the import limit.');
   let files;
   if (bytes[0] === 0x50 && bytes[1] === 0x4b) files = await readZip(bytes);
   else if (bytes[0] === 0x28 && bytes[1] === 0xb5 && bytes[2] === 0x2f && bytes[3] === 0xfd) files = await readTarZstd(bytes);

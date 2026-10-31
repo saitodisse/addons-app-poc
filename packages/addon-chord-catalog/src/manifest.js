@@ -191,7 +191,7 @@ const trafficEntrySchema = object('One HTTP exchange observed by the server.', '
 export const manifest = defineAddonManifest({
   entrypoint: './bundle.js',
   id: 'chord-catalog',
-  version: '1.0.0',
+  version: '1.1.0',
   name: 'Chord Chart Catalogue',
   description: 'Lists, searches and imports chord charts, including locally decrypted private archives.',
   author: 'AC Team',
@@ -224,11 +224,12 @@ export const manifest = defineAddonManifest({
       fields: [
         { id: 'sources', label: 'Source catalogue URLs (one per line)', description: 'Source Catalog roots or ZIP or TAR.ZST archives to refresh manually.', schema: string('One HTTP(S) catalogue root or ZIP, TAR.ZST or encrypted TAR.ZST URL per line.') },
         { id: 'deleteSource', label: 'Downloaded source to delete (URL)', description: 'Source snapshot explicitly selected for deletion.', schema: string('Catalogue root or ZIP, TAR.ZST or encrypted TAR.ZST URL to remove.') },
+        { id: 'archive', label: 'Local archive (.zip, .tar.zst, .tzst)', description: 'An archive selected on this device and read only during import.', schema: string('Temporary local archive reference.', 'personal') },
         { id: 'certificate', label: 'Local private certificate (.cvcert)', description: 'Encrypted local certificate read into memory only when updating an encrypted source.', schema: string('Certificate JSON held in the current page only.', 'secret') },
         { id: 'certificatePassphrase', label: 'Certificate passphrase', description: 'Passphrase used to unlock the local certificate in the browser only.', schema: string('Local passphrase held in the current page only.', 'secret') },
       ],
       actions: [
-        { id: 'update', label: 'Update catalogue', description: 'Downloads snapshots and decrypts encrypted archives in the browser, retaining previous data on failure.', receives: ['sources', 'certificate', 'certificatePassphrase'], returns: payload('Import report.', object('Tab response.', 'public', {})) },
+        { id: 'update', label: 'Update catalogue', description: 'Downloads snapshots and decrypts encrypted archives in the browser, retaining previous data on failure.', receives: ['sources', 'archive', 'certificate', 'certificatePassphrase'], returns: payload('Import report.', object('Tab response.', 'public', {})) },
         { id: 'delete', label: 'Delete downloaded source', description: 'Deletes the selected downloaded snapshot from this device.', receives: ['deleteSource'], returns: payload('Deletion report.', object('Tab response.', 'public', {})) },
       ],
     },

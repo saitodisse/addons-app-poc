@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { importSource, sha256, sourceLines, updateSources } from './source-import.js';
+import { importSource, importArchive, sha256, sourceLines, updateSources } from './source-import.js';
 import { strToU8, unzipSync, zipSync } from 'fflate';
 import { readFile } from 'node:fs/promises';
 import { encryptedTestArchive } from './test-crypto-fixture.js';
@@ -174,6 +174,25 @@ describe('TAR with Zstandard imports', () => {
     expect(sourceLines(root)).toEqual([{ root }]);
     expect(sourceLines('https://example.test/downloads.tzst')).toEqual([{ root: 'https://example.test/downloads.tzst' }]);
     expect((await importSource(ZIP_URL, async () => new Response(bytes))).charts).toHaveLength(2);
+  });
+
+  it('detects unencrypted bytes even when the URL ends in .enc', async () => {
+    const bytes = await readFile(new URL('./fixtures/downloads.tar.zst', import.meta.url));
+    const snapshot = await importSource('https://example.test/downloads.tar.zst.enc', async () => new Response(bytes));
+    expect(snapshot.charts).toHaveLength(2);
+  });
+
+  it('imports a local binary archive without fetching its source URL', async () => {
+    const bytes = await readFile(new URL('./fixtures/downloads.tar.zst', import.meta.url));
+    const snapshot = await importArchive('https://local-upload.invalid/example', bytes);
+    expect(snapshot.charts).toHaveLength(2);
+    expect(snapshot.charts[0].sourceRoot).toBe('https://local-upload.invalid/example');
+  });
+
+  it('requires credentials for encrypted bytes regardless of extension', async () => {
+    const encrypted = await encryptedTestArchive((await scraperZip()).bytes, 'right horse battery staple');
+    await expect(importSource('https://example.test/downloads.zip', async () => new Response(encrypted.bytes))).rejects.toThrow(/certificate/);
+    expect((await importArchive('https://local-upload.invalid/encrypted', encrypted.bytes, { certificate: encrypted.certificate, passphrase: 'right horse battery staple' })).charts).toHaveLength(1);
   });
 
   it('keeps the previous library when the Zstandard download is truncated', async () => {

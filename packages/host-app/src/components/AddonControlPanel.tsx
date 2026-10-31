@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import type { AddonInstance } from '@addons-poc/protocol';
 import { readingSections } from '../tab-view';
 import type { AddonTabController } from './useAddonTab';
 
 const MAX_TEXT_FILE_BYTES = 64 * 1024;
+const MAX_ARCHIVE_FILE_BYTES = 128 * 1024 * 1024 + 1024;
 
 interface AddonControlPanelProps {
   addon: AddonInstance;
@@ -25,6 +27,7 @@ interface AddonControlPanelProps {
  * response.
  */
 export function AddonControlPanel({ addon, controller, title, reading, compact = false, primaryFieldIds = [], onToggleExpanded }: AddonControlPanelProps) {
+  const [fileErrors, setFileErrors] = useState<Record<string, string>>({});
   const tab = addon.ui;
   if (!tab) return null;
 
@@ -120,15 +123,19 @@ export function AddonControlPanel({ addon, controller, title, reading, compact =
                       const file = input.files?.[0];
                       if (!file) return;
                       try {
-                        if (file.size > MAX_TEXT_FILE_BYTES) throw new Error('Selected file exceeds 64 KiB.');
-                        setValue(field.id, await file.text());
-                      } catch {
+                        const binary = field.accept?.split(',').includes('application/octet-stream') ?? false;
+                        if (file.size > (binary ? MAX_ARCHIVE_FILE_BYTES : MAX_TEXT_FILE_BYTES)) throw new Error(binary ? 'Selected archive exceeds 128 MiB.' : 'Selected file exceeds 64 KiB.');
+                        setValue(field.id, binary ? URL.createObjectURL(file) : await file.text());
+                        setFileErrors((current) => ({ ...current, [field.id]: '' }));
+                      } catch (error) {
                         setValue(field.id, '');
+                        setFileErrors((current) => ({ ...current, [field.id]: (error as Error).message || 'Could not read the file.' }));
                       } finally { input.value = ''; }
                     }}
                     className="host-tab-control"
                   />
-                  {value && <span role="status" className="host-tab-field-help">Certificate loaded in memory; it is cleared after update.</span>}
+                  {fileErrors[field.id] && <span role="alert" className="host-tab-field-help">{fileErrors[field.id]}</span>}
+                  {value && <span role="status" className="host-tab-field-help">File selected for this action; it is cleared afterward.</span>}
                 </label>
               );
             }

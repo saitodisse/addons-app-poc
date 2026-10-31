@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     match = path.match(/^\/text\/([^/]+)\/([^/]+)(?:\/content\.(txt|json)|\.json)$/);
     if (match) {
       const type = decodeURIComponent(match[1]); const id = decodeURIComponent(match[2]);
-      if (match[3] === 'txt') return res.type('text/plain').send(await content(type, id, options));
+      if (match[3] === 'txt') { res.setHeader('Content-Type', 'text/plain; charset=utf-8'); return res.send(await content(type, id, options)); }
       if (match[3] === 'json') { const result = await contentJson(type, id, options, { baseUrl }); return res.json(result.body); }
       return res.json(await text(type, id, options, { baseUrl }));
     }

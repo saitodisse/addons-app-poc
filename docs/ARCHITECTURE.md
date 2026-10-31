@@ -21,7 +21,7 @@ host-app/runtime ---┘
 
 The host does not import add-ons, catalog embedded metadata, or declare any
 `addon-*`. Each add-on declares its contract and publishes a manifest URL. The
-Settings screen offers a convenience list of local `manifest.json` URLs and
+Settings screen offers local `manifest.json` URLs on localhost and fixed release URLs in production, and
 reads only `name` and `description` to present each row; it does not import
 bundles or know specific services. Add-ons do not import other add-ons.
 
