@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.14.1] - 2026-10-31
+
+### Fixed
+
+- Published chord viewer defaults to the public catalogue instead of localhost.
+- The editor contract identifies the public catalogue endpoint.
+
 ## [1.14.0] - 2026-10-31
 
 ### Added

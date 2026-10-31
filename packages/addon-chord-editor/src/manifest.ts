@@ -30,7 +30,7 @@ const draftResult = payload('Draft lookup result.', object('Local draft result.'
 
 export const manifest = defineAddonManifest({
   id: 'chord-editor',
-  version: '1.0.0',
+  version: '1.0.1',
   name: 'Chord Chart Editor',
   description: 'Edits chord charts locally with Monaco and a live preview from the chord viewer.',
   author: 'AC Team',
@@ -148,7 +148,7 @@ export const manifest = defineAddonManifest({
     }],
     http: [{
       id: 'chart-content', direction: 'outgoing', method: 'GET',
-      origin: 'http://localhost:5295', path: '/text/chart/{id}/content.json',
+      origin: 'https://addons-poc-addons.vercel.app', path: '/chord-catalog/text/chart/{id}/content.json',
       purpose: 'Reads the published chart and checksum before local editing.',
       returns: payload('Structured chart payload.', object('Chart payload.')),
     }],

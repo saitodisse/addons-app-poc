@@ -72,7 +72,7 @@ export const TAB_FIELDS: TabFieldDefinition[] = [
     label: 'Catalogue URL',
     description: 'Base URL or manifest URL of a chord-chart catalogue that follows the public protocol.',
     type: 'url',
-    placeholder: 'http://localhost:5295',
+    placeholder: 'https://addons-poc-addons.vercel.app/chord-catalog',
     group: 'Chart',
     source: true,
   },

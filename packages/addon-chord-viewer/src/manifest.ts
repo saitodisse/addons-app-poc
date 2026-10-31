@@ -11,7 +11,7 @@ import { TAB_ACTIONS, TAB_FIELDS } from './tab-definition';
  */
 
 /** Default origin of the demo catalogue, declared for transparency. */
-export const DEFAULT_CATALOG_ORIGIN = 'http://localhost:5295';
+export const DEFAULT_CATALOG_ORIGIN = 'https://addons-poc-addons.vercel.app/chord-catalog';
 
 const text = (description: string, classification = 'public') => ({ type: 'string', description, classification });
 const whole = (description: string, classification = 'public') => ({ type: 'integer', description, classification });
@@ -41,7 +41,7 @@ const fieldSchema = (id: string) => {
 
 export const manifest = defineAddonManifest({
   id: 'chord-viewer',
-  version: '1.1.0',
+  version: '1.1.1',
   name: 'Chord Chart Viewer',
   description: 'Renders a chord chart with controls for transposition, layout, shapes, and colors.',
   author: 'AC Team',
@@ -203,8 +203,8 @@ export const manifest = defineAddonManifest({
         id: 'catalog-list',
         direction: 'outgoing',
         method: 'GET',
-        origin: DEFAULT_CATALOG_ORIGIN,
-        path: '/catalog/chart/{catalogId}.json?limit={limit}&cursor={cursor}',
+        origin: new URL(DEFAULT_CATALOG_ORIGIN).origin,
+        path: '/chord-catalog/catalog/chart/{catalogId}.json?limit={limit}&cursor={cursor}',
         purpose: 'Lists the charts of the configured catalogue without importing its code.',
         returns: payload('Catalogue rows and their pagination.', object('Catalogue page.')),
       },
@@ -212,8 +212,8 @@ export const manifest = defineAddonManifest({
         id: 'catalog-text',
         direction: 'outgoing',
         method: 'GET',
-        origin: DEFAULT_CATALOG_ORIGIN,
-        path: '/text/chart/{id}.json',
+        origin: new URL(DEFAULT_CATALOG_ORIGIN).origin,
+        path: '/chord-catalog/text/chart/{id}.json',
         purpose: 'Discovers the content links of one chart.',
         returns: payload('Versions published for the chart.', object('Text options.')),
       },
@@ -221,8 +221,8 @@ export const manifest = defineAddonManifest({
         id: 'catalog-content',
         direction: 'outgoing',
         method: 'GET',
-        origin: DEFAULT_CATALOG_ORIGIN,
-        path: '/text/chart/{id}/content.json',
+        origin: new URL(DEFAULT_CATALOG_ORIGIN).origin,
+        path: '/chord-catalog/text/chart/{id}/content.json',
         purpose: 'Reads the structured chart payload used by the renderer.',
         returns: payload('Structured chart payload.', object('Chart payload.')),
       },
