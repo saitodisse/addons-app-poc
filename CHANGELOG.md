@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-10-31
+
+### Added
+
+- The chord viewer can hide tablature while preserving lyrics and chord charts.
+
 ## [1.12.1] - 2026-10-28
 
 ### Fixed

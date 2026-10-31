@@ -78,3 +78,19 @@ describe('renderChart', () => {
     expect(rendered.playedChords).toEqual([]);
   });
 });
+
+describe('tablature visibility', () => {
+  const text = '[Solo]\n[Tab - Solo - 2x]\nParte 1 de 1\n G H.N. .\nE|--0--2h3--|\nB|----------|\n\n[Verse]\nEm\nMeu coração tá batendo';
+  it.each(['e', 'o'] as const)('hides tablature and complements in %s layout by default, and can show them', (viewMode) => {
+    const hidden = renderChart({ text, settings: { viewMode } });
+    expect(hidden.html).toContain('Solo');
+    expect(hidden.html).toContain('Meu coração');
+    expect(hidden.html).not.toContain('Parte 1 de 1');
+    expect(hidden.html).not.toContain('H.N.');
+    expect(hidden.html).not.toContain('0--2h3');
+    expect(hidden.playedChords).not.toContain('G');
+    const shown = renderChart({ text, settings: { viewMode, hideTablature: false } });
+    expect(shown.html).toContain('Parte 1 de 1');
+    expect(shown.html).toContain('0--2h3');
+  });
+});

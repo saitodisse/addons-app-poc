@@ -21,6 +21,7 @@ export type ViewMode = "o" | "e";
 export type DisplayMode = "chords" | "lyrics" | "both";
 
 export type TabStyleConfig = {
+  hideTablature: boolean;
   transposeNumber: number;
   fontSize: number;
   lineHeight: number;
@@ -45,6 +46,7 @@ export type PrepareSongOptions = {
 };
 
 export const DEFAULT_TAB_STYLE: TabStyleConfig = {
+  hideTablature: true,
   fontSize: 16,
   transposeNumber: 0,
   lineHeight: 0.18,

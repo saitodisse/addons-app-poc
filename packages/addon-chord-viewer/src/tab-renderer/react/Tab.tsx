@@ -20,7 +20,7 @@ function TabComponent({ body, className, style: stylePartial }: TabProps) {
   const style = mergeStyle(stylePartial);
 
   const sectionNodes = useMemo(() => {
-    const parsed = parseTab(body);
+    const parsed = parseTab(body, { hideTablature: style.hideTablature });
     const transposed =
       style.transposeNumber === 0
         ? parsed

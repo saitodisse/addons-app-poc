@@ -41,7 +41,7 @@ const fieldSchema = (id: string) => {
 
 export const manifest = defineAddonManifest({
   id: 'chord-viewer',
-  version: '1.0.0',
+  version: '1.1.0',
   name: 'Chord Chart Viewer',
   description: 'Renders a chord chart with controls for transposition, layout, shapes, and colors.',
   author: 'AC Team',

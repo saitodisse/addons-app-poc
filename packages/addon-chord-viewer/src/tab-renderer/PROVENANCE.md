@@ -110,3 +110,8 @@ This directory is a **manual, frozen copy**. There is no tooling that re-syncs i
 changes must be re-applied here by hand — following the same rule: do not edit files
 outside this `tab-renderer/` directory, and make sure any new ported file keeps the
 provenance comment and the no-`@tonaljs`/no-`node:*` constraint.
+
+Local extension: `hideTablature` defaults to true in the style and parser options.
+The core filter removes string diagrams and adjacent tab-specific captions,
+chords and technique marks, preserving musical section headers and source text.
+Passing `{ hideTablature: false }` to `parseTab` restores unfiltered parsing.

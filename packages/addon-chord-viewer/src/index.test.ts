@@ -431,3 +431,24 @@ describe('storage', () => {
     expect(itemValue(snapshot, 'Storage')).toBe('memory only');
   });
 });
+
+
+describe('global tablature preference', () => {
+  it('starts enabled, follows the live panel, persists across songs and reloads, and resets', async () => {
+    const store = createMemoryStore();
+    const { tab } = createReadyTab(store);
+    expect((await tab.getSnapshot!()).values?.hideTablature).toBe('true');
+    await tab.run!('load', { text: CHART_TEXT });
+    expect((await tab.run!('apply', { hideTablature: 'false' })).values?.hideTablature).toBe('false');
+    expect(store.map.get('chords-viewer:settings')).toMatchObject({ hideTablature: false });
+    for (const [key, value] of store.map) {
+      if (key.startsWith('chords-viewer:song:')) expect(value).not.toHaveProperty('hideTablature');
+    }
+    await tab.run!('load', { text: '[Outro]\nD\nOutra música' });
+    expect((await tab.getSnapshot!()).values?.hideTablature).toBe('false');
+    const restored = createReadyTab(store).tab;
+    expect((await restored.getSnapshot!()).values?.hideTablature).toBe('false');
+    expect((await restored.run!('reset', {})).values?.hideTablature).toBe('true');
+    expect(store.map.get('chords-viewer:settings')).toMatchObject({ hideTablature: true });
+  });
+});

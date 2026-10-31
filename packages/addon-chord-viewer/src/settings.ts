@@ -130,6 +130,7 @@ export function normalizeSettings(value: unknown): ViewerSettings {
     sectionGap: clampNumber(source.sectionGap, base.sectionGap, NUMERIC_LIMITS.sectionGap),
     sectionTitleColor: color(source.sectionTitleColor, base.sectionTitleColor),
     sectionTitleFontSize: clampNumber(source.sectionTitleFontSize, base.sectionTitleFontSize, NUMERIC_LIMITS.sectionTitleFontSize),
+    hideTablature: flag(source.hideTablature, base.hideTablature),
     simplifyChords: flag(source.simplifyChords, base.simplifyChords),
     summaryOpen: flag(source.summaryOpen, base.summaryOpen),
   };
@@ -251,6 +252,7 @@ export function settingsToValues(settings: ViewerSettings): Record<string, strin
     sectionTitleColor: settings.sectionTitleColor,
     sectionTitleFontSize: String(settings.sectionTitleFontSize),
     backgroundColor: settings.backgroundColor,
+    hideTablature: settings.hideTablature ? 'true' : 'false',
     simplifyChords: settings.simplifyChords ? 'true' : 'false',
     summaryOpen: settings.summaryOpen ? 'true' : 'false',
   };
@@ -284,6 +286,7 @@ export function valuesToSettings(values: Record<string, string>, base: ViewerSet
     sectionTitleColor: text('sectionTitleColor', base.sectionTitleColor),
     sectionTitleFontSize: number('sectionTitleFontSize', base.sectionTitleFontSize),
     backgroundColor: text('backgroundColor', base.backgroundColor),
+    hideTablature: flag('hideTablature', base.hideTablature),
     simplifyChords: flag('simplifyChords', base.simplifyChords),
     summaryOpen: flag('summaryOpen', base.summaryOpen),
   });

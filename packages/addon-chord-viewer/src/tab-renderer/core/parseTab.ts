@@ -1,4 +1,5 @@
 // Ported from @achorde/tab-renderer@0.8.5 (MIT). See PROVENANCE.md.
+import { hideTablature } from "./hideTablature";
 import { collectDiagrammableChords } from "./collectDiagrammableChords";
 import {
   logParseDiagnostics,
@@ -255,10 +256,10 @@ function pushLine(
   section.lines.push(line);
 }
 
-function parseTabInternal(body: string): ParsedTab {
+function parseTabInternal(body: string, hideTabs: boolean): ParsedTab {
   const diagnostics: ParseDiagnostic[] = [];
   const sections: ParsedTabSection[] = [];
-  const rawLines = body.split(/\r?\n/);
+  const rawLines = (hideTabs ? hideTablature(body) : body).split(/\r?\n/);
 
   let currentSection: ParsedTabSection | null = null;
 
@@ -341,15 +342,15 @@ const shouldObserveParseTab =
   import.meta.env?.DEV === true &&
   import.meta.env?.VITEST !== "true";
 
-export function parseTab(body: string): ParsedTab {
+export function parseTab(body: string, options: { hideTablature?: boolean } = {}): ParsedTab {
   if (!shouldObserveParseTab) {
-    return parseTabInternal(body);
+    return parseTabInternal(body, options.hideTablature ?? true);
   }
 
   return measureTabRenderer(
     "parseTab",
     () => {
-      const parsed = parseTabInternal(body);
+      const parsed = parseTabInternal(body, options.hideTablature ?? true);
       logTabRenderer("parseTab:summary", summarizeParsedTab(parsed));
       logParseDiagnostics(parsed.diagnostics);
       return parsed;

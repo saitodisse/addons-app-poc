@@ -38,7 +38,7 @@ export interface RenderedChart {
 export function renderChart(request: RenderRequest): RenderedChart {
   const text = String(request?.text ?? '');
   const settings = normalizeSettings(request?.settings ?? {});
-  const summary = summarizeParsedTab(parseTab(text));
+  const summary = summarizeParsedTab(parseTab(text, { hideTablature: settings.hideTablature }));
 
   const declaredKey = request?.key ?? inferKey(summary.chordsFound);
   const shapeKey = declaredKey ? transposeChordSymbol(declaredKey, settings.transposeNumber) : undefined;

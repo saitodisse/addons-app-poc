@@ -570,3 +570,12 @@ O botão discreto `Settings` expande as demais configurações no painel lateral
 recolhê-lo devolve a largura à cifra sem alterar os valores dos controles.
 Em telas estreitas, o painel expandido continua empilhado conforme o layout
 responsivo existente.
+
+A opção `Hide tablature`, no grupo `Reading` do painel do visualizador, começa
+ativada e é salva como preferência global pelo `state-store`. Ela esconde as
+linhas de cordas (`E|---`, `B|---` etc.) e seus complementos imediatamente
+acima: títulos `[Tab - ...]`, indicações `Parte 1 de 3`, acordes isolados e
+marcas de técnica como `H.N.`. Títulos musicais como `[Solo]`, acordes
+acompanhados de letra e o texto original armazenado permanecem preservados.
+Desligar a opção volta a mostrar esse conteúdo. O filtro pertence ao
+`tab-renderer` e é aplicado antes da análise de acordes, nos dois layouts.
