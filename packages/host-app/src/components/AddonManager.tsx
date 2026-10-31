@@ -205,12 +205,12 @@ export function AddonManager({ addons, onResourcesChanged, disabledAddonUrls, pe
         )}
       </section>
 
-      <section aria-label="Available local manifests" style={{ marginBottom: 32 }}>
+      <section aria-label="Available manifests" style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#94a3b8' }}>
-          Available local manifests
+          Available manifests
         </h2>
         <p style={{ color: '#64748b', fontSize: 13, lineHeight: 1.5, margin: '0 0 12px' }}>
-          These URLs are known by the local demonstration; the titles and summaries below come from each `manifest.json`, without importing or executing the add-on.
+          Titles and summaries come from each `manifest.json`, without importing or executing the add-on.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {suggestions.map((suggestion) => {

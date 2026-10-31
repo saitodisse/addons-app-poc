@@ -1,0 +1,11 @@
+import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { build } from 'esbuild';
+import { resolve } from 'node:path';
+const root = resolve('../..');
+const output = resolve(root, 'temp/addons-deploy');
+await mkdir(resolve(output, 'api'), { recursive: true });
+await cp(resolve('public'), resolve(output, 'public'), { recursive: true });
+await build({ entryPoints: [resolve('api/catalog.mjs')], outfile: resolve(output, 'api/catalog.mjs'), bundle: true, platform: 'node', format: 'esm' });
+const config = JSON.parse(await readFile('vercel.json', 'utf8'));
+delete config.buildCommand;
+await writeFile(resolve(output, 'vercel.json'), JSON.stringify(config, null, 2));

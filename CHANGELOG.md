@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-10-31
+
+### Added
+
+- Published chord catalogue, viewer, editor and local storage manifests are suggested in settings.
+
 ## [1.13.0] - 2026-10-31
 
 ### Added

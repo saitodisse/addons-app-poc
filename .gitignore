@@ -5,3 +5,5 @@ dist/
 .DS_Store
 temp/
 .vercel
+
+deployment/addons/public/

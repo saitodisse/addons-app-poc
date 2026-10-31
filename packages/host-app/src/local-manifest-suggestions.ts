@@ -29,7 +29,17 @@ function fallbackSuggestion(port: number): LocalManifestSuggestion {
   };
 }
 
-export const LOCAL_MANIFEST_SUGGESTIONS = LOCAL_MANIFEST_PORTS.map(fallbackSuggestion);
+export const PUBLISHED_MANIFEST_URLS = [
+  'https://addons-poc-addons.vercel.app/chord-catalog/manifest.json',
+  'https://addons-poc-addons.vercel.app/chord-viewer/manifest.json',
+  'https://addons-poc-addons.vercel.app/storage-local/manifest.json',
+  'https://addons-poc-addons.vercel.app/chord-editor/manifest.json',
+] as const;
+
+export const LOCAL_MANIFEST_SUGGESTIONS: LocalManifestSuggestion[] = [
+  ...PUBLISHED_MANIFEST_URLS.map((manifestUrl) => ({ manifestUrl, title: 'Published manifest', description: 'Published add-on manifest.' })),
+  ...LOCAL_MANIFEST_PORTS.map(fallbackSuggestion),
+];
 
 interface ManifestResponse {
   ok: boolean;
@@ -50,8 +60,7 @@ function textField(value: unknown): string | undefined {
 export async function loadLocalManifestSuggestions(
   fetcher: ManifestFetcher = (url) => fetch(url),
 ): Promise<LocalManifestSuggestion[]> {
-  return Promise.all(LOCAL_MANIFEST_PORTS.map(async (port) => {
-    const fallback = fallbackSuggestion(port);
+  return Promise.all(LOCAL_MANIFEST_SUGGESTIONS.map(async (fallback) => {
     try {
       const response = await fetcher(fallback.manifestUrl);
       if (!response.ok) return fallback;

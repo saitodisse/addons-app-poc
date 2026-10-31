@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "buildCommand": "node build.mjs",
+  "outputDirectory": "public",
+  "headers": [{ "source": "/(.*)", "headers": [{ "key": "Access-Control-Allow-Origin", "value": "*" }] }],
+  "rewrites": [{ "source": "/chord-catalog/:path(catalog|search|text)/:rest*", "destination": "/api/catalog" }]
+}

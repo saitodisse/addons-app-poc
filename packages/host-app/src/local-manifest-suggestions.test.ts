@@ -26,7 +26,7 @@ describe('suggested local manifests', () => {
       json: async () => ({ name: 'Wikipedia', description: 'Summaries and search' }),
     }));
 
-    expect(suggestions[0]).toMatchObject({ title: 'Wikipedia', description: 'Summaries and search' });
+    expect(suggestions.find((suggestion) => suggestion.manifestUrl.endsWith(':5294/manifest.json'))).toMatchObject({ title: 'Wikipedia', description: 'Summaries and search' });
     const unanswered = suggestions.find((suggestion) => suggestion.manifestUrl.endsWith(':5304/manifest.json'));
     expect(unanswered).toMatchObject({ title: 'Local manifest (port 5304)', description: 'Local demonstration manifest URL.' });
   });
