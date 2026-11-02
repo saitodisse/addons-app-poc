@@ -259,7 +259,8 @@ function pushLine(
 function parseTabInternal(body: string, hideTabs: boolean): ParsedTab {
   const diagnostics: ParseDiagnostic[] = [];
   const sections: ParsedTabSection[] = [];
-  const rawLines = (hideTabs ? hideTablature(body) : body).split(/\r?\n/);
+  const normalized = body.replace(/\r\n?/g, '\n').replace(/^\u200b+/gm, '');
+  const rawLines = (hideTabs ? hideTablature(normalized) : normalized).split('\n');
 
   let currentSection: ParsedTabSection | null = null;
 

@@ -126,6 +126,7 @@ export function AddonCard({ addon, onResourcesChanged, enabled, onToggle, onRemo
         </button>
       </div>
       </div>
+      <div hidden={!expanded}>
       {searchTypes.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
           <label htmlFor={searchLimitInputId} style={{ color: '#94a3b8', fontSize: 12 }}>
@@ -165,9 +166,10 @@ export function AddonCard({ addon, onResourcesChanged, enabled, onToggle, onRemo
         </div>
       )}
       {enabled && !reviewRequired && addon.status === 'ready' && addon.ui?.fields?.some((field) => field.group === 'Settings') && <AddonSettingsPanel addon={addon} onResourcesChanged={onResourcesChanged} />}
+      {expanded && <AddonContractView manifest={addon.manifest} manifestUrl={addon.manifestUrl} stateDestination={stateDestination} />}
+      </div>
       {addon.status === 'blocked' && <p role="status" style={{ margin: '12px 0 0', color: '#fbbf24', fontSize: 12 }}>Blocked until a required dependency becomes available{addon.blockReason ? `: ${addon.blockReason}` : '.'}</p>}
       {reviewRequired && <p role="status" style={{ margin: '12px 0 0', color: '#fde68a', fontSize: 12 }}>The contract changed since the last acceptance. Review the JSON below before enabling.</p>}
-      {expanded && <AddonContractView manifest={addon.manifest} manifestUrl={addon.manifestUrl} stateDestination={stateDestination} />}
     </div>
   );
 }

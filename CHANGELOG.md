@@ -4,6 +4,17 @@ This file describes, in reverse order, how the project evolved. The quick read s
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.16.2] - 2026-11-02
+
+### Changed
+
+- Show add-on settings and search controls together with the expanded contract.
+
+### Fixed
+
+- Hide tablature with slide notation and instrument captions when tablature is disabled.
+- Recognize leading zero-width markers and line endings in chord charts and the local editor while preserving the published source.
+
 ## [1.16.1] - 2026-11-02
 
 ### Fixed

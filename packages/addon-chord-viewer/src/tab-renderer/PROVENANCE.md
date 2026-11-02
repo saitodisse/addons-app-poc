@@ -112,6 +112,8 @@ outside this `tab-renderer/` directory, and make sure any new ported file keeps 
 provenance comment and the no-`@tonaljs`/no-`node:*` constraint.
 
 Local extension: `hideTablature` defaults to true in the style and parser options.
-The core filter removes string diagrams and adjacent tab-specific captions,
+The core filter removes string diagrams, including `s` slides, and adjacent tab-specific captions,
 chords and technique marks, preserving musical section headers and source text.
 Passing `{ hideTablature: false }` to `parseTab` restores unfiltered parsing.
+Before parsing, leading U+200B markers are removed and line endings normalized;
+the parsed result retains the original body.

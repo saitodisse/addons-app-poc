@@ -7,6 +7,12 @@ const VERSE = '[Primeira Parte]\n\n     Em  Em/F#    G\nMeu coração tá batend
 const visible = (text: string) => hideTablature(text).split('\n').filter((line) => line.trim()).join('\n');
 
 describe('hideTablature', () => {
+  it('hides the guitar parts and slides from the reported intro while keeping the verse', () => {
+    const source = '[Intro]\n\n(Primeiro Violão)\nE|----4s5--7s9--7--5------------------------| \nB|-------------------5s7--7-7---7s9--9-9----| \nG|------------------------------------------| \nD|------------------------------------------| \nA|------------------------------------------| \nE|------------------------------------------| \n\n(Segundo Violão)\nE|---------12--10--9---9s10--10s12----------| \nB|---9s10-----------------------------------| \nG|------------------------------------------| \nD|------------------------------------------| \nA|------------------------------------------| \nE|------------------------------------------| \n\nA         F#m   D\nPra entender o Ere';
+    expect(visible(source)).toBe('[Intro]\nA         F#m   D\nPra entender o Ere');
+    expect(parseTab(source).sections.flatMap((section) => section.lines).some((line) => /\|[-0-9]/.test(line.text))).toBe(false);
+    expect(parseTab(source, { hideTablature: false }).sections.flatMap((section) => section.lines).some((line) => line.text.includes('4s5'))).toBe(true);
+  });
   it('removes the diagram and both preceding complements from the first example', () => {
     expect(visible(`Parte 3 de 3 - variação\n                G         H.N. .     .\n${ARM}\n\n${VERSE}`)).toBe(visible(VERSE));
   });
@@ -24,6 +30,7 @@ describe('hideTablature', () => {
   it('does not remove unaccompanied part and tab captions or chord lines', () => {
     const source = '[Tab - Solo - 2x]\nParte 1 de 3\nG Em\nMeu coração';
     expect(hideTablature(source)).toBe(source);
+    expect(hideTablature('(Primeiro Violão)\nMeu coração')).toBe('(Primeiro Violão)\nMeu coração');
   });
 
   it('keeps indentation and line positions with CRLF input', () => {

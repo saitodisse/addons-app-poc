@@ -591,5 +591,14 @@ linhas de cordas (`E|---`, `B|---` etc.) e seus complementos imediatamente
 acima: títulos `[Tab - ...]`, indicações `Parte 1 de 3`, acordes isolados e
 marcas de técnica como `H.N.`. Títulos musicais como `[Solo]`, acordes
 acompanhados de letra e o texto original armazenado permanecem preservados.
+Linhas com slides como `4s5` e identificações de instrumento como
+`(Primeiro Violão)` também são ocultadas quando fazem parte de uma tablatura.
 Desligar a opção volta a mostrar esse conteúdo. O filtro pertence ao
 `tab-renderer` e é aplicado antes da análise de acordes, nos dois layouts.
+
+Algumas fontes inserem o marcador invisível de largura zero `U+200B` no início
+de cada linha. Para reconhecer os acordes e evitar marcações no Monaco, o
+visualizador e o editor removem esses marcadores ao preparar o texto e aceitam
+quebras de linha LF, CRLF e CR. Os espaços de alinhamento são preservados. O
+texto publicado e seu checksum permanecem originais; um rascunho só é gravado
+quando a pessoa escolhe salvá-lo.

@@ -38,6 +38,15 @@ describe('transposeChordSymbol', () => {
 });
 
 describe('parseTab', () => {
+  it('parses leading zero-width markers without losing chord alignment or the original body', () => {
+    const source = '\u200bG\n\u200bCalamidade neste dia veio acontecer\n\u200b    Dm\n\u200bNo discurso de um político';
+    const parsed = parseTab(source);
+    expect(parsed.body).toBe(source);
+    expect(parsed.sections[0].lines.map((line) => [line.kind, line.text])).toEqual([
+      ['chords', 'G'], ['lyrics', 'Calamidade neste dia veio acontecer'],
+      ['chords', '    Dm'], ['lyrics', 'No discurso de um político'],
+    ]);
+  });
   it('splits untitled blocks on whitespace-only lines without creating empty sections', () => {
     const parsed = parseTab('\r\nG\r\nFirst verse\r\n  \t\r\n\r\nD\r\nSecond verse\r\n\r\n');
     expect(parsed.sections.map((section) => section.title)).toEqual([null, null]);

@@ -1,12 +1,13 @@
 import { parseChordSymbol } from './parser/parseChordSymbol';
 
-const STRING_LINE = /^\s*(?:[A-Ga-g](?:#|b)?|\d{1,2})\s*\|[-\d\s|:hpbrt/\\~^().+*=<>xX–—]+$/;
+const STRING_LINE = /^\s*(?:[A-Ga-g](?:#|b)?|\d{1,2})\s*\|[-\d\s|:hpbrts/\\~^().+*=<>xX–—]+$/i;
 const TAB_TITLE = /^\s*\[Tab(?:\s|\s*-|\]).*\]\s*$/i;
+const INSTRUMENT_CAPTION = /^\s*\((?:(?:primeiro|segundo|terceiro|primeira|segunda|terceira|\d+[ºª]?)\s+)?(?:violão|guitarra|baixo)\)\s*$/i;
 const PART = /^\s*Parte\s+\d+\s+de\s+\d+(?:\s*[-–—].*)?\s*$/i;
 const TECHNIQUES = /^(?:H\.?N\.?|P\.?M\.?|P\.?H\.?|N\.?H\.?|A\.?H\.?|[.·<>~^\-–—])+$/i;
 
 function isComplement(line: string): boolean {
-  if (TAB_TITLE.test(line) || PART.test(line)) return true;
+  if (TAB_TITLE.test(line) || PART.test(line) || INSTRUMENT_CAPTION.test(line)) return true;
   const tokens = line.trim().split(/\s+/);
   return tokens.every((token) => parseChordSymbol(token) !== null || TECHNIQUES.test(token));
 }

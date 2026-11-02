@@ -53,10 +53,12 @@ addons-chord-editor { display:block; min-width:0; }
 
 type MonacoEditor = typeof import('@monaco-editor/react')['default'];
 
+const normalizeText = (text: string) => text.replace(/\r\n?/g, '\n').replace(/^\u200b+/gm, '');
+
 function EditorSurface({ session }: { session: EditorSession }) {
   const { chart, drafts, viewer } = session;
-  const [value, setValue] = useState(session.initialText);
-  const [savedText, setSavedText] = useState(session.initialText);
+  const [value, setValue] = useState(() => normalizeText(session.initialText));
+  const [savedText, setSavedText] = useState(() => normalizeText(session.initialText));
   const [stale, setStale] = useState(session.staleDraft);
   const [preview, setPreview] = useState<RenderedPreview | null>(null);
   const [previewError, setPreviewError] = useState('');
@@ -103,8 +105,8 @@ function EditorSurface({ session }: { session: EditorSession }) {
     setBusy(true);
     try {
       await drafts.remove({ sourceUrl: chart.sourceUrl });
-      setValue(chart.originalText);
-      setSavedText(chart.originalText);
+      setValue(normalizeText(chart.originalText));
+      setSavedText(normalizeText(chart.originalText));
       setStale(false);
       setStatus('Local draft removed. The published chart is shown again.');
     } catch (reason) {
@@ -130,11 +132,11 @@ function EditorSurface({ session }: { session: EditorSession }) {
               theme="vs-dark"
               path={`${encodeURIComponent(chart.id)}.txt`}
               options={{ minimap: { enabled: false }, wordWrap: 'on', fontSize: 14, lineNumbers: 'on', scrollBeyondLastLine: false }}
-              onChange={(next) => setValue(next ?? '')}
+              onChange={(next) => setValue(normalizeText(next ?? ''))}
               keepCurrentModel={false}
             />
           ) : monacoFailed ? (
-            <textarea className="chord-editor__textarea" aria-label="Chart text" spellCheck={false} value={value} onChange={(event) => setValue(event.currentTarget.value)} />
+            <textarea className="chord-editor__textarea" aria-label="Chart text" spellCheck={false} value={value} onChange={(event) => setValue(normalizeText(event.currentTarget.value))} />
           ) : (
             <p role="status" className="chord-editor__notice">Loading Monaco editor…</p>
           )}
