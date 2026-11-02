@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LOCAL_MANIFEST_PORTS, LOCAL_MANIFEST_URLS, loadLocalManifestSuggestions, localManifestUrl, manifestSuggestions, PUBLISHED_MANIFEST_URLS } from './local-manifest-suggestions';
+import { LOCAL_MANIFEST_PORTS, LOCAL_MANIFEST_URLS, loadLocalManifestSuggestions, localManifestUrl, manifestSuggestions, olderManifestUrls, PUBLISHED_MANIFEST_URLS } from './local-manifest-suggestions';
 
 describe('suggested local manifests', () => {
   it('keeps local URLs even before reading metadata', () => {
@@ -26,13 +26,22 @@ describe('suggested local manifests', () => {
     expect(LOCAL_MANIFEST_URLS).toHaveLength(LOCAL_MANIFEST_PORTS.length);
   });
 
+  it('identifies older versions only for the same manifest ID and comparable versions', () => {
+    const item = (manifestUrl: string, id?: string, version?: string) => ({ manifestUrl, id, version, title: manifestUrl, description: '' });
+    expect([...olderManifestUrls([
+      item('old', 'viewer', '1.9.0'), item('new', 'viewer', '1.10.0'),
+      item('same', 'viewer', '1.10.0'), item('other', 'catalog', '1.0.0'),
+      item('unknown', 'viewer'), item('prerelease', 'viewer', '1.0.0-beta'), item('no-id', undefined, '1.0.0'),
+    ])]).toEqual(['old']);
+  });
+
   it('uses the title and description published by the manifest without importing the add-on', async () => {
     const suggestions = await loadLocalManifestSuggestions(async (url) => ({
       ok: url.endsWith(':5294/manifest.json'),
-      json: async () => ({ name: 'Wikipedia', description: 'Summaries and search', version: '2.3.4' }),
+      json: async () => ({ id: 'wikipedia', name: 'Wikipedia', description: 'Summaries and search', version: '2.3.4' }),
     }));
 
-    expect(suggestions.find((suggestion) => suggestion.manifestUrl.endsWith(':5294/manifest.json'))).toMatchObject({ title: 'Wikipedia', description: 'Summaries and search', version: '2.3.4' });
+    expect(suggestions.find((suggestion) => suggestion.manifestUrl.endsWith(':5294/manifest.json'))).toMatchObject({ id: 'wikipedia', title: 'Wikipedia', description: 'Summaries and search', version: '2.3.4' });
     const unanswered = suggestions.find((suggestion) => suggestion.manifestUrl.endsWith(':5304/manifest.json'));
     expect(unanswered).toMatchObject({ title: 'Local manifest (port 5304)', description: 'Local demonstration manifest URL.' });
   });

@@ -4,6 +4,20 @@ This file describes, in reverse order, how the project evolved. The quick read s
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.18.0] - 2026-11-02
+
+### Added
+
+- Introduce the PeekMosaic name, high-resolution logos, app icons and matching violet, cyan and amber theme across the host, installed application and project documentation.
+- Group available add-on manifests by add-on, identify installed and latest available versions, and reveal older versions on demand.
+- Present an enlarged, karaoke-inspired chart view on wide screens.
+
+### Changed
+
+- Streamline the chart header and keep font size and transposition controls inside Settings.
+- Show the current chart title and key in the fixed header.
+- Cache the PeekMosaic logo for offline use and serve it directly in production.
+
 ## [1.17.0] - 2026-11-02
 
 ### Added

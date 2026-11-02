@@ -14,7 +14,6 @@ interface AddonControlPanelProps {
   /** Hides the controls that choose the content, for a page that already has it. */
   reading?: boolean;
   compact?: boolean;
-  primaryFieldIds?: readonly string[];
   onToggleExpanded?: () => void;
 }
 
@@ -26,7 +25,7 @@ interface AddonControlPanelProps {
  * is what both the add-on page and the rendered result page show beside the
  * response.
  */
-export function AddonControlPanel({ addon, controller, title, reading, compact = false, primaryFieldIds = [], onToggleExpanded }: AddonControlPanelProps) {
+export function AddonControlPanel({ addon, controller, title, reading, compact = false, onToggleExpanded }: AddonControlPanelProps) {
   const [fileErrors, setFileErrors] = useState<Record<string, string>>({});
   const tab = addon.ui;
   if (!tab) return null;
@@ -34,10 +33,7 @@ export function AddonControlPanel({ addon, controller, title, reading, compact =
   const { values, setValue, runningAction, run, sections } = controller;
   // The result page already holds the content, so the source controls stay out.
   const readingControls = reading ? readingSections(sections) : sections;
-  const visibleSections = compact
-    ? readingControls.map((section) => ({ ...section, fields: section.fields.filter((field) => primaryFieldIds.includes(field.id)), actions: [] }))
-      .filter((section) => section.fields.length > 0)
-    : readingControls;
+  const visibleSections = compact ? [] : readingControls;
 
   return (
     <aside className={`host-tab-panel${compact ? ' is-compact' : ''}`} aria-label={title ?? `Controls for ${tab.title}`}>

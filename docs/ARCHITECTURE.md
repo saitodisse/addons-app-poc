@@ -1,4 +1,4 @@
-# addons-app-poc architecture
+# PeekMosaic architecture
 
 **Status: Partial · Protocol 1.0.0 published**
 

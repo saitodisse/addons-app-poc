@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="105 55 745 610" width="745" height="610" role="img" aria-label="PeekMosaic logo"><defs>
+    <linearGradient id="lidEdge" x1=".06" y1=".02" x2=".92" y2="1"><stop stop-color="#BB79FF"/><stop offset=".46" stop-color="#8D3BE7"/><stop offset="1" stop-color="#48189A"/></linearGradient>
+    <linearGradient id="lidInside" x1=".2" y1="0" x2=".8" y2="1"><stop stop-color="#2F176C"/><stop offset="1" stop-color="#140E42"/></linearGradient>
+    <linearGradient id="puzzleCard" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#C485FF"/><stop offset=".45" stop-color="#8B43E5"/><stop offset="1" stop-color="#5C1CA9"/></linearGradient>
+    <linearGradient id="plugCard" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#19C6F8"/><stop offset=".45" stop-color="#078DDE"/><stop offset="1" stop-color="#07519E"/></linearGradient>
+    <linearGradient id="gearCard" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFD948"/><stop offset=".42" stop-color="#FFB20B"/><stop offset="1" stop-color="#E96B0C"/></linearGradient>
+    <linearGradient id="boxFront" x1="0" y1="0" x2="1" y2=".6"><stop stop-color="#6134CC"/><stop offset=".35" stop-color="#7345DE"/><stop offset=".76" stop-color="#5B2DBE"/><stop offset="1" stop-color="#422092"/></linearGradient>
+    <linearGradient id="boxShade" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFFFFF" stop-opacity=".19"/><stop offset=".56" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="1" stop-color="#17084C" stop-opacity=".3"/></linearGradient>
+    <linearGradient id="raisedWhite" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#FFFFFF"/><stop offset="1" stop-color="#E5E9FF"/></linearGradient>
+    <linearGradient id="appBG" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#17214B"/><stop offset="1" stop-color="#0B0C2B"/></linearGradient>
+    <filter id="shadow" x="-25%" y="-25%" width="160%" height="160%"><feGaussianBlur in="SourceAlpha" stdDeviation="11" result="blur"/><feOffset dx="0" dy="9" result="off"/><feComponentTransfer><feFuncA type="linear" slope=".19"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="smallShadow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur"/><feOffset dx="0" dy="4" result="off"/><feComponentTransfer><feFuncA type="linear" slope=".27"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs><g id="peekmosaic-mark" stroke-linejoin="round" stroke-linecap="round">
+      <!-- open top lid -->
+      <path d="M178 351 C155 343 144 322 161 293 L266 116 C284 87 313 72 353 73 L591 82 C641 84 661 100 681 131 L712 176 C723 197 718 216 706 235 L609 375 L273 410 Z" fill="url(#lidEdge)" filter="url(#shadow)"/>
+      <path d="M194 361 L295 186 C311 156 330 141 366 142 L626 151 C663 153 693 166 693 192 C692 210 685 219 675 236 L582 383 L263 397Z" fill="url(#lidInside)"/>
+      <path d="M174 329 L283 153 C298 124 319 110 355 106 L615 113" fill="none" stroke="#D9A9FF" stroke-opacity=".5" stroke-width="7"/>
+
+      <!-- three plugin cards -->
+      <g transform="rotate(-12 357 354)">
+      <rect x="261" y="252" width="194" height="205" rx="37" fill="url(#puzzleCard)" filter="url(#smallShadow)"/>
+      <path d="M272 292 C277 270 299 260 318 260 L405 260" fill="none" stroke="#D9ACFF" stroke-width="5" stroke-opacity=".55"/>
+      <path d="M320 320 L346 320 C353 320 357 316 353 309 C348 302 349 286 359 279 C374 267 393 273 396 289 C398 298 395 304 392 310 C389 316 392 321 397 320 L419 320 Q427 320 427 329 L427 354 Q426 360 421 357 C410 347 394 353 391 366 C389 380 404 390 416 381 C423 377 427 379 427 386 L427 414 Q427 423 417 423 L387 423 C382 423 380 417 383 411 C388 401 381 386 368 385 C354 384 346 397 353 410 C356 416 355 423 349 423 L319 423 Q311 423 311 414 L311 330 Q311 320 320 320 Z" fill="url(#raisedWhite)"/>
+      </g>
+      <g transform="rotate(3 536 342)">
+        <rect x="455" y="203" width="171" height="248" rx="34" fill="url(#plugCard)" filter="url(#smallShadow)"/>
+        <path d="M473 224 C484 211 506 210 522 210 L593 212" fill="none" stroke="#9FF1FF" stroke-opacity=".75" stroke-width="5"/>
+        <!-- plug prongs -->
+        <path d="M522 275 V248 M570 275 V246" stroke="#F5FAFF" stroke-width="17"/>
+        <path d="M512 282 Q512 274 521 274 H576 Q586 274 586 283 V319 Q586 347 558 353 H544 Q513 349 512 323 Z" fill="url(#raisedWhite)" stroke="#C7EDFF" stroke-width="3"/>
+        <path d="M549 351 V383 Q549 400 531 407" fill="none" stroke="#E6F8FF" stroke-width="12"/>
+      </g>
+      <g transform="rotate(11 662 365)">
+        <rect x="605" y="255" width="159" height="204" rx="38" fill="url(#gearCard)" filter="url(#smallShadow)"/>
+        <path d="M620 279 Q632 260 660 261 H711" fill="none" stroke="#FFF5A6" stroke-opacity=".65" stroke-width="5"/>
+        <path d="M681.00,309.00 L688.35,298.58 L695.52,300.30 L697.34,312.92 L702.16,315.88 L714.23,311.77 L719.02,317.37 L713.08,328.66 L715.24,333.88 L727.42,337.65 L728.00,345.00 L716.56,350.63 L715.24,356.12 L722.88,366.34 L719.02,372.63 L706.46,370.46 L702.16,374.12 L702.34,386.88 L695.52,389.70 L686.63,380.56 L681.00,381.00 L673.65,391.42 L666.48,389.70 L664.66,377.08 L659.84,374.12 L647.77,378.23 L642.98,372.63 L648.92,361.34 L646.76,356.12 L634.58,352.35 L634.00,345.00 L645.44,339.37 L646.76,333.88 L639.12,323.66 L642.98,317.37 L655.54,319.54 L659.84,315.88 L659.66,303.12 L666.48,300.30 L675.37,309.44 Z M699.00,345.00 a18,18 0 1,0 -36,0 a18,18 0 1,0 36,0 Z" fill="#FFFFFF" fill-rule="evenodd"/>
+      </g>
+
+      <!-- front rim of toolbox -->
+      <path d="M162 360 C203 378 265 402 290 409 Q310 417 346 413 L701 367 Q741 362 759 378 Q772 388 765 414 L746 546 Q743 567 717 575 Q695 582 672 584 L352 617 Q328 619 310 609 L204 558 Q173 545 170 512 Z" fill="url(#boxFront)" filter="url(#shadow)"/>
+      <path d="M172 363 C214 383 270 409 292 417 Q313 423 346 419 L705 372 Q742 368 759 387" fill="none" stroke="#BA8BFC" stroke-width="8" stroke-opacity=".9"/>
+      <path d="M174 381 C210 403 263 428 297 435 C321 440 342 439 367 436 L748 392 L735 540 Q727 562 706 568 L359 603 Q330 609 310 598 L214 547 Q178 533 177 501 Z" fill="url(#boxShade)" opacity=".55"/>
+      <!-- raised PM initials on case -->
+      <g transform="translate(435 539) skewX(-8) scale(1.38 -1.38)" filter="url(#smallShadow)">
+        <path d="M5.422,0.000 L20.453,0.000 L20.453,25.000 L33.938,25.000 C50.297,25.000 60.750,34.234 60.750,48.875 C60.750,63.531 50.484,72.750 34.125,72.750 L5.422,72.750 L5.422,0.000 Z M20.453,37.594 L20.453,60.156 L33.156,60.156 C41.109,60.156 46.047,55.812 46.047,48.875 C46.047,41.938 41.109,37.594 33.156,37.594 L20.453,37.594 Z M68.557,0.000 L83.307,0.000 L83.307,34.578 C83.307,39.406 83.057,47.562 82.869,55.281 C85.354,47.125 87.791,39.062 89.307,34.578 L101.760,0.000 L113.963,0.000 L126.275,34.578 C127.838,39.203 130.369,47.797 132.869,56.297 C132.666,48.297 132.369,39.656 132.369,34.578 L132.369,0.000 L147.072,0.000 L147.072,72.750 L125.150,72.750 L113.275,38.875 C111.963,34.578 109.666,26.906 107.916,20.656 C106.150,26.906 103.854,34.578 102.494,38.875 L90.479,72.750 L68.557,72.750 L68.557,0.000 Z" fill="url(#raisedWhite)"/>
+      </g>
+      <!-- three sparks -->
+      <path d="M773 110 Q779 100 788 107 Q794 112 789 125 L761 174 Q755 184 748 178 Q742 174 746 162 Z" fill="#FFB919"/>
+      <path d="M807 161 Q815 153 823 159 Q830 167 820 175 L772 203 Q761 210 756 201 Q753 194 764 187 Z" fill="#FFC125"/>
+      <path d="M817 221 Q828 221 830 230 Q830 240 817 242 L782 242 Q771 242 770 232 Q771 223 782 222 Z" fill="#FFB818"/>
+    </g></svg>

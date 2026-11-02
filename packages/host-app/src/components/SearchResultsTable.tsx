@@ -166,7 +166,7 @@ export function SearchResultsTable({ query, artistFilter, browsing = false, resu
             onClick={onPreviousPage}
             disabled={loading || !canGoPrevious}
             aria-label="Previous page"
-            style={{ padding: '6px 10px', border: '1px solid rgba(165,180,252,0.45)', borderRadius: 7, background: 'rgba(99,102,241,0.16)', color: '#c7d2fe', cursor: loading || !canGoPrevious ? 'not-allowed' : 'pointer', font: 'inherit', fontSize: 12, opacity: loading || !canGoPrevious ? 0.45 : 1 }}
+            style={{ padding: '6px 10px', border: '1px solid rgba(196,133,255,0.42)', borderRadius: 7, background: 'rgba(141,59,231,0.18)', color: '#e7d6ff', cursor: loading || !canGoPrevious ? 'not-allowed' : 'pointer', font: 'inherit', fontSize: 12, opacity: loading || !canGoPrevious ? 0.45 : 1 }}
           >
             Previous page
           </button>
@@ -178,7 +178,7 @@ export function SearchResultsTable({ query, artistFilter, browsing = false, resu
             onClick={onNextPage}
             disabled={loading || !canGoNext}
             aria-label="Next page"
-            style={{ padding: '6px 10px', border: '1px solid rgba(165,180,252,0.45)', borderRadius: 7, background: 'rgba(99,102,241,0.16)', color: '#c7d2fe', cursor: loading || !canGoNext ? 'not-allowed' : 'pointer', font: 'inherit', fontSize: 12, opacity: loading || !canGoNext ? 0.45 : 1 }}
+            style={{ padding: '6px 10px', border: '1px solid rgba(196,133,255,0.42)', borderRadius: 7, background: 'rgba(141,59,231,0.18)', color: '#e7d6ff', cursor: loading || !canGoNext ? 'not-allowed' : 'pointer', font: 'inherit', fontSize: 12, opacity: loading || !canGoNext ? 0.45 : 1 }}
           >
             Next page
           </button>
@@ -188,7 +188,7 @@ export function SearchResultsTable({ query, artistFilter, browsing = false, resu
   };
 
   return (
-    <section aria-label="Search results" style={{
+    <section className="host-search-results" aria-label="Search results" style={{
       marginBottom: 24,
       padding: 20,
       border: '1px solid rgba(255,255,255,0.1)',

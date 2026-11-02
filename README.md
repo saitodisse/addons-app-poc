@@ -1,8 +1,10 @@
-# addons-app-poc
+# PeekMosaic
 
 Imagine an application that gains new capabilities without being rebuilt every time. A developer publishes an extension, provides its address, and the application starts using it. If that extension fails, another one can take over.
 
-The **addons-app-poc** exists to explore this idea. It is a proof of concept, or **POC**: a small, runnable, testable laboratory created to find out whether an architecture works before taking it to a real product.
+**PeekMosaic** (formerly addons-app-poc) exists to explore this idea. The product name and visual identity are PeekMosaic. Existing package names, add-on identities, and deployment URLs remain unchanged for compatibility; ownership of PeekMosaic.com does not imply that the domain is configured. It is a proof of concept, or **POC**: a small, runnable, testable laboratory created to find out whether an architecture works before taking it to a real product.
+
+The host's visual theme follows the PeekMosaic mark: midnight navy surfaces, vivid violet for the open add-on box, cyan for interactive highlights, and amber for small calls to action. The host uses `peekmosaic-logo-horizontal.svg` in its header, `peekmosaic-icon.svg` for the browser icon, and `peekmosaic-app-icon-1024.png` for installed app icons. The vertical SVG and 4096-pixel PNG remain available for larger brand placements.
 
 ## The problem we want to solve
 

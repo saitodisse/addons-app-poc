@@ -1,5 +1,5 @@
 import type { AddonInstance } from "@addons-poc/protocol";
-import { Link, ROUTES } from "../router";
+import { href, Link, ROUTES } from "../router";
 
 interface HeaderProps {
   addons: AddonInstance[];
@@ -22,82 +22,32 @@ export function Header({
   onClearSearch,
   onSettingsNavigate,
 }: HeaderProps) {
-  const readyCount = addons.filter((a) => a.status === "ready").length;
-  const errorCount = addons.filter((a) => a.status === "error").length;
+  const readyCount = addons.filter((addon) => addon.status === "ready").length;
+  const errorCount = addons.filter((addon) => addon.status === "error").length;
 
   return (
-    <header
-      className="host-site-header"
-      style={{
-        background: "rgba(15, 23, 42, 0.8)",
-        borderBottom: "1px solid rgba(255,255,255,0.08)",
-        backdropFilter: "blur(12px)",
-        padding: "16px 24px",
-        position: "sticky",
-        top: 0,
-        zIndex: 10,
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 1200,
-          margin: "0 auto",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 18,
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 28 }}>🧩</span>
-          <div>
-            <h1
-              style={{
-                fontSize: 18,
-                fontWeight: 700,
-                margin: 0,
-                color: "#f1f5f9",
-              }}
-            >
-              Add-ons POC
-            </h1>
-            <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>
-              Add-on system proof of concept
-            </p>
-          </div>
-        </div>
+    <header className="host-site-header">
+      <div className="host-header-inner">
+        <a className="host-brand" href={href(ROUTES.home)} aria-label="PeekMosaic home">
+          <img src="/peekmosaic-logo-horizontal.svg" alt="PeekMosaic.com" width="180" height="65" />
+        </a>
 
         <form
+          className="host-header-search"
           role="search"
           onSubmit={(event) => {
             event.preventDefault();
             onSearch(searchValue);
           }}
-          style={{
-            flex: "1 1 320px",
-            minWidth: 240,
-            maxWidth: 520,
-            display: "grid",
-            gap: 4,
-          }}
         >
-          <label
-            htmlFor="global-addon-search"
-            style={{
-              position: "absolute",
-              width: 1,
-              height: 1,
-              overflow: "hidden",
-              clip: "rect(0 0 0 0)",
-            }}
-          >
+          <label htmlFor="global-addon-search" className="host-visually-hidden">
             Search add-ons
           </label>
-          <div style={{ position: "relative" }}>
+          <div className="host-header-search-field">
             <input
               id="global-addon-search"
               name="global-addon-search"
+              className="host-header-search-input"
               type="search"
               autoComplete="on"
               value={searchValue}
@@ -109,85 +59,33 @@ export function Header({
               placeholder="Search add-ons…"
               aria-keyshortcuts="Enter Escape"
               disabled={searchDisabled}
-              style={{
-                width: "100%",
-                boxSizing: "border-box",
-                padding: "10px 42px 10px 13px",
-                border: "1px solid rgba(255,255,255,0.18)",
-                borderRadius: 8,
-                background: "rgba(2,6,23,0.5)",
-                color: "#f1f5f9",
-                font: "inherit",
-                fontSize: 13,
-              }}
             />
             <button
               type="submit"
+              className="host-header-search-submit"
               aria-label="Search"
               title="Search"
               disabled={searchDisabled}
-              style={{
-                position: "absolute",
-                right: 12,
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: searching ? "#fbbf24" : "#64748b",
-                border: 0,
-                padding: 2,
-                background: "transparent",
-                cursor: searchDisabled ? "not-allowed" : "pointer",
-                font: "inherit",
-                fontSize: 13,
-              }}
+              data-searching={searching || undefined}
             >
               {searching ? "…" : "↵"}
             </button>
           </div>
-          <span style={{ color: "#64748b", fontSize: 10 }}>
+          <span className="host-header-search-hint">
             Enter or click ↵ to search · Esc to return or clear
           </span>
         </form>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ display: "flex", gap: 12, fontSize: 13 }}>
-            <span style={{ color: "#22c55e" }}>● {readyCount} active</span>
-            {errorCount > 0 && (
-              <span style={{ color: "#ef4444" }}>● {errorCount} error(s)</span>
-            )}
+        <div className="host-header-actions">
+          <div className="host-addon-status" aria-label={`${readyCount} active add-ons${errorCount ? `, ${errorCount} errors` : ""}`}>
+            <span className="host-addon-status-active">● {readyCount} active</span>
+            {errorCount > 0 && <span className="host-addon-status-error">● {errorCount} error(s)</span>}
           </div>
 
-          <nav
-            aria-label="Main navigation"
-            style={{ display: "flex", gap: 8 }}
-          >
-            <Link
-              to={ROUTES.home}
-              style={{
-                padding: "8px 16px",
-                border: "1px solid rgba(255,255,255,0.15)",
-                borderRadius: 8,
-                background: "rgba(255,255,255,0.05)",
-                color: "#e2e8f0",
-                fontSize: 13,
-                textDecoration: "none",
-              }}
-            >
-              Start
-            </Link>
-            <Link
-              to={ROUTES.settings}
-              onNavigate={onSettingsNavigate}
-              style={{
-                padding: "8px 16px",
-                border: "1px solid rgba(255,255,255,0.15)",
-                borderRadius: 8,
-                background: "rgba(255,255,255,0.05)",
-                color: "#e2e8f0",
-                fontSize: 13,
-                textDecoration: "none",
-              }}
-            >
-              ⚙️ Settings
+          <nav aria-label="Main navigation" className="host-header-nav">
+            <Link to={ROUTES.home} className="host-header-link">Start</Link>
+            <Link to={ROUTES.settings} onNavigate={onSettingsNavigate} className="host-header-link host-header-settings-link">
+              <span aria-hidden="true">⚙</span> Settings
             </Link>
           </nav>
         </div>

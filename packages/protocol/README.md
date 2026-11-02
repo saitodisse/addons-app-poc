@@ -9,7 +9,7 @@ Version `1.0.0` · [MIT](LICENSE) license · public ESM package.
 The protocol is a set of rules that lets the main application, called the
 **host**, understand and run add-ons created separately.
 
-This is the standard for `addons-app-poc`. It is not intended to be a universal
+This is the standard for PeekMosaic (formerly `addons-app-poc`). It is not intended to be a universal
 standard.
 
 ## Why this protocol exists

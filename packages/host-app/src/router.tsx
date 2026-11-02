@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { CSSProperties, MouseEvent, ReactNode, ClassAttributes } from 'react';
+import type { AnchorHTMLAttributes, CSSProperties, MouseEvent, ReactNode } from 'react';
 
 /**
  * Hash-based mini-router (`#/route`) with no external dependencies.
@@ -100,7 +100,7 @@ export function href(route: string): string {
   return `#${normalizeRoute(route)}`;
 }
 
-interface LinkProps extends Omit<ClassAttributes<HTMLAnchorElement>, 'href'> {
+interface LinkProps extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> {
   to: string;
   children: ReactNode;
   style?: CSSProperties;

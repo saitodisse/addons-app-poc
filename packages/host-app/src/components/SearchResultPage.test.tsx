@@ -112,7 +112,7 @@ describe('SearchResultPage', () => {
         ] }),
       },
     } as unknown as AddonInstance;
-    const viewProvider: ContentViewProvider = { render: () => ({ html: '<pre>C</pre>' }) };
+    const viewProvider: ContentViewProvider = { render: () => ({ html: '<pre>C</pre>', title: 'Concrete Jungle — Bob Marley' }) };
     try {
       const fetchResource = vi.fn(async () => new Response(JSON.stringify({ playableVersion: { key: 'G' } }))) as unknown as typeof fetch;
       await act(async () => root.render(<SearchResultPage contentUrl={chartUrl} result={chart} ready viewProvider={viewProvider} viewAddon={addon} fetchResource={fetchResource} />));
@@ -120,15 +120,16 @@ describe('SearchResultPage', () => {
         { label: 'Source', value: chartUrl.replace('/content.txt', '/content.json') },
         { label: 'Keys', value: 'G played' },
       ] }));
-      expect(statusTarget.textContent).toContain('Font size20');
-      expect(statusTarget.textContent).toContain('Transpose0');
+      expect(statusTarget.textContent).not.toContain('Font size');
+      expect(statusTarget.querySelector('.host-reading-status-title')?.textContent).toBe('Concrete Jungle — Bob Marley');
+      expect(statusTarget.querySelector('.host-reading-status-title')?.textContent).toBe(container.querySelector('.host-article-header h1')?.textContent);
+      expect(statusTarget.textContent).not.toContain('Transpose');
       expect(statusTarget.textContent).toContain('KeyG');
-      const originalFontOutput = statusTarget.querySelector('output');
       await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: '=' })));
-      expect(statusTarget.textContent).toContain('Font size21');
-      expect(statusTarget.querySelector('output')).not.toBe(originalFontOutput);
       await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: ']' })));
-      expect(statusTarget.textContent).toContain('Transpose1');
+      await act(async () => container.querySelector<HTMLButtonElement>('.host-tab-panel-disclosure')!.click());
+      expect(container.textContent).toContain('Font size21');
+      expect(container.textContent).toContain('Transpose1');
       await act(async () => root.render(<SearchResultPage contentUrl={chartUrl} result={chart} ready />));
       expect(statusTarget.textContent).toBe('');
     } finally {
@@ -148,11 +149,11 @@ describe('SearchResultPage', () => {
     await act(async () => {
       root.render(<SearchResultPage contentUrl={chartUrl} result={chart} ready fetchResource={fetchResource} viewProvider={viewProvider} />);
     });
-    const links = [...container.querySelectorAll<HTMLAnchorElement>('.host-article-links a')];
+    const links = [...container.querySelectorAll<HTMLAnchorElement>('.host-rendered-header a')];
     expect(links).toHaveLength(3);
-    expect(new URL(links[1]!.href).searchParams.get('search_query')).toBe('Alcione Lá Vem Você');
-    expect(new URL(links[2]!.href).searchParams.get('q')).toBe('Alcione Lá Vem Você');
-    expect(links[1]!.target).toBe('_blank');
+    expect(new URL(links[0]!.href).searchParams.get('search_query')).toBe('Alcione Lá Vem Você');
+    expect(new URL(links[1]!.href).searchParams.get('q')).toBe('Alcione Lá Vem Você');
+    expect(links[0]!.target).toBe('_blank');
     expect(container.textContent).not.toContain('Unsafe');
   });
 

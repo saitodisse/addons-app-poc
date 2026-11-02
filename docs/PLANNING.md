@@ -21,7 +21,7 @@ publication under another name.
 
 The conversation started with a common problem in modular systems: parts that should have been replaceable were connected by direct dependencies. Replacing an implementation meant changing imports, rebuilding applications, and coordinating many versions at once.
 
-The context that inspired the conversation involved other projects, but the conclusion was to create this POC as an independent laboratory. The `addons-app-poc` is not part of the AC ecosystem and does not depend on it.
+The context that inspired the conversation involved other projects, but the conclusion was to create this POC as an independent laboratory. PeekMosaic (formerly `addons-app-poc`) is not part of the AC ecosystem and does not depend on it.
 
 ## 2. The first idea: request capabilities, not packages
 

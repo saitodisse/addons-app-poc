@@ -1,10 +1,11 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { getInteractionContractFingerprint, getStateDestination } from '@addons-poc/protocol';
+import { getInteractionContractFingerprint, getStateDestination, parseSemVer } from '@addons-poc/protocol';
 import type { AddonInstance, AddonManifest } from '@addons-poc/protocol';
 import { AddonCard } from './AddonCard';
 import { AddonContractView } from './AddonContractView';
 import { FactoryResetControl } from './FactoryResetControl';
-import { LOCAL_MANIFEST_SUGGESTIONS, loadLocalManifestSuggestions } from '../local-manifest-suggestions';
+import { LOCAL_MANIFEST_SUGGESTIONS, groupManifestSuggestions, loadLocalManifestSuggestions, olderManifestUrls } from '../local-manifest-suggestions';
+import type { LocalManifestSuggestion } from '../local-manifest-suggestions';
 import { DEFAULT_SEARCH_LIMIT } from '../search';
 import type { SearchLanguages, SearchLimitValue } from '../search';
 
@@ -42,7 +43,17 @@ export function AddonManager({ addons, onResourcesChanged, disabledAddonUrls, pe
   const pendingReviewRef = useRef<HTMLDivElement>(null);
   const busy = loading || inspecting;
   const installedManifestUrls = new Set(addons.map((addon) => addon.manifestUrl));
-  const pendingIsLocalSuggestion = pendingInstallation ? suggestions.some((suggestion) => suggestion.manifestUrl === pendingInstallation.manifestUrl) : false;
+  const availableSuggestions = [...suggestions.map((suggestion) => {
+    const installed = addons.find((addon) => addon.manifestUrl === suggestion.manifestUrl);
+    return installed && !suggestion.id
+      ? { ...suggestion, id: installed.manifest.id, title: installed.manifest.name, description: installed.manifest.description, version: installed.manifest.version }
+      : suggestion;
+  }), ...addons
+    .filter((addon) => !suggestions.some((suggestion) => suggestion.manifestUrl === addon.manifestUrl))
+    .map((addon) => ({ manifestUrl: addon.manifestUrl, id: addon.manifest.id, title: addon.manifest.name, description: addon.manifest.description, version: addon.manifest.version }))];
+  const olderUrls = olderManifestUrls(availableSuggestions);
+  const suggestionGroups = groupManifestSuggestions(availableSuggestions);
+  const pendingIsLocalSuggestion = pendingInstallation ? availableSuggestions.some((suggestion) => suggestion.manifestUrl === pendingInstallation.manifestUrl) : false;
   const activeProviderIds = new Set(addons
     .filter((addon) => addon.status === 'ready' && !disabledAddonUrls.includes(addon.manifestUrl))
     .filter((addon) => addon.manifest.contract.services.some((service) => service.role === 'provides' && service.id === 'state-store'))
@@ -103,11 +114,11 @@ export function AddonManager({ addons, onResourcesChanged, disabledAddonUrls, pe
   const renderPendingReview = () => {
     if (!pendingInstallation) return null;
     return (
-      <section aria-label="Review before installation" style={{ margin: '0 0 12px', padding: 18, border: '1px solid rgba(129,140,248,0.35)', borderRadius: 10, background: 'rgba(30,41,59,0.52)' }}>
+      <section aria-label="Review before installation" style={{ margin: '0 0 12px', padding: 18, border: '1px solid rgba(196,133,255,0.36)', borderRadius: 10, background: 'rgba(35,29,72,0.62)' }}>
         <h2 style={{ margin: '0 0 6px', color: '#f1f5f9', fontSize: 24, lineHeight: 1.15 }}>{pendingInstallation.manifest.name}</h2>
         <p style={{ margin: '0 0 16px', color: '#cbd5e1', fontSize: 14, lineHeight: 1.5 }}>{pendingInstallation.manifest.description}</p>
         <div ref={pendingReviewRef} tabIndex={-1} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 18px' }}>
-          <button type="button" onClick={() => void acceptPendingInstallation()} disabled={busy} style={{ padding: '10px 14px', border: 'none', borderRadius: 8, background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: '#fff', cursor: busy ? 'wait' : 'pointer', fontSize: 13, fontWeight: 700 }}>Install and accept contract</button>
+          <button type="button" onClick={() => void acceptPendingInstallation()} disabled={busy} style={{ padding: '10px 14px', border: 'none', borderRadius: 8, background: 'linear-gradient(135deg, #8d3be7, #5c1ca9)', color: '#fff', cursor: busy ? 'wait' : 'pointer', fontSize: 13, fontWeight: 700 }}>Install and accept contract</button>
           <button type="button" onClick={() => setPendingInstallation(null)} disabled={busy} style={{ padding: '10px 14px', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#cbd5e1', cursor: busy ? 'wait' : 'pointer', fontSize: 13 }}>Cancel</button>
         </div>
         <h3 style={{ margin: '0 0 6px', color: '#e2e8f0', fontSize: 15 }}>Review the contract before installing</h3>
@@ -121,8 +132,68 @@ export function AddonManager({ addons, onResourcesChanged, disabledAddonUrls, pe
     );
   };
 
+  const renderSuggestion = (suggestion: LocalManifestSuggestion) => {
+  const isOpen = pendingInstallation?.manifestUrl === suggestion.manifestUrl;
+  const isInstalled = installedManifestUrls.has(suggestion.manifestUrl);
+  const isLatest = Boolean(suggestion.id && suggestion.version && parseSemVer(suggestion.version) && !olderUrls.has(suggestion.manifestUrl));
+  const actionLabel = isOpen ? 'Close' : isInstalled ? 'Installed' : 'Install';
   return (
-    <div>
+    <Fragment key={suggestion.manifestUrl}>
+      <div className="host-addon-suggestion"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          flexWrap: 'wrap',
+          padding: '10px 12px',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 8,
+          background: 'rgba(255,255,255,0.03)',
+        }}
+      >
+        <div style={{ flex: '1 1 360px', minWidth: 0 }}>
+          <strong style={{ display: 'block', color: '#e2e8f0', fontSize: 13, marginBottom: 3 }}>{suggestion.title}{suggestion.version ? ` · v${suggestion.version}` : ''}</strong>
+          <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 5 }}>
+            {isLatest && <span style={{ color: '#56d8f5', fontSize: 11, fontWeight: 600 }}>Latest available</span>}
+            {isInstalled && <span style={{ color: '#86efac', fontSize: 11, fontWeight: 600 }}>Installed{disabledAddonUrls.includes(suggestion.manifestUrl) ? ' · disabled' : ''}</span>}
+          </span>
+          <span style={{ display: 'block', color: '#94a3b8', fontSize: 12, lineHeight: 1.4, marginBottom: 4 }}>{suggestion.description}</span>
+          <code style={{ display: 'block', color: '#cbd5e1', fontSize: 11, overflowWrap: 'anywhere' }}>{suggestion.manifestUrl}</code>
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
+          <button
+            type="button"
+            onClick={() => copySuggestion(suggestion.manifestUrl)}
+            disabled={busy}
+            aria-label={`Copy ${suggestion.manifestUrl} to the URL field`}
+            style={{ padding: '7px 10px', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 6, background: 'rgba(255,255,255,0.04)', color: '#cbd5e1', cursor: busy ? 'wait' : 'pointer', fontSize: 12 }}
+          >
+            Copy
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (isOpen) {
+                setPendingInstallation(null);
+                return;
+              }
+              void inspectAndReview(suggestion.manifestUrl);
+            }}
+            disabled={busy || isInstalled}
+            aria-label={`${isOpen ? 'Close' : 'Install'} ${suggestion.manifestUrl}`}
+            style={{ padding: '7px 10px', border: 'none', borderRadius: 6, background: isInstalled ? 'rgba(34,197,94,0.1)' : isOpen ? 'rgba(239,68,68,0.12)' : 'linear-gradient(135deg, #8d3be7, #5c1ca9)', color: isInstalled ? '#86efac' : isOpen ? '#fca5a5' : '#fff', cursor: busy ? 'wait' : isInstalled ? 'default' : 'pointer', fontSize: 12, fontWeight: 600, opacity: busy || isInstalled ? 0.6 : 1 }}
+          >
+            {actionLabel}
+          </button>
+        </div>
+      </div>
+      {isOpen && renderPendingReview()}
+    </Fragment>
+  );
+  };
+
+  return (
+    <div className="host-addon-manager">
       <section id={ADDON_INSTALL_SECTION_ID} style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#94a3b8' }}>
           Add add-on by URL
@@ -157,7 +228,7 @@ export function AddonManager({ addons, onResourcesChanged, disabledAddonUrls, pe
               padding: '10px 16px',
               border: 'none',
               borderRadius: 8,
-              background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+              background: 'linear-gradient(135deg, #8d3be7, #5c1ca9)',
               color: '#fff',
               cursor: busy ? 'wait' : 'pointer',
               fontSize: 13,
@@ -212,59 +283,26 @@ export function AddonManager({ addons, onResourcesChanged, disabledAddonUrls, pe
         <p style={{ color: '#64748b', fontSize: 13, lineHeight: 1.5, margin: '0 0 12px' }}>
           Titles and summaries come from each `manifest.json`, without importing or executing the add-on.
         </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {suggestions.map((suggestion) => {
-            const isOpen = pendingInstallation?.manifestUrl === suggestion.manifestUrl;
-            const isInstalled = installedManifestUrls.has(suggestion.manifestUrl);
-            const actionLabel = isOpen ? 'Close' : isInstalled ? 'Installed' : 'Install';
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {suggestionGroups.map((group) => {
+            const visible = group.filter((suggestion) => !olderUrls.has(suggestion.manifestUrl) || installedManifestUrls.has(suggestion.manifestUrl));
+            const older = group.filter((suggestion) => olderUrls.has(suggestion.manifestUrl) && !installedManifestUrls.has(suggestion.manifestUrl));
+            const heading = visible.find((suggestion) => !olderUrls.has(suggestion.manifestUrl)) ?? visible[0] ?? group[0];
             return (
-              <Fragment key={suggestion.manifestUrl}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    flexWrap: 'wrap',
-                    padding: '10px 12px',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 8,
-                    background: 'rgba(255,255,255,0.03)',
-                  }}
-                >
-                  <div style={{ flex: '1 1 360px', minWidth: 0 }}>
-                    <strong style={{ display: 'block', color: '#e2e8f0', fontSize: 13, marginBottom: 3 }}>{suggestion.title}{suggestion.version ? ` · v${suggestion.version}` : ''}</strong>
-                    <span style={{ display: 'block', color: '#94a3b8', fontSize: 12, lineHeight: 1.4, marginBottom: 4 }}>{suggestion.description}</span>
-                    <code style={{ display: 'block', color: '#cbd5e1', fontSize: 11, overflowWrap: 'anywhere' }}>{suggestion.manifestUrl}</code>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
-                    <button
-                      type="button"
-                      onClick={() => copySuggestion(suggestion.manifestUrl)}
-                      disabled={busy}
-                      aria-label={`Copy ${suggestion.manifestUrl} to the URL field`}
-                      style={{ padding: '7px 10px', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 6, background: 'rgba(255,255,255,0.04)', color: '#cbd5e1', cursor: busy ? 'wait' : 'pointer', fontSize: 12 }}
-                    >
-                      Copy
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (isOpen) {
-                          setPendingInstallation(null);
-                          return;
-                        }
-                        void inspectAndReview(suggestion.manifestUrl);
-                      }}
-                      disabled={busy || isInstalled}
-                      aria-label={`${isOpen ? 'Close' : 'Install'} ${suggestion.manifestUrl}`}
-                      style={{ padding: '7px 10px', border: 'none', borderRadius: 6, background: isInstalled ? 'rgba(34,197,94,0.1)' : isOpen ? 'rgba(239,68,68,0.12)' : 'linear-gradient(135deg, #3b82f6, #6366f1)', color: isInstalled ? '#86efac' : isOpen ? '#fca5a5' : '#fff', cursor: busy ? 'wait' : isInstalled ? 'default' : 'pointer', fontSize: 12, fontWeight: 600, opacity: busy || isInstalled ? 0.6 : 1 }}
-                    >
-                      {actionLabel}
-                    </button>
-                  </div>
+              <section key={heading.id ?? heading.manifestUrl} aria-label={heading.title} style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 12 }}>
+                <h3 style={{ margin: '0 0 8px', color: '#cbd5e1', fontSize: 13, fontWeight: 600 }}>{heading.title}</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {visible.map(renderSuggestion)}
+                  {older.length > 0 && (
+                    <details>
+                      <summary style={{ color: '#94a3b8', cursor: 'pointer', fontSize: 12, padding: '6px 0' }}>More versions ({older.length})</summary>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4 }}>
+                        {older.map(renderSuggestion)}
+                      </div>
+                    </details>
+                  )}
                 </div>
-                {isOpen && renderPendingReview()}
-              </Fragment>
+              </section>
             );
           })}
         </div>

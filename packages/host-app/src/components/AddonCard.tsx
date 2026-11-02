@@ -30,7 +30,7 @@ export function AddonCard({ addon, onResourcesChanged, enabled, onToggle, onRemo
   const searchLimitInputId = `search-limit-${encodeURIComponent(addon.manifestUrl)}`;
   const searchLanguageInputId = `search-language-${encodeURIComponent(addon.manifestUrl)}`;
   return (
-    <div style={{
+    <div className="host-addon-card" style={{
       padding: '12px 16px',
       border: '1px solid rgba(255,255,255,0.1)',
       borderRadius: 8,
@@ -99,10 +99,10 @@ export function AddonCard({ addon, onResourcesChanged, enabled, onToggle, onRemo
           disabled={!toggleAvailable}
           style={{
             padding: '6px 10px',
-            border: '1px solid rgba(129,140,248,0.35)',
+            border: '1px solid rgba(196,133,255,0.38)',
             borderRadius: 6,
-            background: 'rgba(99,102,241,0.12)',
-            color: '#a5b4fc',
+            background: 'rgba(141,59,231,0.16)',
+            color: '#c485ff',
             cursor: toggleAvailable ? 'pointer' : 'not-allowed',
             fontSize: 12,
             opacity: toggleAvailable ? 1 : 0.55,

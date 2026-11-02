@@ -795,12 +795,7 @@ export function App({ importAddonModule }: AppProps = {}) {
   }, []);
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-      color: '#e2e8f0',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-    }}>
+    <div className="host-app-shell">
       <Header
         addons={addons.filter((addon) => !disabledAddonUrls.includes(addon.manifestUrl))}
         searchValue={searchInput}
@@ -844,7 +839,7 @@ export function App({ importAddonModule }: AppProps = {}) {
           />
         )}
         {route === ROUTES.settings ? (
-          <section>
+          <section className="host-settings-page">
             <AddonManager
               addons={addons}
               onResourcesChanged={refreshResources}

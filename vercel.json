@@ -2,5 +2,5 @@
   "buildCommand": "pnpm build:host",
   "outputDirectory": "packages/host-app/dist",
   "installCommand": "pnpm install --frozen-lockfile",
-  "rewrites": [{ "source": "/((?!assets/|sw\\.js|manifest\\.webmanifest).*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/((?!assets/|sw\\.js|manifest\\.webmanifest|icon\\.svg|peekmosaic-).*)", "destination": "/index.html" }]
 }

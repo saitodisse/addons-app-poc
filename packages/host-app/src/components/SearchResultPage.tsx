@@ -337,6 +337,7 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
 
   const data = details?.body;
   const title = plainTextValue(data?.displaytitle) ?? plainTextValue(data?.title) ?? plainTextValue(data?.id) ?? result?.name ?? 'Article';
+  const renderedTitle = (editing ? editorView?.title : renderedView?.title) ?? result?.name ?? title;
   const description = textValue(data?.description) ?? result?.description;
   const externalLinks = (Array.isArray(data?.externalLinks) ? data.externalLinks : []).flatMap((link: unknown) => {
     if (!link || typeof link !== 'object') return [];
@@ -376,7 +377,7 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
   useEffect(() => {
     if (!details) return;
     const previousTitle = document.title;
-    document.title = `${title} · Add-ons POC`;
+    document.title = `${title} · PeekMosaic`;
     return () => {
       document.title = previousTitle;
     };
@@ -392,14 +393,7 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
     >
       {readingStatusTarget && !loading && !error && renderedView && hasPrimaryControls && createPortal(
         <div className="host-reading-status" aria-label="Reading settings">
-          {canAdjustFontSize && fontField && <span className="host-reading-status-item">
-            <span>{fontField.label}</span>
-            <output key={`font-${controller.values.fontSize}`} className="host-reading-status-value">{controller.values.fontSize || String(fontField.type === 'range' ? fontField.min ?? 0 : 0)}</output>
-          </span>}
-          {canTranspose && transposeField && <span className="host-reading-status-item">
-            <span>{transposeField.label}</span>
-            <output key={`transpose-${controller.values.transposeNumber}`} className="host-reading-status-value">{controller.values.transposeNumber || String(transposeField.type === 'range' ? transposeField.min ?? 0 : 0)}</output>
-          </span>}
+          <span className="host-reading-status-title">{renderedTitle}</span>
           {responseKey && <span className="host-reading-status-item">
             <span>Key</span>
             <output key={`key-${responseKey}`} className="host-reading-status-value">{responseKey}</output>
@@ -430,24 +424,20 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
       {!loading && !error && renderedView && (
         <div className={`host-rendered-result${!editing && viewAddon?.ui ? compactControls ? ' is-controls-collapsed' : ' has-panel' : ''}`}>
           <article className="host-article-card">
-            <header ref={renderedHeaderRef} className="host-article-header">
-              <span className="host-article-kicker">{editing ? 'Editing' : 'Rendered view'}</span>
-              <h1>{(editing ? editorView?.title : renderedView.title) ?? result?.name ?? title}</h1>
-              {result?.description && <p className="host-article-description">{result.description}</p>}
-              {!editing && renderedView && (canAdjustFontSize || canTranspose) && (
-                <p className="host-article-keyboard-hint" aria-keyshortcuts="- = [ ] Escape">
-                  {canAdjustFontSize && <span>- / = font size</span>}
-                  {canAdjustFontSize && canTranspose && <span aria-hidden="true"> · </span>}
-                  {canTranspose && <span>[ / ] transpose</span>}
-                  <span aria-hidden="true"> · Esc returns to results</span>
-                </p>
-              )}
+            <header ref={renderedHeaderRef} className="host-article-header host-rendered-header">
+              <h1>{renderedTitle}</h1>
+              <div className="host-rendered-header-actions">
+                {externalLinks.map((link) => (
+                  <a key={link.url} className="host-rendered-external-link" href={link.url} target="_blank" rel="noopener noreferrer">{link.label} ↗</a>
+                ))}
               {editorAvailable && (
                 <button type="button" className="host-article-edit-button" onClick={() => void (editing ? closeEditor() : openEditor())}>
                   {editing ? '← Back to reading' : 'Edit'}
                 </button>
               )}
-              <div className="host-article-links">
+              <details className="host-rendered-more">
+                <summary>More</summary>
+                <div className="host-article-links">
                 <button
                   type="button"
                   className="host-article-original-link"
@@ -462,11 +452,9 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
                     Open the content URL ↗
                   </a>
                 )}
-                {externalLinks.map((link) => (
-                  <a key={link.url} className="host-article-original-link" href={link.url} target="_blank" rel="noopener noreferrer">
-                    {link.label} ↗
-                  </a>
-                ))}
+                </div>
+              </details>
+              {!editing && compactControls && viewAddon?.ui && <AddonControlPanel addon={viewAddon} controller={controller} reading compact onToggleExpanded={() => setControlsExpanded(true)} />}
               </div>
             </header>
             <section className="host-article-section">
@@ -477,12 +465,11 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
             </section>
           </article>
 
-          {!editing && viewAddon?.ui && <AddonControlPanel
+          {!editing && !compactControls && viewAddon?.ui && <AddonControlPanel
             addon={viewAddon}
             controller={controller}
             reading
             compact={compactControls}
-            primaryFieldIds={['fontSize', 'transposeNumber']}
             onToggleExpanded={hasPrimaryControls ? () => setControlsExpanded((expanded) => !expanded) : undefined}
           />}
         </div>
