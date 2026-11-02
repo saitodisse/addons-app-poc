@@ -29,10 +29,10 @@ describe('suggested local manifests', () => {
   it('uses the title and description published by the manifest without importing the add-on', async () => {
     const suggestions = await loadLocalManifestSuggestions(async (url) => ({
       ok: url.endsWith(':5294/manifest.json'),
-      json: async () => ({ name: 'Wikipedia', description: 'Summaries and search' }),
+      json: async () => ({ name: 'Wikipedia', description: 'Summaries and search', version: '2.3.4' }),
     }));
 
-    expect(suggestions.find((suggestion) => suggestion.manifestUrl.endsWith(':5294/manifest.json'))).toMatchObject({ title: 'Wikipedia', description: 'Summaries and search' });
+    expect(suggestions.find((suggestion) => suggestion.manifestUrl.endsWith(':5294/manifest.json'))).toMatchObject({ title: 'Wikipedia', description: 'Summaries and search', version: '2.3.4' });
     const unanswered = suggestions.find((suggestion) => suggestion.manifestUrl.endsWith(':5304/manifest.json'));
     expect(unanswered).toMatchObject({ title: 'Local manifest (port 5304)', description: 'Local demonstration manifest URL.' });
   });

@@ -19,6 +19,7 @@ export interface LocalManifestSuggestion {
   manifestUrl: string;
   title: string;
   description: string;
+  version?: string;
 }
 
 function fallbackSuggestion(port: number): LocalManifestSuggestion {
@@ -77,6 +78,7 @@ export async function loadLocalManifestSuggestions(
         ...fallback,
         title: textField(record.name) ?? fallback.title,
         description: textField(record.description) ?? fallback.description,
+        version: textField(record.version),
       };
     } catch {
       return fallback;

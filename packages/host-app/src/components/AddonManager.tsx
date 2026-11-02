@@ -232,7 +232,7 @@ export function AddonManager({ addons, onResourcesChanged, disabledAddonUrls, pe
                   }}
                 >
                   <div style={{ flex: '1 1 360px', minWidth: 0 }}>
-                    <strong style={{ display: 'block', color: '#e2e8f0', fontSize: 13, marginBottom: 3 }}>{suggestion.title}</strong>
+                    <strong style={{ display: 'block', color: '#e2e8f0', fontSize: 13, marginBottom: 3 }}>{suggestion.title}{suggestion.version ? ` · v${suggestion.version}` : ''}</strong>
                     <span style={{ display: 'block', color: '#94a3b8', fontSize: 12, lineHeight: 1.4, marginBottom: 4 }}>{suggestion.description}</span>
                     <code style={{ display: 'block', color: '#cbd5e1', fontSize: 11, overflowWrap: 'anywhere' }}>{suggestion.manifestUrl}</code>
                   </div>

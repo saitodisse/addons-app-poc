@@ -9,6 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Changed
 
 - Show add-on settings and search controls together with the expanded contract.
+- Show each suggested add-on's version from its manifest.
 
 ### Fixed
 
