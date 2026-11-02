@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ContentEditorProvider } from '../content-editor';
 import type { ContentViewProvider } from '../content-view';
 import type { SearchResultRow } from '../search';
+import type { AddonInstance } from '@addons-poc/protocol';
 import { SearchResultPage } from './SearchResultPage';
 
 const chartUrl = 'http://localhost:5295/text/chart/static-and-rain/content.txt';
@@ -88,6 +89,51 @@ describe('SearchResultPage', () => {
     expect(container.querySelector('.host-article-card pre')?.textContent).toBe('Am F C G');
     expect(container.querySelector('.host-article-edit-button')?.textContent).toBe('Edit');
     expect(container.querySelector('[role="status"]')).toBeNull();
+  });
+
+  it('keeps the current reading values in the header and updates them through keyboard shortcuts', async () => {
+    const statusTarget = document.createElement('div');
+    statusTarget.id = 'host-reading-status';
+    document.body.prepend(statusTarget);
+    const snapshot = deferred<{ status: 'success'; body: string; values: Record<string, string>; items: Array<{ label: string; value: string }> }>();
+    const addon = {
+      manifest: { contract: { ui: { fields: [], actions: [{ id: 'apply', receives: [] }] } } },
+      ui: {
+        title: 'Viewer',
+        fields: [
+          { id: 'fontSize', label: 'Font size', type: 'range', min: 10, max: 40 },
+          { id: 'transposeNumber', label: 'Transpose', type: 'range', min: -6, max: 6 },
+        ],
+        actions: [{ id: 'apply', label: 'Apply', live: true, receives: ['fontSize', 'transposeNumber'] }],
+        getSnapshot: () => snapshot.promise,
+        run: async () => ({ status: 'success', body: '', items: [
+          { label: 'Source', value: chartUrl.replace('/content.txt', '/content.json') },
+          { label: 'Keys', value: 'G played' },
+        ] }),
+      },
+    } as unknown as AddonInstance;
+    const viewProvider: ContentViewProvider = { render: () => ({ html: '<pre>C</pre>' }) };
+    try {
+      const fetchResource = vi.fn(async () => new Response(JSON.stringify({ playableVersion: { key: 'G' } }))) as unknown as typeof fetch;
+      await act(async () => root.render(<SearchResultPage contentUrl={chartUrl} result={chart} ready viewProvider={viewProvider} viewAddon={addon} fetchResource={fetchResource} />));
+      await act(async () => snapshot.resolve({ status: 'success', body: '', values: { fontSize: '20', transposeNumber: '0' }, items: [
+        { label: 'Source', value: chartUrl.replace('/content.txt', '/content.json') },
+        { label: 'Keys', value: 'G played' },
+      ] }));
+      expect(statusTarget.textContent).toContain('Font size20');
+      expect(statusTarget.textContent).toContain('Transpose0');
+      expect(statusTarget.textContent).toContain('KeyG');
+      const originalFontOutput = statusTarget.querySelector('output');
+      await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: '=' })));
+      expect(statusTarget.textContent).toContain('Font size21');
+      expect(statusTarget.querySelector('output')).not.toBe(originalFontOutput);
+      await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: ']' })));
+      expect(statusTarget.textContent).toContain('Transpose1');
+      await act(async () => root.render(<SearchResultPage contentUrl={chartUrl} result={chart} ready />));
+      expect(statusTarget.textContent).toBe('');
+    } finally {
+      statusTarget.remove();
+    }
   });
 
   it('shows provider external links beside the content URL and rejects unsafe URLs', async () => {

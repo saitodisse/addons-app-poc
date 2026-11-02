@@ -31,10 +31,10 @@ function fallbackSuggestion(port: number): LocalManifestSuggestion {
 }
 
 export const PUBLISHED_MANIFEST_URLS = [
-  'https://addons-poc-release-1-16-2.vercel.app/chord-catalog/manifest.json',
-  'https://addons-poc-release-1-16-2.vercel.app/chord-viewer/manifest.json',
-  'https://addons-poc-release-1-16-2.vercel.app/storage-local/manifest.json',
-  'https://addons-poc-release-1-16-2.vercel.app/chord-editor/manifest.json',
+  'https://addons-poc-release-1-17-0.vercel.app/chord-catalog/manifest.json',
+  'https://addons-poc-release-1-17-0.vercel.app/chord-viewer/manifest.json',
+  'https://addons-poc-release-1-17-0.vercel.app/storage-local/manifest.json',
+  'https://addons-poc-release-1-17-0.vercel.app/chord-editor/manifest.json',
 ] as const;
 
 export function manifestSuggestions(hostname: string): LocalManifestSuggestion[] {

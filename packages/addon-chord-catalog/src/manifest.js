@@ -130,6 +130,11 @@ const chartJsonSchema = object('Structured chart payload consumed by a renderer.
     albumTitle: string('Album that first released this song.'),
     firstReleasedYear: integer('Year the album was first released.'),
     composers: array('Composers credited for the work.', 'public', string('Composer name.')),
+    genre: object('Artist genre reported by the source.', 'public', {
+      id: integer('Source genre identifier.'),
+      name: string('Genre name.'),
+      slug: string('Source genre slug.'),
+    }),
   }, ['title']),
   playableVersion: object('Version of the work this chart describes.', 'public', {
     id: string('Version identifier.'),
@@ -139,6 +144,10 @@ const chartJsonSchema = object('Structured chart payload consumed by a renderer.
     tempo: integer('Suggested tempo in beats per minute.'),
     time: string('Time signature.'),
     difficulty: integer('Difficulty from 1 to 5.'),
+    statistics: object('Source statistics at collection time.', 'public', {
+      allTimeViews: integer('Views reported by the source.'),
+      listAppearances: integer('Appearances in source lists.'),
+    }),
   }, ['id', 'key']),
   notation: object('Notation rules of the delivered text.', 'public', {
     format: string('Chord-over-lyrics is the supported layout.'),
@@ -191,7 +200,7 @@ const trafficEntrySchema = object('One HTTP exchange observed by the server.', '
 export const manifest = defineAddonManifest({
   entrypoint: './bundle.js',
   id: 'chord-catalog',
-  version: '1.1.1',
+  version: '1.2.0',
   name: 'Chord Chart Catalogue',
   description: 'Lists, searches and imports chord charts, including locally decrypted private archives.',
   author: 'AC Team',

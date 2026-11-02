@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { importSource, importArchive, sha256, sourceLines, updateSources } from './source-import.js';
+import { toContentJson } from './payloads-core.js';
 import { strToU8, unzipSync, zipSync } from 'fflate';
 import { readFile } from 'node:fs/promises';
 import { encryptedTestArchive } from './test-crypto-fixture.js';
@@ -95,7 +96,7 @@ async function scraperZip({ prefix = 'downloads/artist/', changeText = false, mi
     source: 'Cifra Club', sourceUrl: 'https://www.cifraclub.com.br/artist/song/', collectedAt: '2026-10-18T12:00:00Z',
     artist: { name: 'Artista', slug: 'artist', genre: { name: 'MPB' } }, title: 'Canção',
     file: { name: 'song.txt', sha256: await sha256(SCRAPER_TEXT), bytes: strToU8(SCRAPER_TEXT).length },
-    chart: { displayedKey: 'C', capo: 2, tuning: 'E A D G B E', instrument: { slug: 'cifra-group' }, composers: ['Compositor'], version: { name: 'Principal' } },
+    chart: { displayedKey: 'C', capo: 2, tuning: 'E A D G B E', instrument: { slug: 'cifra-group' }, composers: ['Compositor'], version: { name: 'Principal' }, statistics: { allTimeViews: 1234, listAppearances: 42 } },
     chords: [{ name: 'C', shapes: { guitar: ['X 3 2 0 1 0'] } }, { name: 'G' }],
   };
   const files = { [`${prefix}song.source.json`]: strToU8(JSON.stringify(data)), [`${prefix}songs.json`]: strToU8('[]') };
@@ -225,8 +226,11 @@ describe('ZIP source imports', () => {
     expect(snapshot.root).toBe(ZIP_URL);
     expect(snapshot.charts).toHaveLength(1);
     expect(snapshot.charts[0]).toMatchObject({ title: 'Canção', text: SCRAPER_TEXT, artist: { name: 'Artista', slug: 'artist' },
-      key: 'C', capo: 2, chords: ['C', 'G'], composers: ['Compositor'], tags: ['MPB'],
+      key: 'C', capo: 2, chords: ['C', 'G'], composers: ['Compositor'], tags: ['MPB'], visits: 1234,
       collectedAt: data.collectedAt, sourceUrl: data.sourceUrl, instrumentId: 'guitar', tuningId: 'guitar-standard', scraperMetadata: data });
+    const payload = toContentJson(snapshot.charts[0], { baseUrl: 'https://example.test/', checksum: snapshot.charts[0].checksum });
+    expect(payload.musicalWork.genre).toEqual({ name: 'MPB' });
+    expect(payload.playableVersion.statistics).toEqual({ allTimeViews: 1234, listAppearances: 42 });
   });
 
   it('imports multiple artists together and reports auxiliary TXT files without metadata', async () => {

@@ -100,6 +100,8 @@ export function toContentJson(chart, options) {
   const { baseUrl, requestId, durationMs, generatedAt } = options;
   const text = chart.text;
   const contentUrl = absolute(baseUrl, contentPath(chart, 'json'));
+  const genre = chart.scraperMetadata?.artist?.genre;
+  const statistics = chart.scraperMetadata?.chart?.statistics;
   return {
     id: chart.id,
     type: CHART_TYPE,
@@ -118,6 +120,7 @@ export function toContentJson(chart, options) {
       albumTitle: chart.album?.title,
       firstReleasedYear: chart.album?.firstReleasedYear,
       composers: chart.composers ?? [],
+      ...(genre && typeof genre === 'object' && !Array.isArray(genre) ? { genre } : {}),
     },
     playableVersion: {
       id: `${chart.id}-original`,
@@ -127,6 +130,7 @@ export function toContentJson(chart, options) {
       tempo: chart.tempo,
       time: chart.time,
       difficulty: chart.difficulty,
+      ...(statistics && typeof statistics === 'object' && !Array.isArray(statistics) ? { statistics } : {}),
     },
     notation: {
       format: 'chord-over-lyrics',

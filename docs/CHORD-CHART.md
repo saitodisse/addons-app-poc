@@ -448,6 +448,12 @@ are not substituted with demo shapes. `source.url` is the original song URL;
 `source.catalogueUrl` is the archive used to import it. Archive imports use the same
 IndexedDB library and offline search/reading as Source Catalog imports.
 
+The structured response also exposes the artist's genre as `musicalWork.genre`
+and the source's view and list counts as `playableVersion.statistics`, when
+available. These values describe the collection date; they are not live counts.
+The popular catalogue uses the imported all-time view count. Existing imports
+retain the original metadata, so these fields do not require another import.
+
 The archive's URL identifies the snapshot. Updating the same URL replaces that
 snapshot; changing a signed URL creates a separate source. Prefer a stable URL
 for repeated updates. Chart identity within an archive uses the original song URL,

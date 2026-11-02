@@ -615,6 +615,40 @@ main.host-search-result-page-main {
   line-height: 1.55;
 }
 
+.host-reading-status:empty { display: none; }
+.host-reading-status {
+  max-width: 1200px;
+  margin: 10px auto 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.host-reading-status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 9px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 6px;
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1.3;
+}
+.host-reading-status-value {
+  display: inline-block;
+  color: #93c5fd;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  animation: host-reading-value-change 400ms ease-out;
+}
+@keyframes host-reading-value-change {
+  0% { color: #fff; transform: scale(1.3); }
+  100% { color: #93c5fd; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .host-reading-status-value { animation: none; }
+}
+
 .host-tab-panel {
   position: sticky;
   top: 88px;

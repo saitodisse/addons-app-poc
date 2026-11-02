@@ -192,6 +192,7 @@ export function Header({
           </nav>
         </div>
       </div>
+      <div id="host-reading-status" />
     </header>
   );
 }

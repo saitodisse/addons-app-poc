@@ -4,6 +4,17 @@ This file describes, in reverse order, how the project evolved. The quick read s
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.17.0] - 2026-11-02
+
+### Added
+
+- Keep font size, transposition and the declared played key visible in the fixed header while reading or editing a chart, with motion-aware value changes.
+- Expose imported artist genre and collected view and list statistics in structured chart content, including metadata retained by previous imports.
+
+### Changed
+
+- Publish a new fixed add-on release and use its manifests in the production suggestions.
+
 ## [1.16.2] - 2026-11-02
 
 ### Changed

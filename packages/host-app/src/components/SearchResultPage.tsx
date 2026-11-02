@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { requestContentView, type ContentViewProvider, type ContentViewResult } from '../content-view';
 import { requestContentEditor, supportsContentEditor, type ContentEditorProvider } from '../content-editor';
 import type { AddonInstance } from '@addons-poc/protocol';
@@ -169,6 +170,15 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
   const canTranspose = Boolean(transposeField?.type === 'range' && liveFieldIds.has('transposeNumber'));
   const hasPrimaryControls = canAdjustFontSize || canTranspose;
   const compactControls = hasPrimaryControls && !controlsExpanded;
+  const readingStatusTarget = typeof document === 'undefined' ? null : document.getElementById('host-reading-status');
+  const responseItems = controller.response?.items;
+  const responseSource = responseItems?.find((item) => item.label === 'Source')?.value;
+  const playableVersion = details?.body.playableVersion;
+  const declaredKey = playableVersion && typeof playableVersion === 'object' && 'key' in playableVersion
+    ? textValue(playableVersion.key) : undefined;
+  const responseKey = declaredKey && responseSource === contentUrl?.replace(/\/content\.txt(?=$|[?#])/u, '/content.json')
+    ? responseItems?.find((item) => item.label === 'Keys')?.value.match(/^([^\s?]+) played$/u)?.[1]
+    : undefined;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -380,6 +390,22 @@ export function SearchResultPage({ contentUrl, result, ready, viewProvider, view
       lang={language}
       dir={direction}
     >
+      {readingStatusTarget && !loading && !error && renderedView && hasPrimaryControls && createPortal(
+        <div className="host-reading-status" aria-label="Reading settings">
+          {canAdjustFontSize && fontField && <span className="host-reading-status-item">
+            <span>{fontField.label}</span>
+            <output key={`font-${controller.values.fontSize}`} className="host-reading-status-value">{controller.values.fontSize || String(fontField.type === 'range' ? fontField.min ?? 0 : 0)}</output>
+          </span>}
+          {canTranspose && transposeField && <span className="host-reading-status-item">
+            <span>{transposeField.label}</span>
+            <output key={`transpose-${controller.values.transposeNumber}`} className="host-reading-status-value">{controller.values.transposeNumber || String(transposeField.type === 'range' ? transposeField.min ?? 0 : 0)}</output>
+          </span>}
+          {responseKey && <span className="host-reading-status-item">
+            <span>Key</span>
+            <output key={`key-${responseKey}`} className="host-reading-status-value">{responseKey}</output>
+          </span>}
+        </div>, readingStatusTarget,
+      )}
       <a
         href="#/"
         className="host-article-back"
