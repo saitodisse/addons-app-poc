@@ -1,6 +1,6 @@
 {
   "name": "addons-poc",
-  "version": "1.16.0",
+  "version": "1.16.1",
   "private": true,
   "scripts": {
     "test": "pnpm check:host-boundary && pnpm run build:protocol && pnpm -r --filter './packages/**' test && node --test deployment/addons/release.test.mjs",

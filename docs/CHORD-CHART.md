@@ -408,6 +408,12 @@ The archive type and encryption are detected from the bytes, not its extension;
 only encrypted archives require the certificate and passphrase. The same
 compressed-size and extraction limits apply to URL and local imports.
 
+For an archive exceeding these limits, create several independent TAR.ZST files
+and import each separately. Do not split the compressed bytes: every part must
+be a complete archive with each chart's TXT and matching metadata together.
+Each part is a separate snapshot. The importer accepts the `./` root directory
+entry produced when archiving the current directory.
+
 The scraper already exports text and metadata together. Importing that export
 directly avoids requiring a separate catalogue generator. In **Chord Chart
 Catalog → Settings → Source catalogue URLs (one per line)**, enter the HTTP(S)

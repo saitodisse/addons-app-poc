@@ -89,8 +89,9 @@ export async function readTarZstd(bytes) {
           if (prefix) path = `${prefix}/${path}`;
         }
         if (!special) path = attributes.path ?? longName ?? path;
+        const rootDirectory = type === '5' && /^(\.\/)+$/.test(path);
         path = path.replace(/^(\.\/)+/, '');
-        if (!path || /[\\\x00-\x1f]/.test(path) || path.startsWith('/') || /^[a-z][a-z\d+.-]*:/i.test(path) || path.split('/').some((part) => part === '..' || part === '.')) throw new Error(`Unsafe TAR path: ${path}`);
+        if ((!path && !rootDirectory) || /[\\\x00-\x1f]/.test(path) || path.startsWith('/') || /^[a-z][a-z\d+.-]*:/i.test(path) || path.split('/').some((part) => part === '..' || part === '.')) throw new Error(`Unsafe TAR path: ${path}`);
         let size = number(header.subarray(124, 136));
         if (!special && attributes.size !== undefined) {
           if (!/^\d+$/.test(attributes.size)) throw new Error('Invalid TAR extended size.');

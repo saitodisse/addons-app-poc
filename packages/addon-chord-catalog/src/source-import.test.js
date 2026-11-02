@@ -105,6 +105,11 @@ async function scraperZip({ prefix = 'downloads/artist/', changeText = false, mi
 const zipFetch = (bytes) => async () => new Response(bytes, { headers: { 'Content-Type': 'application/zip' } });
 
 describe('TAR with Zstandard imports', () => {
+  it('imports an archive containing the root directory entry ./', async () => {
+    const bytes = await readFile(new URL('./fixtures/root-directory.tar.zst', import.meta.url));
+    const snapshot = await importArchive('https://local-upload.invalid/root', bytes);
+    expect(snapshot.charts).toHaveLength(2);
+  });
   it('imports an entire downloads folder packed with tar -I zstd, preserving artists and text', async () => {
     const bytes = await readFile(new URL('./fixtures/downloads.tar.zst', import.meta.url));
     const root = 'https://example.test/downloads.tar.zst';
