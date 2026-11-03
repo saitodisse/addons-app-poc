@@ -4,6 +4,12 @@ This file describes, in reverse order, how the project evolved. The quick read s
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.19.1] - 2026-11-03
+
+### Fixed
+
+- Restore the offline application worker when add-ons are installed after a factory reset, and wait for activation before caching them.
+
 ## [1.19.0] - 2026-11-03
 
 ### Changed
