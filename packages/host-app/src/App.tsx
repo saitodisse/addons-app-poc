@@ -179,7 +179,12 @@ export function App({ importAddonModule }: AppProps = {}) {
   const browsePagesRef = useRef(new Map<number, SearchCollection>());
   const [browsing, setBrowsing] = useState(false);
   const addonLifecycleRef = useRef(0);
-  const fetchResource = useMemo(() => createResourceFetch(registry), [registry]);
+  const resourceAddonsRef = useRef(addons);
+  resourceAddonsRef.current = addons;
+  const fetchResource = useMemo(() => createResourceFetch(registry, fetch, () => resourceAddonsRef.current.flatMap((addon) =>
+    addon.status === 'ready' && addon.manifest.entrypoint
+      ? [{ manifestUrl: addon.manifestUrl, entrypoint: addon.manifest.entrypoint }]
+      : [])), [registry]);
   const httpTextClient = useMemo(() => createFetchSearchClient(fetchResource), [fetchResource]);
   useEffect(() => {
     if (factoryResetRef.current && addons.length === 0) return;

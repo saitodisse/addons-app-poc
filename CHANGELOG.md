@@ -4,6 +4,12 @@ This file describes, in reverse order, how the project evolved. The quick read s
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.19.2] - 2026-11-03
+
+### Fixed
+
+- Route requests from branded add-on manifest URLs to their local resource providers when the executable bundle uses a different origin, restoring access to imported charts.
+
 ## [1.19.1] - 2026-11-03
 
 ### Fixed
