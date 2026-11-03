@@ -2,6 +2,8 @@
 
 A fixed release keeps its own manifest, bundle, catalogue function and Monaco files. The host identifies an installation by its manifest URL, so installing a new release creates a separate installation. Remove the old one in Settings when appropriate. A Vercel project owner can still overwrite or delete a release: preserve it by never redeploying to its project or reassigning its domain.
 
+The host's branded domain is separate from the fixed release origins. Existing releases remain at their versioned `https://addons-poc-release-<version>.vercel.app` addresses, including older versions. Keep those origins stable because manifests and installed add-ons use them directly. A host rebrand or domain change does not move old releases; publish a new fixed release if an add-on origin needs to change.
+
 The current host suggests release 1.17.0 in production and local servers on localhost. The older 1.15.0 catalogue has a known failure in its plain-text content route; its structured JSON route works. The issue is corrected in 1.16.0. Do not overwrite preserved releases.
 
 ## Prepare
