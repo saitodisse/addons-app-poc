@@ -10,6 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Rename the repository, local project directory, and Vercel host project to PeekMosaic while preserving published protocol and add-on identities.
 - Update the GitHub links and production host reference to the new repository and Vercel project names.
+- Attach PeekMosaic.com and www.peekmosaic.com to the Vercel project; their DNS still requires an update at Squarespace.
 
 ## [1.18.0] - 2026-11-02
 
