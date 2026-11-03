@@ -4,6 +4,13 @@ This file describes, in reverse order, how the project evolved. The quick read s
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.18.1] - 2026-11-02
+
+### Changed
+
+- Rename the repository, local project directory, and Vercel host project to PeekMosaic while preserving published protocol and add-on identities.
+- Update the GitHub links and production host reference to the new repository and Vercel project names.
+
 ## [1.18.0] - 2026-11-02
 
 ### Added

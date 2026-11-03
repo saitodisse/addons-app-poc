@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
-  "description": "Public contract and SDK for trusted addons-app-poc add-ons",
+  "description": "Public contract and SDK for trusted PeekMosaic add-ons",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/saitodisse/addons-app-poc.git"
+    "url": "git+https://github.com/saitodisse/peekmosaic.git"
   },
   "publishConfig": {
     "access": "public"
@@ -41,7 +41,7 @@
   "keywords": ["addons", "plugins", "protocol"],
   "author": "AC Add-ons POC contributors",
   "bugs": {
-    "url": "https://github.com/saitodisse/addons-app-poc/issues"
+    "url": "https://github.com/saitodisse/peekmosaic/issues"
   },
-  "homepage": "https://github.com/saitodisse/addons-app-poc#readme"
+  "homepage": "https://github.com/saitodisse/peekmosaic#readme"
 }

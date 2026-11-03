@@ -1,6 +1,6 @@
 # PROVENANCE
 
-This directory is a **ported subset** of the `@achorde/tab-renderer` package, copied from the `achorde` project so it can be used independently inside `addons-app-poc`.
+This directory is a **ported subset** of the `@achorde/tab-renderer` package, copied from the `achorde` project so it can be used independently inside PeekMosaic.
 
 ## Origin
 

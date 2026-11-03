@@ -14,7 +14,7 @@ const MAX_API_RETRIES = 2;
 const RETRY_BASE_DELAY_MS = 250;
 const MAX_RETRY_DELAY_MS = 5000;
 const SEARCH_CACHE_TTL_MS = 60_000;
-const WIKIPEDIA_USER_AGENT = 'addons-app-poc (https://github.com/saitodisse/addons-app-poc)';
+const WIKIPEDIA_USER_AGENT = 'PeekMosaic (https://github.com/saitodisse/peekmosaic)';
 const WIKIPEDIA_REQUEST_HEADERS = {
   'User-Agent': WIKIPEDIA_USER_AGENT,
   Accept: 'application/json',

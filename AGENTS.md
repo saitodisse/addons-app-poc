@@ -6,7 +6,7 @@ Always respond in **Brazilian Portuguese**.
 
 ## Before changing anything
 
-The **addons-app-poc** is not part of the AC ecosystem, the `achorde` monorepo, or `ac15`. It may have originated in earlier discussions, but it is now an independent repository. Do not move code between these projects or create dependencies on them.
+The **PeekMosaic** repository is not part of the AC ecosystem, the `achorde` monorepo, or `ac15`. It may have originated in earlier discussions, but it is an independent repository. Do not move code between these projects or create dependencies on them.
 
 Inspect the code and documentation before proposing structural changes. Preserve existing user changes and ignore differences unrelated to the task.
 

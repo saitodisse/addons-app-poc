@@ -18,7 +18,7 @@ describe('suggested local manifests', () => {
   it('selects only the manifests for the current environment', () => {
     expect(manifestSuggestions('localhost').map((item) => item.manifestUrl)).toEqual(LOCAL_MANIFEST_URLS);
     expect(manifestSuggestions('127.0.0.1').map((item) => item.manifestUrl)).toEqual(LOCAL_MANIFEST_URLS);
-    expect(manifestSuggestions('addons-app-poc.vercel.app').map((item) => item.manifestUrl)).toEqual([...PUBLISHED_MANIFEST_URLS]);
+    expect(manifestSuggestions('peekmosaic.vercel.app').map((item) => item.manifestUrl)).toEqual([...PUBLISHED_MANIFEST_URLS]);
   });
 
   it('builds a local URL from the port', () => {
