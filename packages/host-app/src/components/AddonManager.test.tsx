@@ -38,4 +38,26 @@ describe('available manifest versions', () => {
     expect(details.open).toBe(true);
     await act(async () => root.unmount());
   });
+
+  it('shows an installed fixed release with its PeekMosaic alias', async () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const root = createRoot(container);
+    const installed = {
+      manifestUrl: 'https://addons-poc-release-1-16-2.vercel.app/chord-viewer/manifest.json',
+      status: 'ready',
+      manifest: { id: 'chord-viewer', name: 'Chord Chart Viewer', description: '', version: '1.1.5', contract: { services: [], state: [] } },
+    } as unknown as AddonInstance;
+    await act(async () => {
+      root.render(<AddonManager addons={[installed]} disabledAddonUrls={[]} pendingContractUrls={[]} searchLimits={{}} searchLanguages={{}} onSearchLimitChange={vi.fn()} onSearchLanguageChange={vi.fn()} onInspectManifest={vi.fn()} onInstallFromUrl={vi.fn()} onToggle={vi.fn()} onRemove={vi.fn()} onAcceptContract={vi.fn()} onFactoryReset={vi.fn()} loading={false} />);
+    });
+    const viewer = container.querySelector('section[aria-label="Chord Chart Viewer"]')!;
+    const row = [...viewer.querySelectorAll<HTMLElement>('.host-addon-suggestion')]
+      .find((element) => element.textContent?.includes('v1.1.5'))!;
+    expect(row.querySelector('code')?.textContent).toBe('https://www.peekmosaic.com/addons/1.16.2/chord-viewer/manifest.json');
+    expect(row.textContent).toContain('Installed');
+    const install = row.querySelector<HTMLButtonElement>('button[aria-label^="Install "]')!;
+    expect(install.disabled).toBe(true);
+    await act(async () => root.unmount());
+  });
 });

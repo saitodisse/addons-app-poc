@@ -11,6 +11,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Rename the repository, local project directory, and Vercel host project to PeekMosaic while preserving published protocol and add-on identities.
 - Update the GitHub links and production host reference to the new repository and Vercel project names.
 - Connect www.peekmosaic.com as the production host; peekmosaic.com redirects to it. Keep existing versioned add-on release addresses unchanged for compatibility.
+- Expose branded manifest URLs under www.peekmosaic.com while proxying to each unchanged versioned release project.
 
 ## [1.18.0] - 2026-11-02
 

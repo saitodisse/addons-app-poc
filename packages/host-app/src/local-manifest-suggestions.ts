@@ -15,6 +15,41 @@ export function localManifestUrl(port: number): string {
   return `http://localhost:${port}/manifest.json`;
 }
 
+export const PUBLISHED_RELEASE_VERSIONS = ['1.15.0', '1.16.0', '1.16.1', '1.16.2', '1.17.0'] as const;
+
+const PEEKMOSAIC_RELEASES_ORIGIN = 'https://www.peekmosaic.com/addons';
+const PUBLISHED_ADDON_IDS = ['chord-catalog', 'chord-viewer', 'storage-local', 'chord-editor'] as const;
+const PUBLISHED_RELEASE_MANIFESTS = [
+  { version: '1.17.0', addonIds: PUBLISHED_ADDON_IDS },
+  { version: '1.16.2', addonIds: ['chord-catalog', 'chord-viewer', 'chord-editor'] },
+  { version: '1.16.1', addonIds: ['chord-viewer', 'chord-editor'] },
+  { version: '1.16.0', addonIds: ['chord-catalog', 'chord-viewer', 'chord-editor'] },
+  { version: '1.15.0', addonIds: ['chord-catalog', 'chord-viewer', 'chord-editor'] },
+] as const;
+
+function publishedManifestUrl(version: string, addonId: string): string {
+  return `${PEEKMOSAIC_RELEASES_ORIGIN}/${version}/${addonId}/manifest.json`;
+}
+
+/** Maps a fixed legacy Vercel URL to the branded alias without changing installation identity. */
+export function peekMosaicManifestUrl(manifestUrl: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(manifestUrl);
+  } catch {
+    return manifestUrl;
+  }
+
+  const release = /^addons-poc-release-(\d+)-(\d+)-(\d+)\.vercel\.app$/.exec(parsed.hostname);
+  const addon = /^\/(chord-catalog|chord-viewer|storage-local|chord-editor)\/manifest\.json$/.exec(parsed.pathname)?.[1];
+  const version = release?.slice(1).join('.');
+  if (parsed.protocol !== 'https:' || !addon || !version || !PUBLISHED_RELEASE_VERSIONS.some((publishedVersion) => publishedVersion === version)) {
+    return manifestUrl;
+  }
+
+  return publishedManifestUrl(version, addon);
+}
+
 export const LOCAL_MANIFEST_URLS = LOCAL_MANIFEST_PORTS.map(localManifestUrl);
 
 export interface LocalManifestSuggestion {
@@ -61,12 +96,9 @@ function fallbackSuggestion(port: number): LocalManifestSuggestion {
   };
 }
 
-export const PUBLISHED_MANIFEST_URLS = [
-  'https://addons-poc-release-1-17-0.vercel.app/chord-catalog/manifest.json',
-  'https://addons-poc-release-1-17-0.vercel.app/chord-viewer/manifest.json',
-  'https://addons-poc-release-1-17-0.vercel.app/storage-local/manifest.json',
-  'https://addons-poc-release-1-17-0.vercel.app/chord-editor/manifest.json',
-] as const;
+export const PUBLISHED_MANIFEST_URLS = PUBLISHED_RELEASE_MANIFESTS.flatMap(({ version, addonIds }) =>
+  addonIds.map((addonId) => publishedManifestUrl(version, addonId)),
+);
 
 export function manifestSuggestions(hostname: string): LocalManifestSuggestion[] {
   const local = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1';

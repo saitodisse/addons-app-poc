@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LOCAL_MANIFEST_PORTS, LOCAL_MANIFEST_URLS, loadLocalManifestSuggestions, localManifestUrl, manifestSuggestions, olderManifestUrls, PUBLISHED_MANIFEST_URLS } from './local-manifest-suggestions';
+import { LOCAL_MANIFEST_PORTS, LOCAL_MANIFEST_URLS, loadLocalManifestSuggestions, localManifestUrl, manifestSuggestions, olderManifestUrls, peekMosaicManifestUrl, PUBLISHED_MANIFEST_URLS } from './local-manifest-suggestions';
 
 describe('suggested local manifests', () => {
   it('keeps local URLs even before reading metadata', () => {
@@ -18,7 +18,31 @@ describe('suggested local manifests', () => {
   it('selects only the manifests for the current environment', () => {
     expect(manifestSuggestions('localhost').map((item) => item.manifestUrl)).toEqual(LOCAL_MANIFEST_URLS);
     expect(manifestSuggestions('127.0.0.1').map((item) => item.manifestUrl)).toEqual(LOCAL_MANIFEST_URLS);
-    expect(manifestSuggestions('peekmosaic.vercel.app').map((item) => item.manifestUrl)).toEqual([...PUBLISHED_MANIFEST_URLS]);
+    expect(manifestSuggestions('www.peekmosaic.com').map((item) => item.manifestUrl)).toEqual([...PUBLISHED_MANIFEST_URLS]);
+    expect(PUBLISHED_MANIFEST_URLS).toEqual([
+      'https://www.peekmosaic.com/addons/1.17.0/chord-catalog/manifest.json',
+      'https://www.peekmosaic.com/addons/1.17.0/chord-viewer/manifest.json',
+      'https://www.peekmosaic.com/addons/1.17.0/storage-local/manifest.json',
+      'https://www.peekmosaic.com/addons/1.17.0/chord-editor/manifest.json',
+      'https://www.peekmosaic.com/addons/1.16.2/chord-catalog/manifest.json',
+      'https://www.peekmosaic.com/addons/1.16.2/chord-viewer/manifest.json',
+      'https://www.peekmosaic.com/addons/1.16.2/chord-editor/manifest.json',
+      'https://www.peekmosaic.com/addons/1.16.1/chord-viewer/manifest.json',
+      'https://www.peekmosaic.com/addons/1.16.1/chord-editor/manifest.json',
+      'https://www.peekmosaic.com/addons/1.16.0/chord-catalog/manifest.json',
+      'https://www.peekmosaic.com/addons/1.16.0/chord-viewer/manifest.json',
+      'https://www.peekmosaic.com/addons/1.16.0/chord-editor/manifest.json',
+      'https://www.peekmosaic.com/addons/1.15.0/chord-catalog/manifest.json',
+      'https://www.peekmosaic.com/addons/1.15.0/chord-viewer/manifest.json',
+      'https://www.peekmosaic.com/addons/1.15.0/chord-editor/manifest.json',
+    ]);
+  });
+
+  it('maps known fixed release manifest URLs to branded aliases', () => {
+    expect(peekMosaicManifestUrl('https://addons-poc-release-1-16-2.vercel.app/chord-viewer/manifest.json'))
+      .toBe('https://www.peekmosaic.com/addons/1.16.2/chord-viewer/manifest.json');
+    expect(peekMosaicManifestUrl('https://addons-poc-release-9-99-0.vercel.app/chord-viewer/manifest.json'))
+      .toBe('https://addons-poc-release-9-99-0.vercel.app/chord-viewer/manifest.json');
   });
 
   it('builds a local URL from the port', () => {

@@ -4,7 +4,7 @@ import type { AddonInstance, AddonManifest } from '@addons-poc/protocol';
 import { AddonCard } from './AddonCard';
 import { AddonContractView } from './AddonContractView';
 import { FactoryResetControl } from './FactoryResetControl';
-import { LOCAL_MANIFEST_SUGGESTIONS, groupManifestSuggestions, loadLocalManifestSuggestions, olderManifestUrls } from '../local-manifest-suggestions';
+import { LOCAL_MANIFEST_SUGGESTIONS, groupManifestSuggestions, loadLocalManifestSuggestions, olderManifestUrls, peekMosaicManifestUrl } from '../local-manifest-suggestions';
 import type { LocalManifestSuggestion } from '../local-manifest-suggestions';
 import { DEFAULT_SEARCH_LIMIT } from '../search';
 import type { SearchLanguages, SearchLimitValue } from '../search';
@@ -42,15 +42,16 @@ export function AddonManager({ addons, onResourcesChanged, disabledAddonUrls, pe
   const [suggestions, setSuggestions] = useState(LOCAL_MANIFEST_SUGGESTIONS);
   const pendingReviewRef = useRef<HTMLDivElement>(null);
   const busy = loading || inspecting;
-  const installedManifestUrls = new Set(addons.map((addon) => addon.manifestUrl));
+  const installedManifestUrls = new Set(addons.map((addon) => peekMosaicManifestUrl(addon.manifestUrl)));
   const availableSuggestions = [...suggestions.map((suggestion) => {
-    const installed = addons.find((addon) => addon.manifestUrl === suggestion.manifestUrl);
+    const manifestUrl = peekMosaicManifestUrl(suggestion.manifestUrl);
+    const installed = addons.find((addon) => peekMosaicManifestUrl(addon.manifestUrl) === manifestUrl);
     return installed && !suggestion.id
-      ? { ...suggestion, id: installed.manifest.id, title: installed.manifest.name, description: installed.manifest.description, version: installed.manifest.version }
-      : suggestion;
+      ? { ...suggestion, manifestUrl, id: installed.manifest.id, title: installed.manifest.name, description: installed.manifest.description, version: installed.manifest.version }
+      : { ...suggestion, manifestUrl };
   }), ...addons
-    .filter((addon) => !suggestions.some((suggestion) => suggestion.manifestUrl === addon.manifestUrl))
-    .map((addon) => ({ manifestUrl: addon.manifestUrl, id: addon.manifest.id, title: addon.manifest.name, description: addon.manifest.description, version: addon.manifest.version }))];
+    .filter((addon) => !suggestions.some((suggestion) => peekMosaicManifestUrl(suggestion.manifestUrl) === peekMosaicManifestUrl(addon.manifestUrl)))
+    .map((addon) => ({ manifestUrl: peekMosaicManifestUrl(addon.manifestUrl), id: addon.manifest.id, title: addon.manifest.name, description: addon.manifest.description, version: addon.manifest.version }))];
   const olderUrls = olderManifestUrls(availableSuggestions);
   const suggestionGroups = groupManifestSuggestions(availableSuggestions);
   const pendingIsLocalSuggestion = pendingInstallation ? availableSuggestions.some((suggestion) => suggestion.manifestUrl === pendingInstallation.manifestUrl) : false;
@@ -135,6 +136,8 @@ export function AddonManager({ addons, onResourcesChanged, disabledAddonUrls, pe
   const renderSuggestion = (suggestion: LocalManifestSuggestion) => {
   const isOpen = pendingInstallation?.manifestUrl === suggestion.manifestUrl;
   const isInstalled = installedManifestUrls.has(suggestion.manifestUrl);
+  const installedUrl = addons.find((addon) => peekMosaicManifestUrl(addon.manifestUrl) === suggestion.manifestUrl)?.manifestUrl ?? suggestion.manifestUrl;
+  const isDisabled = disabledAddonUrls.includes(installedUrl);
   const isLatest = Boolean(suggestion.id && suggestion.version && parseSemVer(suggestion.version) && !olderUrls.has(suggestion.manifestUrl));
   const actionLabel = isOpen ? 'Close' : isInstalled ? 'Installed' : 'Install';
   return (
@@ -155,7 +158,7 @@ export function AddonManager({ addons, onResourcesChanged, disabledAddonUrls, pe
           <strong style={{ display: 'block', color: '#e2e8f0', fontSize: 13, marginBottom: 3 }}>{suggestion.title}{suggestion.version ? ` · v${suggestion.version}` : ''}</strong>
           <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 5 }}>
             {isLatest && <span style={{ color: '#56d8f5', fontSize: 11, fontWeight: 600 }}>Latest available</span>}
-            {isInstalled && <span style={{ color: '#86efac', fontSize: 11, fontWeight: 600 }}>Installed{disabledAddonUrls.includes(suggestion.manifestUrl) ? ' · disabled' : ''}</span>}
+            {isInstalled && <span style={{ color: '#86efac', fontSize: 11, fontWeight: 600 }}>Installed{isDisabled ? ' · disabled' : ''}</span>}
           </span>
           <span style={{ display: 'block', color: '#94a3b8', fontSize: 12, lineHeight: 1.4, marginBottom: 4 }}>{suggestion.description}</span>
           <code style={{ display: 'block', color: '#cbd5e1', fontSize: 11, overflowWrap: 'anywhere' }}>{suggestion.manifestUrl}</code>
