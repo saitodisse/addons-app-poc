@@ -220,14 +220,17 @@ describe('ZIP source imports', () => {
     expect(sourceLines(`${ROOT}source-manifest.json`)).toEqual([{ root: ROOT }]);
   });
 
-  it('converts scraper pairs without changing text, origin, collection date or chord metadata', async () => {
+  it('converts scraper pairs while storing only metadata used by the app', async () => {
     const { bytes, data } = await scraperZip();
     const snapshot = await importSource(ZIP_URL, zipFetch(bytes));
     expect(snapshot.root).toBe(ZIP_URL);
     expect(snapshot.charts).toHaveLength(1);
     expect(snapshot.charts[0]).toMatchObject({ title: 'Canção', text: SCRAPER_TEXT, artist: { name: 'Artista', slug: 'artist' },
-      key: 'C', capo: 2, chords: ['C', 'G'], composers: ['Compositor'], tags: ['MPB'], visits: 1234,
-      collectedAt: data.collectedAt, sourceUrl: data.sourceUrl, instrumentId: 'guitar', tuningId: 'guitar-standard', scraperMetadata: data });
+      key: 'C', capo: 2, composers: ['Compositor'], genre: { name: 'MPB' }, tags: ['MPB'], visits: 1234,
+      statistics: { allTimeViews: 1234, listAppearances: 42 }, collectedAt: data.collectedAt,
+      sourceUrl: data.sourceUrl, instrumentId: 'guitar', tuningId: 'guitar-standard' });
+    expect(snapshot.charts[0]).not.toHaveProperty('scraperMetadata');
+    expect(snapshot.charts[0]).not.toHaveProperty('chords');
     const payload = toContentJson(snapshot.charts[0], { baseUrl: 'https://example.test/', checksum: snapshot.charts[0].checksum });
     expect(payload.musicalWork.genre).toEqual({ name: 'MPB' });
     expect(payload.playableVersion.statistics).toEqual({ allTimeViews: 1234, listAppearances: 42 });

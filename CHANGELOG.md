@@ -4,6 +4,19 @@ This file describes, in reverse order, how the project evolved. The quick read s
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.19.0] - 2026-11-03
+
+### Changed
+
+- Keep only chart metadata used by the app when importing scraper files; omit the complete `.source.json` object and chord list, and migrate existing browser libraries to the compact format while retaining genre and selected view statistics.
+- Keep only artist, title, and genre in the in-memory search index, and read chart data from IndexedDB only for matching pages and opened results.
+- Publish updated chord catalogue, viewer, and editor add-ons as fixed release 1.17.2.
+- Move published add-ons ahead of local-only development examples in localhost suggestions.
+
+### Fixed
+
+- Make factory reset clear all same-origin local and session storage, IndexedDB databases, service workers, and offline caches.
+
 ## [1.18.2] - 2026-11-02
 
 ### Added

@@ -21,9 +21,9 @@ describe('chord catalogue browser tab', () => {
   });
 });
 
-const stored = vi.hoisted(() => ({ sources: [], list: vi.fn(), remove: vi.fn() }));
+const stored = vi.hoisted(() => ({ sources: [], list: vi.fn(), summaries: vi.fn(), searchEntries: vi.fn(), getChartsByIds: vi.fn(), remove: vi.fn() }));
 vi.mock('./library-store.js', () => ({
-  createLibraryStore: () => ({ list: stored.list, remove: stored.remove }),
+  createLibraryStore: () => ({ list: stored.list, summaries: stored.summaries, searchEntries: stored.searchEntries, getChartsByIds: stored.getChartsByIds, remove: stored.remove }),
 }));
 
 afterEach(() => vi.unstubAllGlobals());
@@ -34,6 +34,10 @@ describe('browser catalogue navigation cache', () => {
       { ...CHARTS[0], id: 'imported-cache-test', title: 'Unique cached chart', checksum: 'test' },
     ] }];
     stored.list.mockReset().mockImplementation(async () => stored.sources);
+    stored.searchEntries.mockReset().mockImplementation(async () => stored.sources.flatMap((source) => source.charts.map((chart) => ({
+      id: chart.id, title: chart.title, artist: chart.artist.name, genre: chart.genre?.name ?? chart.tags?.join(' ') ?? '',
+    }))));
+    stored.getChartsByIds.mockReset().mockImplementation(async (ids) => stored.sources.flatMap((source) => source.charts.filter((chart) => ids.includes(chart.id))));
     stored.remove.mockReset().mockImplementation(async () => { stored.sources = []; });
     vi.stubGlobal('location', { origin: 'http://localhost:5280' });
     await setup({ registerService: vi.fn() });
@@ -43,9 +47,9 @@ describe('browser catalogue navigation cache', () => {
     const first = JSON.parse((await search(0)).body);
     expect(first.metas.map((chart) => chart.id)).toEqual(['imported-cache-test']);
     expect(JSON.parse((await search(1)).body).metas).toEqual([]);
-    expect(stored.list).toHaveBeenCalledTimes(1);
+    expect(stored.searchEntries).toHaveBeenCalledTimes(1);
     await createTab().run('delete', { deleteSource: 'https://example.test/charts/' });
     expect(JSON.parse((await search(0)).body).metas).toEqual([]);
-    expect(stored.list).toHaveBeenCalledTimes(2);
+    expect(stored.searchEntries).toHaveBeenCalledTimes(2);
   });
 });

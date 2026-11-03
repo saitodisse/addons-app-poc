@@ -104,6 +104,54 @@ export function searchCharts(charts, query) {
     .map((entry) => entry.chart);
 }
 
+/** Builds the small in-memory search cache used by the browser catalogue. */
+export function createMetadataSearchEntry(chart) {
+  const genre = typeof chart.genre === 'string'
+    ? chart.genre
+    : chart.genre?.name ?? chart.tags?.join(' ') ?? '';
+  return {
+    id: chart.id,
+    title: chart.title ?? '',
+    artist: chart.artist?.name ?? '',
+    genre,
+  };
+}
+
+export function createMetadataSearchIndex(charts) {
+  return charts.map(createMetadataSearchEntry);
+}
+
+/** Searches only titles, artist names, and genres without retaining chart bodies. */
+export function searchMetadataIndex(index, query) {
+  const terms = normalizeText(query).split(' ').filter(Boolean);
+  if (terms.length === 0) return [];
+
+  return index
+    .map((entry) => {
+      const fields = [
+        [normalizeText(entry.title), 100, 60],
+        [normalizeText(entry.artist), 50, 35],
+        [normalizeText(entry.genre), 20, 12],
+      ];
+      let score = 0;
+      for (const term of terms) {
+        let best = 0;
+        for (const [value, exactScore, partialScore] of fields) {
+          if (value === term) best = Math.max(best, exactScore);
+          else if (value.startsWith(term)) best = Math.max(best, Math.round(exactScore * 0.8));
+          else if (value.includes(term)) best = Math.max(best, partialScore);
+        }
+        if (best === 0) return { entry, score: 0 };
+        score += best;
+      }
+      return { entry, score };
+    })
+    .filter((match) => match.score > 0)
+    .sort((left, right) =>
+      right.score - left.score || left.entry.title.localeCompare(right.entry.title))
+    .map((match) => match.entry);
+}
+
 /** Named views over the same data set. An unknown identifier returns nothing. */
 export function listCatalog(charts, catalogId) {
   const ordered = [...charts];

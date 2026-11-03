@@ -3,6 +3,7 @@
   "outputDirectory": "packages/host-app/dist",
   "installCommand": "pnpm install --frozen-lockfile",
   "rewrites": [
+    { "source": "/addons/1.17.2/:path*", "destination": "https://addons-poc-release-1-17-2.vercel.app/:path*" },
     { "source": "/addons/1.17.1/:path*", "destination": "https://addons-poc-release-1-17-1.vercel.app/:path*" },
     { "source": "/addons/1.17.0/:path*", "destination": "https://addons-poc-release-1-17-0.vercel.app/:path*" },
     { "source": "/addons/1.16.2/:path*", "destination": "https://addons-poc-release-1-16-2.vercel.app/:path*" },

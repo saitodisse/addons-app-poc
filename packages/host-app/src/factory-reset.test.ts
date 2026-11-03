@@ -16,6 +16,10 @@ class MemoryStorage {
     this.values.delete(key);
   }
 
+  clear(): void {
+    this.values.clear();
+  }
+
   setItem(key: string, value: string): void {
     this.values.set(key, value);
   }
@@ -26,7 +30,7 @@ class MemoryStorage {
 }
 
 describe('resetPersistedHostState', () => {
-  it('removes host settings and state from both storages', () => {
+  it('removes every key from both storages', () => {
     const localStorage = new MemoryStorage();
     const sessionStorage = new MemoryStorage();
     for (const storage of [localStorage, sessionStorage]) {
@@ -41,8 +45,10 @@ describe('resetPersistedHostState', () => {
     expect(localStorage.getItem(INSTALLATIONS_STORAGE_KEY)).toBeNull();
     expect(localStorage.getItem(`${STATE_STORAGE_PREFIX}favorites:list`)).toBeNull();
     expect(sessionStorage.getItem(`${STATE_STORAGE_PREFIX}host:search:results:v1`)).toBeNull();
-    expect(localStorage.getItem('other-application')).toBe('preserve');
-    expect(sessionStorage.getItem('other-application')).toBe('preserve');
+    expect(localStorage.getItem('other-application')).toBeNull();
+    expect(sessionStorage.getItem('other-application')).toBeNull();
+    expect(localStorage.length).toBe(0);
+    expect(sessionStorage.length).toBe(0);
   });
 
   it('accepts missing storage', () => {

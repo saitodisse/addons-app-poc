@@ -86,6 +86,23 @@ function requiredText(value, context) {
   return value;
 }
 
+function usedGenre(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const genre = {};
+  if (Number.isSafeInteger(value.id)) genre.id = value.id;
+  if (typeof value.name === 'string' && value.name.trim()) genre.name = value.name.trim();
+  if (typeof value.slug === 'string' && value.slug.trim()) genre.slug = value.slug.trim();
+  return Object.keys(genre).length ? genre : undefined;
+}
+
+function usedStatistics(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const statistics = {};
+  if (Number.isSafeInteger(value.allTimeViews)) statistics.allTimeViews = value.allTimeViews;
+  if (Number.isSafeInteger(value.listAppearances)) statistics.listAppearances = value.listAppearances;
+  return Object.keys(statistics).length ? statistics : undefined;
+}
+
 function uniqueIndex(rows, key, context) {
   const index = new Map();
   for (const row of rows) {
@@ -109,13 +126,19 @@ export async function chartsFromRecords(root, manifest, rows) {
     if (!version || !work || !artist || (version.payload.artistSlug && version.payload.artistSlug !== artist.payload.slug)) throw new Error(`Broken chart relationship: ${row.sourceRecordId}`);
     const text = requiredText(row.payload.rawText, 'chart text');
     const id = `source:${encodeURIComponent(root)}:${encodeURIComponent(manifest.id)}:${encodeURIComponent(row.sourceRecordId)}`;
+    const genre = usedGenre(artist.payload.genre);
+    const statistics = usedStatistics(version.payload.statistics);
     charts.push({
       id, title: requiredText(work.payload.title, 'musical work title'),
       artist: { name: requiredText(artist.payload.name, 'artist name'), slug: artist.payload.slug },
+      ...(genre ? { genre } : {}),
       text, checksum: await sha256(text), key: version.payload.sourceKey ?? '',
       capo: version.payload.capo ?? 0, tempo: version.payload.tempo ?? 0,
+      ...(statistics ? { statistics } : {}),
       time: version.payload.time ?? '', difficulty: version.payload.difficulty ?? 5,
-      chords: [], tags: [], composers: [], updatedAt: row.updatedAt ?? manifest.generatedAt ?? '',
+      tags: genre?.name ? [genre.name] : [],
+      composers: Array.isArray(work.payload.composers) ? work.payload.composers.filter((value) => typeof value === 'string') : [],
+      visits: statistics?.allTimeViews ?? 0, updatedAt: row.updatedAt ?? manifest.generatedAt ?? '',
       sourceRoot: root, sourceId: manifest.id, sourceName: manifest.name,
       versionLabel: version.payload.title, instrumentId: version.payload.instrumentId,
       tuningId: version.payload.tuningId,
@@ -208,21 +231,23 @@ async function importScraper(root, files) {
     const details = data.chart ?? {};
     const text = requiredText(textDecoder.decode(txt), 'chart text');
     const instrument = { 'cifra-group': 'guitar', guitar: 'guitar', ukulele: 'ukulele', cavaco: 'cavaquinho', keyboard: 'keyboard', bass: 'bass' }[details.instrument?.slug];
-    const chords = Array.isArray(data.chords) ? data.chords : [];
-    const chordNames = [...new Set(chords.map((chord) => typeof chord === 'string' ? chord : chord.name).filter((name) => typeof name === 'string' && name.trim()))];
+    const genre = usedGenre(data.artist.genre);
+    const statistics = usedStatistics(details.statistics);
     charts.push({
       id: `source:${encodeURIComponent(root)}:scraper:${encodeURIComponent(sourceUrl)}`,
       title: requiredText(data.title, 'chart title'),
       artist: { name: requiredText(data.artist.name, 'artist name'), slug: requiredText(data.artist.slug, 'artist slug') },
+      ...(genre ? { genre } : {}),
+      ...(statistics ? { statistics } : {}),
       text, checksum, key: details.displayedKey ?? details.originalKey ?? '', capo: details.capo ?? 0,
       tempo: details.strummings?.find((item) => Number.isFinite(item.bpm))?.bpm ?? 0,
-      time: '', difficulty: 5, chords: chordNames, composers: details.composers ?? [],
-      tags: data.artist.genre?.name ? [data.artist.genre.name] : [], visits: details.statistics?.allTimeViews ?? 0,
+      time: '', difficulty: 5, composers: Array.isArray(details.composers) ? details.composers.filter((value) => typeof value === 'string') : [],
+      tags: genre?.name ? [genre.name] : [], visits: statistics?.allTimeViews ?? 0,
       updatedAt: details.sourceUpdatedAt ?? data.collectedAt, collectedAt: data.collectedAt,
       sourceRoot: root, sourceId: 'artist-portal-scraper', sourceName: data.source ?? 'Artist Portal Scraper', sourceUrl,
       versionLabel: details.version?.name ?? 'Imported version', instrumentId: instrument ?? details.instrument?.slug ?? 'unknown',
       tuningId: instrument === 'guitar' && details.tuning === 'E A D G B E' ? 'guitar-standard' : undefined,
-      tuning: details.tuning, scraperMetadata: data,
+      tuning: details.tuning,
     });
     paired.add(txtPath);
   }

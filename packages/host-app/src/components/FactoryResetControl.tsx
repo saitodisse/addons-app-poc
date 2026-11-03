@@ -54,7 +54,7 @@ export function FactoryResetControl({ disabled = false, onReset }: FactoryResetC
     <section aria-label="Factory reset" style={{ marginTop: 8, padding: 16, border: '1px solid rgba(239,68,68,0.28)', borderRadius: 10, background: 'rgba(127,29,29,0.12)' }}>
       <h2 style={{ margin: '0 0 6px', color: '#fecaca', fontSize: 14 }}>Factory reset</h2>
       <p style={{ margin: '0 0 12px', color: '#cbd5e1', fontSize: 13, lineHeight: 1.5 }}>
-        Removes installed add-ons, host settings, and protocol state saved in this browser.
+        Removes installed add-ons and all local data for this site, including IndexedDB, browser storage, and offline caches.
       </p>
       <button
         type="button"
@@ -68,7 +68,7 @@ export function FactoryResetControl({ disabled = false, onReset }: FactoryResetC
       >
         Factory reset
       </button>
-      {completed && <p role="status" style={{ margin: '10px 0 0', color: '#86efac', fontSize: 12 }}>Host restored to its initial state. No add-ons are installed.</p>}
+      {completed && <p role="status" style={{ margin: '10px 0 0', color: '#86efac', fontSize: 12 }}>Local site data cleared. Offline support will be prepared again the next time the app loads.</p>}
       {error && <p role="alert" style={{ margin: '10px 0 0', color: '#fca5a5', fontSize: 12 }}>{error}</p>}
 
       {open && (
@@ -76,7 +76,7 @@ export function FactoryResetControl({ disabled = false, onReset }: FactoryResetC
           <div style={{ width: 'min(100%, 520px)', padding: 20, border: '1px solid rgba(248,113,113,0.42)', borderRadius: 12, background: '#1e293b', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
             <h2 id="factory-reset-title" style={{ margin: '0 0 8px', color: '#f8fafc', fontSize: 20 }}>Confirm factory reset</h2>
             <p id="factory-reset-description" style={{ margin: '0 0 16px', color: '#cbd5e1', fontSize: 13, lineHeight: 1.55 }}>
-              This action removes all installed add-ons, accepted contracts, search limits, and protocol state. Add-ons can be installed again from their URLs afterward.
+              This action removes installed add-ons and all data saved by this site, including localStorage, sessionStorage, every IndexedDB database, and offline caches. Add-ons can be installed again from their URLs afterward.
             </p>
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, color: '#f1f5f9', fontSize: 13, lineHeight: 1.45 }}>
               <input
@@ -87,7 +87,7 @@ export function FactoryResetControl({ disabled = false, onReset }: FactoryResetC
                 disabled={resetting}
                 style={{ marginTop: 2, accentColor: '#ef4444' }}
               />
-              <span>I understand that the host's local data and all installed add-ons will be removed.</span>
+              <span>I understand that all local data for this site and all installed add-ons will be removed.</span>
             </label>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
               <button type="button" onClick={close} disabled={resetting} style={{ padding: '9px 12px', border: '1px solid rgba(255,255,255,0.16)', borderRadius: 7, background: 'rgba(255,255,255,0.04)', color: '#cbd5e1', cursor: resetting ? 'not-allowed' : 'pointer', fontSize: 12 }}>Cancel</button>

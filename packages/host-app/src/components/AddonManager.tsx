@@ -4,7 +4,7 @@ import type { AddonInstance, AddonManifest } from '@addons-poc/protocol';
 import { AddonCard } from './AddonCard';
 import { AddonContractView } from './AddonContractView';
 import { FactoryResetControl } from './FactoryResetControl';
-import { LOCAL_MANIFEST_SUGGESTIONS, groupManifestSuggestions, loadLocalManifestSuggestions, olderManifestUrls, peekMosaicManifestUrl } from '../local-manifest-suggestions';
+import { LOCAL_MANIFEST_SUGGESTIONS, groupManifestSuggestions, loadLocalManifestSuggestions, olderManifestUrls, peekMosaicManifestUrl, prioritizePublishedAddonSuggestions } from '../local-manifest-suggestions';
 import type { LocalManifestSuggestion } from '../local-manifest-suggestions';
 import { DEFAULT_SEARCH_LIMIT } from '../search';
 import type { SearchLanguages, SearchLimitValue } from '../search';
@@ -43,7 +43,7 @@ export function AddonManager({ addons, onResourcesChanged, disabledAddonUrls, pe
   const pendingReviewRef = useRef<HTMLDivElement>(null);
   const busy = loading || inspecting;
   const installedManifestUrls = new Set(addons.map((addon) => peekMosaicManifestUrl(addon.manifestUrl)));
-  const availableSuggestions = [...suggestions.map((suggestion) => {
+  const availableSuggestions = prioritizePublishedAddonSuggestions([...suggestions.map((suggestion) => {
     const manifestUrl = peekMosaicManifestUrl(suggestion.manifestUrl);
     const installed = addons.find((addon) => peekMosaicManifestUrl(addon.manifestUrl) === manifestUrl);
     return installed && !suggestion.id
@@ -51,7 +51,7 @@ export function AddonManager({ addons, onResourcesChanged, disabledAddonUrls, pe
       : { ...suggestion, manifestUrl };
   }), ...addons
     .filter((addon) => !suggestions.some((suggestion) => peekMosaicManifestUrl(suggestion.manifestUrl) === peekMosaicManifestUrl(addon.manifestUrl)))
-    .map((addon) => ({ manifestUrl: peekMosaicManifestUrl(addon.manifestUrl), id: addon.manifest.id, title: addon.manifest.name, description: addon.manifest.description, version: addon.manifest.version }))];
+    .map((addon) => ({ manifestUrl: peekMosaicManifestUrl(addon.manifestUrl), id: addon.manifest.id, title: addon.manifest.name, description: addon.manifest.description, version: addon.manifest.version }))]);
   const olderUrls = olderManifestUrls(availableSuggestions);
   const suggestionGroups = groupManifestSuggestions(availableSuggestions);
   const pendingIsLocalSuggestion = pendingInstallation ? availableSuggestions.some((suggestion) => suggestion.manifestUrl === pendingInstallation.manifestUrl) : false;

@@ -15,11 +15,13 @@ export function localManifestUrl(port: number): string {
   return `http://localhost:${port}/manifest.json`;
 }
 
-export const PUBLISHED_RELEASE_VERSIONS = ['1.15.0', '1.16.0', '1.16.1', '1.16.2', '1.17.0', '1.17.1'] as const;
+export const PUBLISHED_RELEASE_VERSIONS = ['1.15.0', '1.16.0', '1.16.1', '1.16.2', '1.17.0', '1.17.1', '1.17.2'] as const;
 
 const PEEKMOSAIC_RELEASES_ORIGIN = 'https://www.peekmosaic.com/addons';
 const PUBLISHED_ADDON_IDS = ['chord-catalog', 'chord-viewer', 'storage-local', 'chord-editor'] as const;
+const PUBLISHED_ADDON_ID_SET = new Set<string>(PUBLISHED_ADDON_IDS);
 const PUBLISHED_RELEASE_MANIFESTS = [
+  { version: '1.17.2', addonIds: ['chord-catalog', 'chord-viewer', 'chord-editor'] },
   { version: '1.17.1', addonIds: ['chord-viewer', 'chord-editor'] },
   { version: '1.17.0', addonIds: PUBLISHED_ADDON_IDS },
   { version: '1.16.2', addonIds: ['chord-catalog', 'chord-viewer', 'chord-editor'] },
@@ -59,6 +61,20 @@ export interface LocalManifestSuggestion {
   description: string;
   version?: string;
   id?: string;
+}
+
+/** Keeps add-ons shipped by PeekMosaic ahead of local-only development examples. */
+export function prioritizePublishedAddonSuggestions(
+  suggestions: LocalManifestSuggestion[],
+): LocalManifestSuggestion[] {
+  return suggestions
+    .map((suggestion, index) => ({ suggestion, index }))
+    .sort((left, right) => {
+      const leftIsLocalOnly = !left.suggestion.id || !PUBLISHED_ADDON_ID_SET.has(left.suggestion.id);
+      const rightIsLocalOnly = !right.suggestion.id || !PUBLISHED_ADDON_ID_SET.has(right.suggestion.id);
+      return Number(leftIsLocalOnly) - Number(rightIsLocalOnly) || left.index - right.index;
+    })
+    .map(({ suggestion }) => suggestion);
 }
 
 export function olderManifestUrls(suggestions: LocalManifestSuggestion[]): Set<string> {

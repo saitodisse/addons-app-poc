@@ -440,19 +440,21 @@ downloads/
 Each chart needs a `.txt` and matching `.source.json`; the metadata must include
 `title`, `artist.name`, `artist.slug`, `sourceUrl` and `collectedAt`. When present,
 `file.sha256`, `file.bytes` and `file.name` are checked before import. Text,
-including spaces and line endings, is preserved. The converter maps key, capo,
-instrument, tuning, version, composers, chord names, genre and collection date.
-All original metadata, including chord shapes, is retained in
-`chordChart.sourceMetadata` in the structured content response. Imported shapes
-are not substituted with demo shapes. `source.url` is the original song URL;
-`source.catalogueUrl` is the archive used to import it. Archive imports use the same
-IndexedDB library and offline search/reading as Source Catalog imports.
+including spaces and line endings, is preserved. The converter keeps the chart
+text and only fields used by the app: title, artist, source URL, key, capo,
+instrument, tuning, version, composers, genre, selected view counts and collection
+dates. It does not save the complete `.source.json`, chord definitions or other
+unused fields in IndexedDB. Imported charts do not receive demo chord shapes.
+`source.url` is the original song URL; `source.catalogueUrl` is the archive used to
+import it. Archive imports use the same IndexedDB library and offline search/reading
+as Source Catalog imports.
 
 The structured response also exposes the artist's genre as `musicalWork.genre`
 and the source's view and list counts as `playableVersion.statistics`, when
 available. These values describe the collection date; they are not live counts.
-The popular catalogue uses the imported all-time view count. Existing imports
-retain the original metadata, so these fields do not require another import.
+The popular catalogue uses the imported all-time view count. Existing local
+imports are compacted when the updated catalogue opens, so they do not need to be
+downloaded again.
 
 The archive's URL identifies the snapshot. Updating the same URL replaces that
 snapshot; changing a signed URL creates a separate source. Prefer a stable URL
@@ -546,11 +548,14 @@ the catalogue settings; a deployed portal can use another base path.
 
 ### Cache de navegação do catálogo
 
-Para evitar reler toda a biblioteca ao trocar de página, o catálogo no navegador
-reutiliza uma fotografia em memória dos dados persistidos. Atualizar ou excluir
-uma fonte invalida essa fotografia e os resultados de busca. Os campos de busca
-normalizados acompanham os objetos das cifras em um `WeakMap`; até vinte buscas
-ou listagens recentes mantêm seus resultados ordenados em memória.
+Nas listagens de catálogo, o navegador reutiliza uma fotografia em memória dos
+dados persistidos. A busca offline usa outro caminho: percorre os blocos do
+IndexedDB e mantém no índice apenas o ID, o título, o nome do artista e o gênero.
+Ela corresponde a esses três campos e guarda resultados como referências a esse
+índice, sem copiar letras, acordes ou o JSON original para o cache de busca. Para
+montar uma página de resultados, o add-on percorre os blocos do IndexedDB e mantém
+na resposta somente as cifras daquela página; ao abrir uma música, mantém somente
+o registro escolhido. Atualizar ou excluir uma fonte invalida os caches.
 
 O host prepara até duas páginas seguintes após exibir a página atual. Um cache
 limitado a doze páginas de exibição compartilha também as promessas em andamento,
@@ -559,16 +564,16 @@ a configuração dos provedores. Falhas no pré-carregamento não interrompem a 
 aberta. Esses caches duram apenas enquanto o módulo ou a configuração atual estão
 ativos; o IndexedDB continua sendo a fonte persistente do catálogo.
 
-A preparação dos campos de busca ocorre em blocos de 128 cifras, com uma pausa
-assíncrona entre blocos para permitir que o navegador processe a interface.
+A preparação do índice percorre os blocos do IndexedDB com cursores; cada bloco é
+descartado depois de extrair os campos de busca. O servidor HTTP mantém a busca mais
+ampla, que também pode corresponder a compositores, tons, acordes, tags e palavras
+da letra.
 
-Medição local em Chromium em 19/10/2026, com 17.274 cifras reais importadas pelo
-fluxo de atualização e 25 itens por página: as transições 5 → 6, 6 → 5, 5 → 6
-e 6 → 7 levaram, respectivamente, 33, 26, 23 e 33 ms entre o clique e a pintura,
-sem novas chamadas a `IDBObjectStore.getAll`. A preparação inicial da busca
-levou 563 ms sem tarefas longas acima de 50 ms nessa etapa. A primeira leitura
-da biblioteca completa ainda levou cerca de 1,2 segundo; esses números são uma
-medição local, não uma garantia para outros dispositivos.
+Medição local anterior em Chromium, em 19/10/2026, com 17.274 cifras reais
+importadas e 25 itens por página: as transições entre páginas levaram de 23 a
+33 ms, e a primeira leitura da biblioteca completa cerca de 1,2 segundo. Essa
+medição antecede o índice reduzido descrito acima e não mede o uso de memória
+da implementação atual.
 
 Na listagem, fora de campos de edição, `←` e `→` mudam uma página;
 `Home` abre a primeira e `End` localiza a última, carregando as páginas de

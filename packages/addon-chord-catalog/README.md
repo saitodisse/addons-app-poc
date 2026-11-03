@@ -72,9 +72,18 @@ matching `.source.json`. Multiple artist folders are supported. An archive conta
 one complete Source Catalog is also accepted, alongside regular catalogue root
 URLs. Downloads must be served over HTTP(S) with CORS enabled.
 
-Conversion preserves chart whitespace, provenance and chord metadata and stores
-the result on the device for offline search and reading. A failed import keeps
+Conversion preserves chart whitespace and the metadata used by the app, then stores
+the result on the device for offline search and reading. It does not persist the
+full `.source.json` or unused chord definitions. A failed import keeps
 the previous snapshot. See [the import contract and limits](../../docs/CHORD-CHART.md#importing-a-zip-of-scraper-downloads).
+
+In the browser, the offline search cache keeps only each chart's ID, title,
+artist name, and genre. It searches those fields. The local search scans IndexedDB
+chunks but retains full chart records only for the current result page; the detail
+view retains only the selected chart. Catalogue views continue to use the full
+snapshot. The snapshots contain selected metadata rather than the original
+`.source.json`. The HTTP server keeps its broader search across composers, keys,
+chords, tags, and lyrics.
 
 The importer detects ZIP, TAR.ZST and encrypted archives from their contents, including when the filename or URL extension is misleading. In the catalogue's
 **Settings** panel, select the local `.cvcert` file, enter its passphrase and run the update.

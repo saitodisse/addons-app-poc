@@ -1,6 +1,6 @@
 import { manifest } from './manifest.js';
 import { CHARTS } from './data/charts.js';
-import { listCatalog, searchCharts, scoreChart, paginate } from './catalog.js';
+import { createMetadataSearchIndex, listCatalog, searchMetadataIndex, paginate } from './catalog.js';
 import { toMeta, toContentJson, toTextOption } from './payloads-core.js';
 import { createLibraryStore } from './library-store.js';
 import { sha256, sourceLines, updateSources, importArchive } from './source-import.js';
@@ -38,14 +38,11 @@ function loadCharts() {
     .catch((error) => { chartSnapshot = undefined; throw error; });
 }
 
-async function prepareSearchIndex(charts) {
+async function prepareSearchIndex() {
   return searchIndex ??= (async () => {
-    for (let offset = 0; offset < charts.length; offset += 128) {
-      const end = Math.min(offset + 128, charts.length);
-      for (let index = offset; index < end; index += 1) scoreChart(charts[index], []);
-      if (globalThis.scheduler?.yield) await globalThis.scheduler.yield();
-      else await new Promise((resolve) => setTimeout(resolve, 0));
-    }
+    const entries = await library.searchEntries();
+    entries.push(...createMetadataSearchIndex(demoCharts));
+    return entries;
   })().catch((error) => { searchIndex = undefined; throw error; });
 }
 
@@ -75,7 +72,6 @@ function contentPayload(chart) {
     payload.playableVersion.label = chart.versionLabel ?? 'Imported version';
     payload.chordChart.instrumentId = chart.instrumentId;
     payload.chordChart.tuningId = chart.tuningId;
-    if (chart.scraperMetadata) payload.chordChart.sourceMetadata = chart.scraperMetadata;
     if (chart.collectedAt) payload.observability.collectedAt = chart.collectedAt;
   }
   return payload;
@@ -91,15 +87,15 @@ export async function request({ url }) {
   if (!match) return undefined;
   const [, resource, encodedId, extension] = match;
   const id = decodeURIComponent(encodedId);
-  const charts = await loadCharts();
+  const charts = resource === 'catalog' ? await loadCharts() : undefined;
   let body;
   let contentType = 'application/json';
   if (resource === 'search' || resource === 'catalog') {
-    if (resource === 'search') await prepareSearchIndex(charts);
+    const searchEntries = resource === 'search' ? await prepareSearchIndex() : undefined;
     const cacheKey = JSON.stringify([resource, id]);
     let matches = resultCache.get(cacheKey);
     if (!matches) {
-      matches = resource === 'search' ? searchCharts(charts, id) : listCatalog(charts, id);
+      matches = resource === 'search' ? searchMetadataIndex(searchEntries, id) : listCatalog(charts, id);
       if (resultCache.size >= 20) resultCache.delete(resultCache.keys().next().value);
       resultCache.set(cacheKey, matches);
     }
@@ -107,9 +103,21 @@ export async function request({ url }) {
       limit: parsed.searchParams.get('limit') ? Number(parsed.searchParams.get('limit')) : undefined,
       cursor: parsed.searchParams.get('cursor') ?? undefined,
     });
-    body = JSON.stringify({ metas: items.map((chart) => toMeta(chart, baseUrl)), pagination });
+    if (resource === 'search') {
+      const wantedIds = new Set(items.map((entry) => entry.id));
+      const pageCharts = new Map(demoCharts
+        .filter((chart) => wantedIds.has(chart.id))
+        .map((chart) => [chart.id, chart]));
+      for (const chart of await library.getChartsByIds([...wantedIds])) pageCharts.set(chart.id, chart);
+      body = JSON.stringify({ metas: items.flatMap((entry) => {
+        const chart = pageCharts.get(entry.id);
+        return chart ? [toMeta(chart, baseUrl)] : [];
+      }), pagination });
+    } else {
+      body = JSON.stringify({ metas: items.map((chart) => toMeta(chart, baseUrl)), pagination });
+    }
   } else {
-    const chart = charts.find((chart) => chart.id === id);
+    const chart = demoCharts.find((item) => item.id === id) ?? (await library.getChartsByIds([id]))[0];
     if (!chart) return { status: 404, contentType, body: JSON.stringify({ error: 'Chart not found' }) };
     if (extension === 'txt') { body = chart.text; contentType = 'text/plain'; }
     else body = JSON.stringify(extension === 'json' ? contentPayload(chart) : { texts: [toTextOption(chart, baseUrl)] });
@@ -126,9 +134,9 @@ export function createTab() {
       save: async ({ values }) => localStorage.setItem(SETTINGS_KEY, JSON.stringify(values)),
     },
     getSnapshot: async () => {
-      const sources = await library.list();
-      return { status: 'info', body: `${sources.reduce((total, source) => total + source.charts.length, 0)} downloaded charts. Removing a URL stops updates and keeps downloaded charts.`,
-        items: sources.map((source) => ({ label: source.name, value: `${source.root} · ${source.charts.length} charts · ${source.importedAt}` })) };
+      const sources = await library.summaries();
+      return { status: 'info', body: `${sources.reduce((total, source) => total + source.count, 0)} downloaded charts. Removing a URL stops updates and keeps downloaded charts.`,
+        items: sources.map((source) => ({ label: source.name, value: `${source.root} · ${source.count} charts · ${source.importedAt}` })) };
     },
     async run(actionId, values) {
       if (actionId === 'delete') {

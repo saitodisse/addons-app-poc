@@ -4,26 +4,26 @@ A fixed release keeps its own manifest, bundle, catalogue function and Monaco fi
 
 Settings exposes branded manifest URLs under `https://www.peekmosaic.com/addons/<version>/...`. The host project proxies those paths to each fixed release project. Keep the original `https://addons-poc-release-<version>.vercel.app` origins active because published manifests and older installed add-ons still use them directly. A host rebrand does not overwrite or move a release; add a matching proxy rule when publishing a new version. Old installation URLs are normalized to the branded alias only for the Settings display. The stored manifest URL remains unchanged, preserving installation identity.
 
-The current host shows the newest available version per add-on and keeps older unique versions inside an accordion. Production suggestions include the updated viewer and editor from release 1.17.1; the unchanged catalogue and storage add-ons remain on release 1.17.0. Local servers remain on localhost. The older 1.15.0 catalogue has a known failure in its plain-text content route; its structured JSON route works. The issue is corrected in 1.16.0. Do not overwrite preserved releases.
+The current host shows the newest available version per add-on and keeps older unique versions inside an accordion. Release 1.17.2 updates the catalogue, viewer, and editor; storage remains on 1.17.0. Release 1.17.1 and earlier remain available for existing installs. Local servers remain on localhost. The older 1.15.0 catalogue has a known failure in its plain-text content route; its structured JSON route works. The issue is corrected in 1.16.0. Do not overwrite preserved releases.
 
 ## Prepare
 
 1. Choose a new stable `MAJOR.MINOR.PATCH` release number and a new Vercel project named `addons-poc-release-MAJOR-MINOR-PATCH`. Check that the project and its `.vercel.app` domain do not already exist. Never select an existing release project.
 2. Update the release origin in the viewer manifest and placeholder and editor manifest. Update each add-on's own manifest version when its behavior or contract changes. Do not change the host suggestions until the release has been deployed and verified.
-3. Run `pnpm addons:prepare 1.17.1` with the chosen version. The command builds the protocol, bundles the four add-ons and catalogue function, and writes a standalone Vercel directory at `temp/addons-poc-release-1-17-1`. It refuses an existing directory and rejects an origin mismatch. A failed preparation leaves its directory for inspection; move it aside before retrying.
+3. Run `pnpm addons:prepare 1.17.2` with the chosen version. The command builds the protocol, bundles the four add-ons and catalogue function, and writes a standalone Vercel directory at `temp/addons-poc-release-1-17-2`. It refuses an existing directory and rejects an origin mismatch. A failed preparation leaves its directory for inspection; move it aside before retrying.
 
 ## Publish and verify
 
 1. Create a new Vercel project in the intended team, then deploy the prepared directory to it. For example:
 
    ```sh
-   pnpm exec vercel project create addons-poc-release-1-17-1 --scope <team>
-   pnpm exec vercel project inspect addons-poc-release-1-17-1 --scope <team> --json
-   pnpm exec vercel deploy --yes --prod --project addons-poc-release-1-17-1 --scope <team> --cwd temp/addons-poc-release-1-17-1 --local-config temp/addons-poc-release-1-17-1/vercel.json
+   pnpm exec vercel project create addons-poc-release-1-17-2 --scope <team>
+   pnpm exec vercel project inspect addons-poc-release-1-17-2 --scope <team> --json
+   pnpm exec vercel deploy --yes --prod --project addons-poc-release-1-17-2 --scope <team> --cwd temp/addons-poc-release-1-17-2 --local-config temp/addons-poc-release-1-17-2/vercel.json
    ```
 
    Confirm that the assigned public domain matches the origin printed by the preparation command. Create release projects without a Git connection so later pushes to the host repository cannot overwrite a fixed release.
-2. Run `pnpm addons:verify 1.17.1`. This checks public HTTP access, CORS, protocol validation, exact bundle URLs, catalogue listing and plain-text content, and the Monaco loader. It does not replace an end-to-end browser test: install all four manifests in the host, open a chart and check the editor and preview.
+2. Run `pnpm addons:verify 1.17.2`. This checks public HTTP access, CORS, protocol validation, exact bundle URLs, catalogue listing and plain-text content, and the Monaco loader. It does not replace an end-to-end browser test: install all four manifests in the host, open a chart and check the editor and preview.
 3. Add the new release version to the branded rewrite rules in the root `vercel.json` and to `PUBLISHED_RELEASE_VERSIONS` in `packages/host-app/src/local-manifest-suggestions.ts`. Point the current published suggestions at that release. Verify the branded manifest and bundle routes before deploying the host. Localhost suggestions must remain local; production should show the branded URLs. Record version changes in the changelog.
 
 The demo catalogue is public. Imported catalogues and drafts remain in the browser. `pnpm addons:verify` performs read-only network requests; `pnpm addons:prepare` writes only to a new directory under `temp/` and does not publish anything.

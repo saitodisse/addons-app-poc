@@ -33,7 +33,8 @@ export function chartDescription(chart) {
 export function chartSummary(chart) {
   const sections = chartSections(chart.text);
   const names = sections.map((section) => section.title).join(', ');
-  return `Chord chart in ${chart.key} with ${sections.length} section${sections.length === 1 ? '' : 's'}${names ? ` (${names})` : ''} and shapes ${chart.chords.join(', ')}.`;
+  const shapes = chart.chords?.length ? ` and shapes ${chart.chords.join(', ')}` : '';
+  return `Chord chart in ${chart.key} with ${sections.length} section${sections.length === 1 ? '' : 's'}${names ? ` (${names})` : ''}${shapes}.`;
 }
 
 /** Row shape shared by the `catalog` and `search` resources. */
@@ -62,9 +63,9 @@ export function toMeta(chart, baseUrl) {
 
 /** Voicing shapes of the chart, so a renderer never needs a second lookup. */
 export function chartVoicings(chart) {
-  return chart.chords.map((symbol) => {
-    // Imported shapes stay in sourceMetadata; never substitute a demo shape.
-    if (chart.scraperMetadata) return { symbol };
+  return (chart.chords ?? []).map((symbol) => {
+    // Imported chords do not inherit demo fingerings.
+    if (chart.sourceRoot) return { symbol };
     const voicing = VOICINGS[symbol];
     if (!voicing) return { symbol };
     return { symbol, frets: voicing.frets, fingers: voicing.fingers, position: voicing.position };
@@ -100,8 +101,8 @@ export function toContentJson(chart, options) {
   const { baseUrl, requestId, durationMs, generatedAt } = options;
   const text = chart.text;
   const contentUrl = absolute(baseUrl, contentPath(chart, 'json'));
-  const genre = chart.scraperMetadata?.artist?.genre;
-  const statistics = chart.scraperMetadata?.chart?.statistics;
+  const genre = chart.genre;
+  const statistics = chart.statistics;
   return {
     id: chart.id,
     type: CHART_TYPE,

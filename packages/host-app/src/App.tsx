@@ -169,6 +169,7 @@ export function App({ importAddonModule }: AppProps = {}) {
   const [loading, setLoading] = useState(true);
   const [installationsReady, setInstallationsReady] = useState(false);
   const loadedRef = useRef(false);
+  const factoryResetRef = useRef(false);
   const searchRequestRef = useRef(0);
   const loadedListKeyRef = useRef<string | null>(null);
   const [resultToFocus, setResultToFocus] = useState<string | null>(null);
@@ -180,7 +181,10 @@ export function App({ importAddonModule }: AppProps = {}) {
   const addonLifecycleRef = useRef(0);
   const fetchResource = useMemo(() => createResourceFetch(registry), [registry]);
   const httpTextClient = useMemo(() => createFetchSearchClient(fetchResource), [fetchResource]);
-  useEffect(() => { void retainInstalledAddons(addons.filter((addon) => addon.status === 'ready').map((addon) => addon.manifestUrl)); }, [addons]);
+  useEffect(() => {
+    if (factoryResetRef.current && addons.length === 0) return;
+    void retainInstalledAddons(addons.filter((addon) => addon.status === 'ready').map((addon) => addon.manifestUrl));
+  }, [addons]);
   const route = useRoute();
 
   const returnToResults = useCallback(() => {
@@ -339,6 +343,8 @@ export function App({ importAddonModule }: AppProps = {}) {
 
   useEffect(() => {
     if (!installationsReady) return;
+    if (factoryResetRef.current && addons.length === 0) return;
+    factoryResetRef.current = false;
     persistInstallations({
       manifestUrls: addons.map((addon) => addon.manifestUrl),
       disabledManifestUrls: disabledAddonUrls.filter((url) => addons.some((addon) => addon.manifestUrl === url)),
@@ -733,12 +739,18 @@ export function App({ importAddonModule }: AppProps = {}) {
 
   const resetFactory = useCallback(async () => {
     addonLifecycleRef.current += 1;
+    factoryResetRef.current = true;
     setLoading(true);
     try {
       const stateStores = registry.getAll<AddonStateStore>('state-store');
       await Promise.allSettled(stateStores.map((store) => store.clear()));
       for (const addon of addons) registry.clearAddon(addon.manifestUrl);
-      resetFactoryStorage();
+      let resetError: unknown;
+      try {
+        await resetFactoryStorage();
+      } catch (error) {
+        resetError = error;
+      }
       setAddons([]);
       setDisabledAddonUrls([]);
       setAcceptedContractFingerprints({});
@@ -747,6 +759,7 @@ export function App({ importAddonModule }: AppProps = {}) {
       setSearchLanguages({});
       clearSearch();
       setSearchStateReady(true);
+      if (resetError) throw resetError;
     } finally {
       setLoading(false);
     }
