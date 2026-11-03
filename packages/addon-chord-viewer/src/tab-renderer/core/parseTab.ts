@@ -18,7 +18,7 @@ import type {
   ParsedTabToken,
 } from "./types";
 
-export const TAB_RENDERER_PARSER_VERSION = "2.2.2";
+export const TAB_RENDERER_PARSER_VERSION = "2.2.3";
 export const TAB_RENDERER_AST_VERSION = "2.2.2";
 
 const SECTION_LABEL_RE = /^\s*\[([^\]]+)\](.*)$/;

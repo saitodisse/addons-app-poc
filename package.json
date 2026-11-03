@@ -1,6 +1,6 @@
 {
   "name": "peekmosaic",
-  "version": "1.18.1",
+  "version": "1.18.2",
   "private": true,
   "scripts": {
     "test": "pnpm check:host-boundary && pnpm run build:protocol && pnpm -r --filter './packages/**' test && node --test deployment/addons/release.test.mjs",

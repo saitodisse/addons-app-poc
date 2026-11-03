@@ -5,9 +5,18 @@ const TAB_TITLE = /^\s*\[Tab(?:\s|\s*-|\]).*\]\s*$/i;
 const INSTRUMENT_CAPTION = /^\s*\((?:(?:primeiro|segundo|terceiro|primeira|segunda|terceira|\d+[ºª]?)\s+)?(?:violão|guitarra|baixo)\)\s*$/i;
 const PART = /^\s*Parte\s+\d+\s+de\s+\d+(?:\s*[-–—].*)?\s*$/i;
 const TECHNIQUES = /^(?:H\.?N\.?|P\.?M\.?|P\.?H\.?|N\.?H\.?|A\.?H\.?|[.·<>~^\-–—])+$/i;
+const TIME_MARKER = /^\s*(?:\d{1,2}:)?[0-5]?\d:[0-5]?\d(?:[.,]\d+)?\s*$/;
+
+function isTabMetadata(line: string): boolean {
+  return TAB_TITLE.test(line)
+    || PART.test(line)
+    || INSTRUMENT_CAPTION.test(line)
+    || TECHNIQUES.test(line.trim())
+    || TIME_MARKER.test(line);
+}
 
 function isComplement(line: string): boolean {
-  if (TAB_TITLE.test(line) || PART.test(line) || INSTRUMENT_CAPTION.test(line)) return true;
+  if (isTabMetadata(line)) return true;
   const tokens = line.trim().split(/\s+/);
   return tokens.every((token) => parseChordSymbol(token) !== null || TECHNIQUES.test(token));
 }
@@ -25,6 +34,12 @@ export function hideTablature(body: string): string {
       if (removed.has(index)) break;
       if (!lines[index].trim()) continue;
       if (!isComplement(lines[index])) break;
+      removed.add(index);
+    }
+    for (let index = end; index < lines.length; index++) {
+      if (removed.has(index)) break;
+      if (!lines[index].trim()) continue;
+      if (!isTabMetadata(lines[index])) break;
       removed.add(index);
     }
     start = end - 1;

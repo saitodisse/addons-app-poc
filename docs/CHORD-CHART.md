@@ -115,7 +115,7 @@ rawText ──parseTab──► ParsedTab ──transposeParsedTab──► Pars
 The parse is column-based, exactly like the source: every token carries
 `startColumn` and `endColumn`, and a chord is drawn above the lyric line with
 `position: relative` plus a negative right margin, not by rewriting the text.
-The port keeps `parserVersion` and `astVersion` at `2.2.2`.
+The current parser reports `parserVersion` `2.2.3` and keeps `astVersion` at `2.2.2`.
 
 The port left out the legacy path that depends on `@tonaljs/tonal`
 (`prepareSong`, `splitSections`, `pairLines`, the `transposer` folder) because
@@ -597,8 +597,10 @@ linhas de cordas (`E|---`, `B|---` etc.) e seus complementos imediatamente
 acima: títulos `[Tab - ...]`, indicações `Parte 1 de 3`, acordes isolados e
 marcas de técnica como `H.N.`. Títulos musicais como `[Solo]`, acordes
 acompanhados de letra e o texto original armazenado permanecem preservados.
-Linhas com slides como `4s5` e identificações de instrumento como
-`(Primeiro Violão)` também são ocultadas quando fazem parte de uma tablatura.
+Linhas de tempo como `2:52`, identificações de instrumento como
+`(Primeiro Violão)` e indicações de tablatura antes ou depois do bloco também
+são ocultadas. Linhas com slides como `4s5` também desaparecem quando fazem
+parte de uma tablatura.
 Desligar a opção volta a mostrar esse conteúdo. O filtro pertence ao
 `tab-renderer` e é aplicado antes da análise de acordes, nos dois layouts.
 

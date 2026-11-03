@@ -65,7 +65,7 @@ describe('parseTab', () => {
 
   it('classifies the lines and collects the chords of the chart', () => {
     const summary = summarizeParsedTab(parseTab(CHART));
-    expect(summary.parserVersion).toBe('2.2.2');
+    expect(summary.parserVersion).toBe('2.2.3');
     expect(summary.sections).toBe(2);
     expect(summary.sectionTitles).toEqual(['Intro', 'Verse 1']);
     expect(summary.chordsFound).toEqual(['G', 'D/F#', 'Em', 'C']);

@@ -4,6 +4,17 @@ This file describes, in reverse order, how the project evolved. The quick read s
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.18.2] - 2026-11-02
+
+### Added
+
+- Publish fixed add-on release 1.17.1 and use its branded manifest routes as the latest production suggestions.
+
+### Fixed
+
+- Remove timestamps and adjacent tab-only metadata when tablature is hidden, while preserving song lyrics and section headings.
+- Let rendered tablature fill the available section width without nested gutters.
+
 ## [1.18.1] - 2026-11-02
 
 ### Changed

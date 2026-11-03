@@ -109,7 +109,7 @@ describe('manifest', () => {
   it('declares one outgoing route per catalogue call it makes', () => {
     const outgoing = manifest.contract.http.filter((entry) => entry.direction === 'outgoing');
     expect(outgoing.map((entry) => entry.id)).toEqual(['catalog-list', 'catalog-text', 'catalog-content']);
-    expect(outgoing.every((entry) => entry.origin === 'https://addons-poc-release-1-17-0.vercel.app')).toBe(true);
+    expect(outgoing.every((entry) => entry.origin === 'https://addons-poc-release-1-17-1.vercel.app')).toBe(true);
   });
 
   it('groups every control for the panel', () => {
@@ -185,7 +185,7 @@ describe('service contract', () => {
     expect(rendered.playedChords).toEqual(['A', 'E']);
     expect(rendered.shapeKey).toBe('A');
     expect(rendered.html).toContain('data-tab-root');
-    expect(rendered.parserVersion).toBe('2.2.2');
+    expect(rendered.parserVersion).toBe('2.2.3');
   });
 
   it('rejects a call that breaks the declared input', () => {
@@ -244,7 +244,7 @@ describe('tab behaviour with a chart', () => {
     expect(html).toContain('tab-styled-section');
     expect(response.body).toContain('Rows and rows of lanterns');
     expect(itemValue(response, 'Played as')).toBe('G · D');
-    expect(itemValue(response, 'Parser')).toBe('tab-renderer 2.2.2');
+    expect(itemValue(response, 'Parser')).toBe('tab-renderer 2.2.3');
   });
 
   it('renders again from the values of the panel', async () => {
@@ -388,7 +388,7 @@ describe('tab behaviour with a chart', () => {
     const response = await tab.run!('inspect', {}) as ResponseWithView;
     expect(response.status).toBe('info');
     expect(response.body).toContain('"chordsFound"');
-    expect(response.body).toContain('"parserVersion": "2.2.2"');
+    expect(response.body).toContain('"parserVersion": "2.2.3"');
     expect(response.view).toBeUndefined();
     expect(itemValue(response, 'Chords found')).toBe('G · D');
   });

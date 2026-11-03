@@ -698,7 +698,29 @@ main.host-search-result-page-main {
   padding: 0 10px;
 }
 .host-rendered-result .host-article-card { overflow: visible; }
-.host-rendered-result .host-article-section { padding-top: 12px; }
+.host-article-page.is-rendered-view:has([data-tab-root]) .host-article-section {
+  min-width: 0;
+  padding: 0;
+}
+.host-article-page.is-rendered-view:has([data-tab-root]) .host-tab-view {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border-radius: 0;
+}
+.host-article-page.is-rendered-view:has([data-tab-root]) .host-tab-view > pre[data-tab-root] {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  padding: clamp(18px, 2vw, 32px);
+  border: 0;
+  border-radius: 0 0 14px 14px;
+  box-shadow: none;
+}
 .host-reading-status-item {
   display: inline-flex;
   align-items: center;
@@ -1066,17 +1088,8 @@ main.host-search-result-page-main {
     background: linear-gradient(100deg, rgba(106, 64, 155, 0.22), transparent 65%);
   }
 
-  .host-article-page.is-rendered-view:has([data-tab-root]) .host-tab-view {
-    padding: 10px;
-  }
-
   .host-article-page.is-rendered-view:has([data-tab-root]) .host-tab-view > pre[data-tab-root] {
-    box-sizing: border-box;
-    width: 100%;
-    margin: 0;
-    border-color: rgba(167, 139, 250, 0.35);
     box-shadow: inset 3px 0 0 #c4a6ff;
-    overflow-wrap: anywhere;
   }
 }
 

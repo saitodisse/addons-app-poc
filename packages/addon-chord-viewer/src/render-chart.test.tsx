@@ -37,7 +37,7 @@ describe('renderChart', () => {
     expect(rendered.html).toContain('D');
     expect(rendered.playedChords).toEqual(['G', 'D']);
     expect(rendered.sections).toBe(1);
-    expect(rendered.parserVersion).toBe('2.2.2');
+    expect(rendered.parserVersion).toBe('2.2.3');
   });
 
   it('applies the style controls to the rendered markup', () => {

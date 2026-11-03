@@ -23,6 +23,14 @@ describe('hideTablature', () => {
     expect(visible(`${before}\n\n${solo}\n\n${VERSE}`)).toBe(visible(`${before}\n\n[Solo]\n\n${VERSE}`));
   });
 
+  it('removes time markers around tablature and keeps surrounding lyrics', () => {
+    const before = 'Hey! Oh, now\n\n[Solo]\nEm Am Em Am D C C Em G D\n\n2:52';
+    const after = '3:25\n\nEm\nI said that life must be found';
+    const source = `${before}\n${ARM}\n\n3:09\n${ARM}\n\n${ARM}\n\n${after}`;
+
+    expect(visible(source)).toBe('Hey! Oh, now\n[Solo]\nEm\nI said that life must be found');
+  });
+
   it.each(['[Solo]', '[Intro]', '[Primeira Parte]', '(Volta ao início)', 'A morena girando a renda', 'Parte da minha vida', 'H.N. na minha vida'])('preserves unrelated text: %s', (line) => {
     expect(visible(`${line}\n\n${ARM}`)).toBe(line);
   });
